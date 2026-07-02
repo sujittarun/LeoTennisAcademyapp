@@ -5,9 +5,12 @@ Multi-page vanilla web app (no build step) for Leo Tennis Academy Hyderabad
 Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricket, light-first).
 
 ## Product rules (IMPORTANT — do not regress)
-- ADULTS ONLY. No kids programs, no parent/guardian fields, no age-group batches.
-  People are "members" (never "students"/"kids"; "player" only in natural tennis
-  phrasing like "league player").
+- ADULTS ONLY as a business rule, but NEVER write the word "adult" in UI copy
+  (user removed it deliberately). No kids programs, no parent/guardian fields,
+  no age-group batches. People are "members" (never "students"/"kids"; "player"
+  only in natural tennis phrasing like "league player").
+- Landing page must keep the coaches ("The Team") and member-quotes sections,
+  and the scroll-scrubbed hero tennis ball (inline script in index.html).
 - Two revenue lines: coaching memberships AND hourly court booking (4 courts —
   synthetic hard, one-hour slots 06:00–23:00, ₹500 off-peak /
   ₹700 peak from 4 PM).
