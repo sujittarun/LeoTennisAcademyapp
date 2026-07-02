@@ -480,6 +480,7 @@
       }
 
       var CFG = {
+        V_OFFSET: 0.8, // s — footage trimmed by this much; keeps knobs in original-video time
         T_WAVE: 3.7,   // s — wave front reaches bottom of frame
         BASE: 0.06,    // front starts at 6% of viewport height
         SPAN: 0.94,
@@ -524,8 +525,9 @@
         return 1 - 0.03 * Math.exp(-8 * u);
       }
 
-      function now() {
-        return driving ? video.currentTime : (fallbackT0 ? (performance.now() - fallbackT0) / 1000 : 0);
+      function now() { // physics runs in original-footage time
+        if (driving) return video.currentTime + CFG.V_OFFSET;
+        return CFG.V_OFFSET + (fallbackT0 ? (performance.now() - fallbackT0) / 1000 : 0);
       }
       function frame() {
         if (done) return;
@@ -537,7 +539,7 @@
       function start() { if (started || done) return; started = true; frame(); }
 
       scrollTo(0, 0);
-      wrapper.style.transform = "translateY(" + yAt(0) + "px)";
+      wrapper.style.transform = "translateY(" + yAt(CFG.V_OFFSET) + "px)";
 
       // debug: append ?bwlslow=0.25 to watch the ride in slow motion
       var rate = parseFloat(new URLSearchParams(location.search).get("bwlslow")) || 1;
