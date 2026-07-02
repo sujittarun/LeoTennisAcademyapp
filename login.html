@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Manager Login — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .login-wrap { min-height: 100dvh; display: grid; place-items: center; padding: var(--gap-4); }
+    .login-card { width: min(420px, 100%); padding: var(--gap-5) var(--gap-4); text-align: center; }
+    .login-card .mark { width: 72px; height: 72px; margin: 0 auto var(--gap-3); display: grid; place-items: center; border-radius: 20px;
+      background: radial-gradient(circle at 32% 24%, #0f3d27, var(--forest-900) 70%); border: 1px solid rgba(201,162,75,.45);
+      box-shadow: 0 14px 34px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.14); }
+    .login-card h1 { font-size: 22px; font-weight: 800; }
+    .login-card .sub { color: var(--ink-mid); font-size: 13.5px; margin-top: 5px; }
+    .login-card form { display: flex; flex-direction: column; gap: var(--gap-3); margin-top: var(--gap-4); text-align: left; }
+    .demo-note { margin-top: var(--gap-3); font-size: 12px; color: var(--ink-low); }
+  </style>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+  <button type="button" class="theme-toggle" style="position:fixed;top:16px;right:16px;z-index:70;"></button>
+
+  <div class="login-wrap">
+    <div class="glass login-card reveal in">
+      <div class="mark" data-logo="52"></div>
+      <h1>Manager Console</h1>
+      <p class="sub">Leo Tennis Academy · Hyderabad</p>
+      <form id="loginForm">
+        <label class="field"><span>Email</span><input type="email" name="email" value="coach@leotennis.in" autocomplete="username" /></label>
+        <label class="field"><span>Password</span><input type="password" name="password" value="demo1234" autocomplete="current-password" /></label>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
+      </form>
+      <p class="demo-note">Demo build — any credentials work. <a href="index.html">Back to website</a></p>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js?v=1"></script>
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      LT.auth.login(new FormData(this).get("email"));
+      LT.toast("Welcome back, Coach!");
+      setTimeout(function () { location.href = "dashboard.html"; }, 500);
+    });
+  </script>
+</body>
+</html>

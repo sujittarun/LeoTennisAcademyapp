@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Leo Tennis Academy — Hyderabad | Admissions Open</title>
+  <meta name="description" content="Hyderabad's premium tennis academy — certified coaches, structured pathways from Tiny Aces to Elite Performance, video analysis and tournament exposure. Book a free trial." />
+  <meta property="og:title" content="Leo Tennis Academy — Hyderabad" />
+  <meta property="og:description" content="Where champions take their first swing. Book a free trial session today." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .lp { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--gap-4); }
+
+    /* hero */
+    .hero { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: var(--gap-4); align-items: center; min-height: 92vh; padding-top: calc(var(--nav-h) + 20px); }
+    .hero h1 { font-size: clamp(38px, 5.8vw, 70px); line-height: 1.03; font-weight: 800; letter-spacing: -.02em; }
+    .hero h1 .grad { background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero .lede { color: var(--ink-mid); font-size: clamp(15px, 1.7vw, 18px); max-width: 50ch; margin-top: var(--gap-3); }
+    .hero-cta { display: flex; gap: var(--gap-2); flex-wrap: wrap; margin-top: var(--gap-4); }
+    .hero-points { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--gap-4); }
+    .gold-rule { height: 4px; width: 130px; border-radius: 99px; margin-top: var(--gap-3); background: var(--gold-grad); box-shadow: 0 4px 16px rgba(201,162,75,.4); }
+
+    /* hero art — glass ring + giant tennis ball + floating chips */
+    .hero-art { position: relative; height: min(560px, 68vh); display: grid; place-items: center; }
+    .hero-art .halo { position: absolute; width: 76%; aspect-ratio: 1; border-radius: 50%;
+      background: radial-gradient(circle at 36% 30%, rgba(224,189,108,.4), rgba(52,211,153,.2) 55%, transparent 74%); filter: blur(10px); animation: floaty 7s ease-in-out infinite; }
+    .hero-art .ring { position: absolute; width: 66%; aspect-ratio: 1; border-radius: 50%;
+      border: 1.5px solid rgba(224,189,108,.4); box-shadow: inset 0 0 40px rgba(201,162,75,.12); animation: spin-slow 40s linear infinite; }
+    .hero-art .ring::after { content:""; position: absolute; top: 6%; left: 78%; width: 12px; height: 12px; border-radius: 50%;
+      background: var(--gold-grad); box-shadow: 0 0 18px rgba(224,189,108,.9); }
+    @keyframes spin-slow { to { transform: rotate(360deg); } }
+    .hero-art .ball { position: relative; width: clamp(160px, 22vw, 250px); aspect-ratio: 1; border-radius: 50%;
+      background: radial-gradient(circle at 32% 28%, #f2fca1 0%, #d7ef4f 48%, #93a726 100%);
+      box-shadow: inset -16px -20px 40px rgba(70,90,10,.5), inset 10px 12px 28px rgba(255,255,255,.45), 0 34px 70px rgba(0,0,0,.45);
+      animation: floaty 6s ease-in-out infinite; }
+    .hero-art .ball svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .hero-art .chiplet { position: absolute; padding: 10px 16px; border-radius: var(--r-pill); font-size: 12.5px; font-weight: 700; color: var(--ink-hi);
+      display: flex; align-items: center; gap: 8px; animation: floaty 7s ease-in-out infinite; }
+    .hero-art .chiplet svg { width: 15px; height: 15px; color: var(--tx-gold); flex: none; }
+    .hero-art .c1 { top: 10%; left: 2%; animation-delay: -1.5s; }
+    .hero-art .c2 { bottom: 16%; right: 0%; animation-delay: -3s; }
+    .hero-art .c3 { bottom: 4%; left: 10%; animation-delay: -4.5s; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+
+    /* sections */
+    .sec { padding: clamp(48px, 8vh, 96px) 0; }
+    .sec-h { text-align: center; max-width: 62ch; margin: 0 auto var(--gap-5); }
+    .sec-h h2 { font-size: clamp(26px, 3.6vw, 40px); font-weight: 800; letter-spacing: -.02em; }
+    .sec-h p { color: var(--ink-mid); font-size: 16px; margin-top: 10px; }
+
+    /* stats band */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); }
+    .stat-b { text-align: center; padding: var(--gap-4) var(--gap-3); }
+    .stat-b .v { font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 4vw, 46px);
+      background: var(--stat-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-b .l { font-size: 12.5px; color: var(--ink-low); margin-top: 4px; letter-spacing: .02em; }
+
+    /* programs */
+    .prog { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); }
+    .prog-c { padding: var(--gap-4); display: flex; flex-direction: column; gap: 10px; }
+    .prog-c .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #1c1503;
+      background: var(--gold-grad); box-shadow: 0 10px 22px rgba(201,162,75,.35); }
+    .prog-c .ic svg { width: 26px; height: 26px; }
+    .prog-c h3 { font-size: 17px; font-weight: 700; }
+    .prog-c .ages { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-optic); }
+    .prog-c p { font-size: 13.5px; color: var(--ink-mid); flex: 1; }
+    .prog-c .tm { font-size: 12.5px; color: var(--ink-low); display: flex; align-items: center; gap: 6px; }
+    .prog-c .tm svg { width: 14px; height: 14px; }
+
+    /* why leo */
+    .why { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
+    .why-c { padding: var(--gap-4); display: flex; gap: 14px; align-items: flex-start; }
+    .why-c .ic { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center;
+      background: rgba(215,239,79,.14); border: 1px solid rgba(215,239,79,.3); color: var(--tx-optic); }
+    .why-c .ic svg { width: 22px; height: 22px; }
+    .why-c h3 { font-size: 15.5px; font-weight: 700; }
+    .why-c p { font-size: 13px; color: var(--ink-mid); margin-top: 4px; }
+
+    /* coaches */
+    .coach { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
+    .coach-c { padding: var(--gap-4); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .coach-c .avatar { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
+      font-family: var(--font-display); font-size: 28px; font-weight: 800; color: #1c1503;
+      background: var(--gold-grad); box-shadow: 0 14px 30px rgba(201,162,75,.35), inset 0 2px 0 rgba(255,255,255,.5); }
+    .coach-c h3 { font-size: 17px; }
+    .coach-c .role { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tx-gold); }
+    .coach-c p { font-size: 13px; color: var(--ink-mid); }
+
+    /* pricing */
+    .price { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); align-items: stretch; }
+    .price-c { padding: var(--gap-4); text-align: center; display: flex; flex-direction: column; gap: 6px; }
+    .price-c.feature { border-color: rgba(224,189,108,.55); }
+    .price-c .plan { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-gold); }
+    .price-c .amt { font-family: var(--font-display); font-size: clamp(34px, 3.6vw, 44px); font-weight: 800; }
+    .price-c .amt small { font-size: 14px; font-weight: 600; color: var(--ink-low); }
+    .price-c ul { list-style: none; margin: var(--gap-3) 0; padding: 0; display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: var(--ink-mid); }
+    .price-c ul li::before { content: "✓  "; color: var(--tx-green); font-weight: 700; }
+    .price-c .save { align-self: center; }
+
+    /* steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
+    .step-c { padding: var(--gap-4); }
+    .step-c .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+      font-family: var(--font-display); font-weight: 800; color: #1c1503; background: var(--gold-grad); margin-bottom: 12px; }
+    .step-c h3 { font-size: 16.5px; font-weight: 700; }
+    .step-c p { font-size: 13.5px; color: var(--ink-mid); margin-top: 5px; }
+
+    /* testimonials */
+    .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
+    .quote-c { padding: var(--gap-4); display: flex; flex-direction: column; gap: 12px; }
+    .quote-c .stars { color: var(--tx-gold); letter-spacing: 3px; font-size: 14px; }
+    .quote-c blockquote { margin: 0; font-size: 14px; color: var(--ink-mid); font-style: italic; flex: 1; }
+    .quote-c .who { display: flex; align-items: center; gap: 10px; }
+    .quote-c .who .av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
+    .quote-c .who .nm { font-size: 13.5px; font-weight: 700; color: var(--ink-hi); }
+    .quote-c .who .rl { font-size: 11.5px; color: var(--ink-low); }
+
+    /* final cta */
+    .cta-card { text-align: center; padding: clamp(40px, 7vh, 72px) var(--gap-4); }
+    .cta-card h2 { font-size: clamp(28px, 4vw, 46px); font-weight: 800; letter-spacing: -.02em; }
+    .cta-card p { color: var(--ink-mid); margin: 12px auto var(--gap-4); max-width: 48ch; }
+
+    /* footer */
+    .lp-foot { padding: var(--gap-5) 0 calc(var(--gap-5) + 10px); border-top: 1px solid var(--line); margin-top: var(--gap-5); }
+    .lp-foot .row { display: flex; justify-content: space-between; gap: var(--gap-3); flex-wrap: wrap; align-items: center; }
+    .lp-foot a { font-size: 13px; }
+    .lp-foot .ig { display: inline-flex; align-items: center; gap: 7px; }
+    .lp-foot .ig svg { width: 16px; height: 16px; }
+    .lp-foot .staff { color: var(--ink-faint); font-size: 12px; }
+    .lp-foot .staff:hover { color: var(--tx-gold); }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; text-align: center; gap: var(--gap-3); }
+      .hero .lede { margin-left: auto; margin-right: auto; }
+      .gold-rule { margin-left: auto; margin-right: auto; }
+      .hero-cta, .hero-points { justify-content: center; }
+      .hero-art { height: 340px; order: -1; }
+      .stats, .prog { grid-template-columns: repeat(2, 1fr); }
+      .why, .coach, .price, .steps, .quotes { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) { .nav-brand .t span { display: none; } .stats { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <!-- top nav -->
+  <nav class="lt-nav glass">
+    <a class="nav-brand" href="index.html">
+      <span class="mark" data-logo="30"></span>
+      <span class="t"><strong>Leo Tennis Academy</strong><span>Hyderabad</span></span>
+    </a>
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle"></button>
+      <a class="btn btn-ghost btn-sm hide-mobile" href="login.html">Manager login</a>
+      <a class="btn btn-primary btn-sm" href="admission.html">Book free trial</a>
+    </div>
+  </nav>
+
+  <!-- hero -->
+  <header class="lp">
+    <div class="hero">
+      <div class="lt-court-scene" aria-hidden="true">
+        <span class="tb tb1"></span><span class="tb tb2"></span><span class="tb tb3"></span>
+        <svg class="court-lines" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax meet">
+          <path d="M 200 300 L 420 40 L 780 40 L 1000 300 Z" />
+          <line x1="310" y1="170" x2="890" y2="170" />
+          <line x1="600" y1="40" x2="600" y2="300" />
+          <line x1="420" y1="40" x2="780" y2="40" />
+        </svg>
+        <svg class="racquet" viewBox="0 0 120 200" fill="none" stroke="currentColor" stroke-width="5">
+          <ellipse cx="60" cy="52" rx="42" ry="50" />
+          <path d="M 48 100 L 42 190 M 72 100 L 78 190 M 42 190 Q 60 198 78 190" />
+          <path d="M 30 30 H 90 M 26 52 H 94 M 32 74 H 88 M 44 12 V 96 M 60 4 V 102 M 76 12 V 96" stroke-width="1.5" opacity=".7" />
+        </svg>
+      </div>
+
+      <div>
+        <span class="pill gold">★ Admissions open · Season 2026–27</span>
+        <h1 class="mt-3">Where champions<br /><span class="grad">take their first swing.</span></h1>
+        <div class="gold-rule"></div>
+        <p class="lede">Premium tennis coaching in Hyderabad — a structured pathway from first bounce to competitive circuit, led by certified coaches on professional courts.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="admission.html">Book a free trial
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-glass btn-lg" href="#programs">Explore programs</a>
+        </div>
+        <div class="hero-points">
+          <span class="pill">Certified coaches</span>
+          <span class="pill">Video analysis</span>
+          <span class="pill">Tournament pathway</span>
+          <span class="pill optic">All ages 4+</span>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <div class="halo"></div>
+        <div class="ring"></div>
+        <div class="ball">
+          <svg viewBox="0 0 100 100">
+            <path d="M 22 4 Q 58 50 22 96" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3.4" />
+            <path d="M 78 4 Q 42 50 78 96" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3.4" />
+          </svg>
+        </div>
+        <div class="chiplet glass c1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 15 8.5 22 9.3 17 14l1.2 7L12 17.8 5.8 21 7 14 2 9.3 9 8.5z"/></svg>ITF-pattern coaching</div>
+        <div class="chiplet glass c2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg>Video analysis</div>
+        <div class="chiplet glass c3"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5a2 2 0 0 0-2 2v1a5 5 0 0 0 4.5 4.97A5.5 5.5 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.5 5.5 0 0 0 3.5-2.93A5 5 0 0 0 21 8V7a2 2 0 0 0-2-2z"/></svg>Tournament wins</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="lp">
+    <!-- stats -->
+    <section class="sec" style="padding-top: 20px;">
+      <div class="stats">
+        <div class="glass glass-hover stat-b reveal"><div class="v num" data-countup="250" data-suffix="+">0</div><div class="l">Players trained</div></div>
+        <div class="glass glass-hover stat-b reveal d1"><div class="v num" data-countup="6">0</div><div class="l">Professional courts</div></div>
+        <div class="glass glass-hover stat-b reveal d2"><div class="v num" data-countup="40" data-suffix="+">0</div><div class="l">Tournament wins</div></div>
+        <div class="glass glass-hover stat-b reveal d3"><div class="v num" data-countup="10" data-suffix="+">0</div><div class="l">Years of coaching</div></div>
+      </div>
+    </section>
+
+    <!-- programs -->
+    <section class="sec" id="programs">
+      <div class="sec-h reveal">
+        <div class="kicker">Programs</div>
+        <h2>A pathway for every age &amp; ambition</h2>
+        <p>Four structured levels — players graduate from one to the next with clear skill milestones.</p>
+      </div>
+      <div class="prog">
+        <div class="glass glass-hover prog-c reveal">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 5.5 Q 12 12 5.5 18.5 M18.5 5.5 Q 12 12 18.5 18.5" fill="none" stroke="currentColor" stroke-width="2"/></svg></div>
+          <div class="ages">Ages 4–7</div>
+          <h3>Tiny Aces</h3>
+          <p>Red-ball fun on mini courts. Balance, movement and racquet love — the joyful first step.</p>
+          <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>4:00 – 5:00 PM · Mon–Sat</div>
+        </div>
+        <div class="glass glass-hover prog-c reveal d1">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20 L20 4 M14 4 h6 v6"/></svg></div>
+          <div class="ages">Ages 8–12</div>
+          <h3>Junior Development</h3>
+          <p>Orange &amp; green-ball technique building — groundstrokes, serves and first match play.</p>
+          <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>5:00 – 6:30 PM · Mon–Sat</div>
+        </div>
+        <div class="glass glass-hover prog-c reveal d2">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5a2 2 0 0 0-2 2v1a5 5 0 0 0 4.5 4.97A5.5 5.5 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.5 5.5 0 0 0 3.5-2.93A5 5 0 0 0 21 8V7a2 2 0 0 0-2-2z"/></svg></div>
+          <div class="ages">Ages 13–18</div>
+          <h3>Elite Performance</h3>
+          <p>Competitive squad — periodised training, fitness, video analysis and AITA/ITF tournament travel.</p>
+          <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>6:30 – 8:30 · AM &amp; PM</div>
+        </div>
+        <div class="glass glass-hover prog-c reveal d3">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+          <div class="ages">Ages 18+</div>
+          <h3>Adult &amp; Corporate</h3>
+          <p>Morning fitness tennis, beginner-friendly drills and corporate group bookings.</p>
+          <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>6:00 – 7:00 AM · Mon–Sat</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- why leo -->
+    <section class="sec">
+      <div class="sec-h reveal">
+        <div class="kicker">Why Leo</div>
+        <h2>Coaching that goes beyond rallies</h2>
+        <p>Everything a serious academy should offer — built into every membership.</p>
+      </div>
+      <div class="why">
+        <div class="glass glass-hover why-c reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-5"/><circle cx="12" cy="12" r="9"/></svg></div><div><h3>Certified coaches</h3><p>ITF &amp; AITA-certified coaching team with a 1:8 coach-to-player ratio in every batch.</p></div></div>
+        <div class="glass glass-hover why-c reveal d1"><div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg></div><div><h3>Video analysis</h3><p>Monthly stroke breakdowns with slow-motion review so players see their own progress.</p></div></div>
+        <div class="glass glass-hover why-c reveal d2"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 4h16M12 16v5M8 21h8"/></svg></div><div><h3>Tournament pathway</h3><p>Internal ladders, inter-academy fixtures and guided entry into AITA sanctioned events.</p></div></div>
+        <div class="glass glass-hover why-c reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.8 12.7 12 21.5l-8.8-8.8a5.5 5.5 0 0 1 7.8-7.8l1 1 1-1a5.5 5.5 0 0 1 7.8 7.8z"/></svg></div><div><h3>Strength &amp; agility</h3><p>Dedicated fitness sessions — footwork ladders, mobility and injury-prevention work.</p></div></div>
+        <div class="glass glass-hover why-c reveal d1"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></div><div><h3>Parent progress reports</h3><p>Quarterly skill report cards and attendance summaries straight to your phone.</p></div></div>
+        <div class="glass glass-hover why-c reveal d2"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-5.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2"/></svg></div><div><h3>Floodlit courts</h3><p>Six synthetic hard courts with floodlights — early-morning and late-evening batches.</p></div></div>
+      </div>
+    </section>
+
+    <!-- coaches -->
+    <section class="sec" id="coaches">
+      <div class="sec-h reveal">
+        <div class="kicker">The Team</div>
+        <h2>Learn from players who've been there</h2>
+      </div>
+      <div class="coach">
+        <div class="glass glass-hover coach-c reveal">
+          <div class="avatar">RS</div>
+          <div class="role">Head Coach</div>
+          <h3>Rahul Sharma</h3>
+          <p>Former AITA circuit player · ITF Level 2 · 12 years coaching juniors to national rankings.</p>
+        </div>
+        <div class="glass glass-hover coach-c reveal d1">
+          <div class="avatar">PK</div>
+          <div class="role">Performance Coach</div>
+          <h3>Priya Krishnan</h3>
+          <p>State champion · specialises in elite squad periodisation and match-play strategy.</p>
+        </div>
+        <div class="glass glass-hover coach-c reveal d2">
+          <div class="avatar">DM</div>
+          <div class="role">Fitness &amp; Agility</div>
+          <h3>David Manuel</h3>
+          <p>Certified S&amp;C trainer — builds the speed, core and endurance behind every big serve.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- pricing -->
+    <section class="sec" id="fees">
+      <div class="sec-h reveal">
+        <div class="kicker">Membership</div>
+        <h2>Simple, transparent fees</h2>
+        <p>One-time admission ₹1,000 includes academy kit &amp; assessment. Pay monthly or save with longer plans.</p>
+      </div>
+      <div class="price">
+        <div class="glass glass-hover price-c reveal">
+          <div class="plan">Monthly</div>
+          <div class="amt">₹4,000<small> /mo</small></div>
+          <ul><li>6 days a week coaching</li><li>Fitness sessions included</li><li>Internal ladder matches</li></ul>
+          <a class="btn btn-glass" href="admission.html">Start monthly</a>
+        </div>
+        <div class="glass glass-hover price-c feature reveal d1">
+          <span class="pill gold save">Most popular · Save 5%</span>
+          <div class="plan mt-2">Quarterly</div>
+          <div class="amt">₹11,400<small> /3 mo</small></div>
+          <ul><li>Everything in Monthly</li><li>Quarterly video analysis</li><li>Skill report card</li></ul>
+          <a class="btn btn-primary" href="admission.html">Start quarterly</a>
+        </div>
+        <div class="glass glass-hover price-c reveal d2">
+          <div class="plan">Half-yearly</div>
+          <div class="amt">₹21,600<small> /6 mo</small></div>
+          <ul><li>Everything in Quarterly</li><li>Save 10% on fees</li><li>Tournament travel priority</li></ul>
+          <a class="btn btn-glass" href="admission.html">Start half-yearly</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- steps -->
+    <section class="sec">
+      <div class="sec-h reveal">
+        <div class="kicker">Getting Started</div>
+        <h2>Three steps to the baseline</h2>
+      </div>
+      <div class="steps">
+        <div class="glass glass-hover step-c reveal"><div class="n">1</div><h3>Book a free trial</h3><p>Pick a batch and drop in for a complimentary session — racquets provided.</p></div>
+        <div class="glass glass-hover step-c reveal d1"><div class="n">2</div><h3>Skill assessment</h3><p>Our head coach evaluates level and recommends the right program and batch.</p></div>
+        <div class="glass glass-hover step-c reveal d2"><div class="n">3</div><h3>Join the squad</h3><p>Complete admission, collect your kit, and take your place on court.</p></div>
+      </div>
+    </section>
+
+    <!-- testimonials -->
+    <section class="sec">
+      <div class="sec-h reveal">
+        <div class="kicker">Parents &amp; Players</div>
+        <h2>Loved by the Leo family</h2>
+      </div>
+      <div class="quotes">
+        <div class="glass glass-hover quote-c reveal">
+          <div class="stars">★★★★★</div>
+          <blockquote>"My son went from never holding a racquet to winning his first U-10 match in eight months. The coaches genuinely care."</blockquote>
+          <div class="who"><span class="av">SR</span><div><div class="nm">Sunitha Reddy</div><div class="rl">Parent · Junior Development</div></div></div>
+        </div>
+        <div class="glass glass-hover quote-c reveal d1">
+          <div class="stars">★★★★★</div>
+          <blockquote>"The video analysis sessions changed my serve completely. Best coaching structure I've seen in Hyderabad."</blockquote>
+          <div class="who"><span class="av">VR</span><div><div class="nm">Vihaan Rao</div><div class="rl">Elite Performance squad</div></div></div>
+        </div>
+        <div class="glass glass-hover quote-c reveal d2">
+          <div class="stars">★★★★★</div>
+          <blockquote>"The 6 AM adult batch is the best part of my day. Great courts, great energy, zero judgement for beginners."</blockquote>
+          <div class="who"><span class="av">KN</span><div><div class="nm">Kabir Nair</div><div class="rl">Adult program</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- final CTA -->
+    <section class="sec">
+      <div class="glass cta-card reveal">
+        <div class="kicker">Limited seats per batch</div>
+        <h2>Your first session is on us.</h2>
+        <p>Book a free trial, meet the coaches, feel the courts. No commitment — just tennis.</p>
+        <a class="btn btn-primary btn-lg" href="admission.html">Book my free trial
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- footer -->
+    <footer class="lp-foot">
+      <div class="row">
+        <div class="nav-brand">
+          <span class="mark" data-logo="26" style="width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:radial-gradient(circle at 32% 24%, #0f3d27, var(--forest-900) 70%);border:1px solid rgba(201,162,75,.4);"></span>
+          <span class="t"><strong style="font-size:14px;">Leo Tennis Academy</strong><span style="font-size:9.5px;">Hyderabad</span></span>
+        </div>
+        <div class="flex wrap" style="gap: var(--gap-3);">
+          <a href="#programs">Programs</a>
+          <a href="#coaches">Coaches</a>
+          <a href="#fees">Fees</a>
+          <a class="ig" href="https://www.instagram.com/leotennishyd/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.8" cy="6.2" r="1.3" fill="currentColor" stroke="none"/></svg>
+            @leotennishyd
+          </a>
+        </div>
+        <a class="staff" href="login.html">Staff access</a>
+      </div>
+    </footer>
+  </main>
+
+  <script src="assets/js/core.js?v=1"></script>
+</body>
+</html>

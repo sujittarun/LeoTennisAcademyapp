@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Dashboard — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <main class="lt-page">
+    <div class="card-head" style="margin-bottom: 0;">
+      <div>
+        <div class="kicker">Dashboard</div>
+        <h2 id="greet">Good morning, Coach 🎾</h2>
+        <div class="sub" id="dateLine"></div>
+      </div>
+      <a class="btn btn-primary btn-sm" href="players.html">+ Add player</a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="lt-grid cols-4">
+      <div class="glass glass-hover kpi reveal">
+        <span class="stat-copy">Active players</span>
+        <span class="stat-value" data-countup="12">0</span>
+        <span class="delta up">▲ 2 this month</span>
+      </div>
+      <div class="glass glass-hover kpi reveal d1">
+        <span class="stat-copy">Attendance today</span>
+        <span class="stat-value" id="kpiAtt">—</span>
+        <span class="delta up">Evening batch pending</span>
+      </div>
+      <div class="glass glass-hover kpi reveal d2">
+        <span class="stat-copy">Fees due</span>
+        <span class="stat-value" id="kpiDue">—</span>
+        <span class="delta down">▼ 3 renewals pending</span>
+      </div>
+      <div class="glass glass-hover kpi reveal d3">
+        <span class="stat-copy">Revenue · June</span>
+        <span class="stat-value" data-countup="171" data-prefix="₹" data-suffix="k">0</span>
+        <span class="delta up">▲ 9.6% vs May</span>
+      </div>
+    </div>
+
+    <!-- revenue chart + collection donut -->
+    <div class="dash-main">
+      <div class="glass glass-card chart-card reveal">
+        <div class="card-head"><div><div class="kicker">Revenue</div><h2>Monthly collections</h2></div><span class="pill gold">Jan – Jun 2026</span></div>
+        <div class="chart-host" id="revChart"></div>
+      </div>
+      <div class="glass glass-card chart-card reveal d1">
+        <div class="card-head"><div><div class="kicker">Fees</div><h2>Collection status</h2></div></div>
+        <div class="donut-wrap">
+          <div class="donut">
+            <svg viewBox="0 0 120 120">
+              <defs><linearGradient id="ltDonutGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#f0d795"/><stop offset="1" stop-color="#c9a24b"/>
+              </linearGradient></defs>
+              <circle class="ring track" cx="60" cy="60" r="50"/>
+              <circle class="ring val" cx="60" cy="60" r="50" id="donutVal"/>
+            </svg>
+            <div class="center"><div><div class="pct" id="donutPct">0%</div><div class="lbl">collected</div></div></div>
+          </div>
+          <div class="donut-legend">
+            <span class="lg"><span class="sw" style="background:var(--gold-400);"></span>9 paid up</span>
+            <span class="lg"><span class="sw" style="background:var(--tile-border);"></span>3 due</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- activity + attention -->
+    <div class="dash-bottom">
+      <div class="glass glass-card reveal">
+        <div class="card-head"><div><div class="kicker">Latest</div><h2>Recent activity</h2></div></div>
+        <div class="feed" id="feed"></div>
+      </div>
+      <div class="glass glass-card reveal d1">
+        <div class="card-head"><div><div class="kicker">Needs attention</div><h2>Fee renewals due</h2></div><a class="btn btn-glass btn-sm" href="fees.html">Open fees</a></div>
+        <div class="feed" id="dueList"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/core.js?v=1"></script>
+  <script src="assets/js/demo-data.js?v=1"></script>
+  <script>
+    LT.auth.require();
+    LT.managerShell("dashboard.html");
+
+    (function () {
+      var now = new Date();
+      var hrs = now.getHours();
+      document.getElementById("greet").textContent = (hrs < 12 ? "Good morning" : hrs < 17 ? "Good afternoon" : "Good evening") + ", Coach 🎾";
+      document.getElementById("dateLine").textContent = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+      // KPI derived from demo data
+      var due = LT_DEMO.players.filter(function (p) { return p.status === "due"; });
+      document.getElementById("kpiDue").textContent = "₹" + (due.length * 4).toLocaleString("en-IN") + "k";
+      var att = LT.store.read("att-" + LT.today(), []);
+      document.getElementById("kpiAtt").textContent = att.length + " / " + LT_DEMO.players.length;
+
+      // Donut: 9 of 12 paid
+      var pct = Math.round(((LT_DEMO.players.length - due.length) / LT_DEMO.players.length) * 100);
+      var C = 2 * Math.PI * 50;
+      var ring = document.getElementById("donutVal");
+      ring.style.strokeDasharray = C;
+      ring.style.strokeDashoffset = C;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = C * (1 - pct / 100); }); });
+      LT.countUp(document.getElementById("donutPct"), pct, { suffix: "%" });
+
+      // Revenue area chart (inline SVG)
+      var data = LT_DEMO.revenue, W = 560, H = 240, P = 28;
+      var max = Math.max.apply(null, data.map(function (d) { return d.v; })) * 1.15;
+      function x(i) { return P + (i * (W - 2 * P)) / (data.length - 1); }
+      function y(v) { return H - P - (v / max) * (H - 2 * P); }
+      var line = data.map(function (d, i) { return (i ? "L" : "M") + x(i) + " " + y(d.v); }).join(" ");
+      var area = line + " L" + x(data.length - 1) + " " + (H - P) + " L" + x(0) + " " + (H - P) + " Z";
+      var grid = [0.25, 0.5, 0.75, 1].map(function (g) {
+        var gy = y(max * g * 0.87);
+        return '<line x1="' + P + '" y1="' + gy + '" x2="' + (W - P) + '" y2="' + gy + '"/>';
+      }).join("");
+      var labels = data.map(function (d, i) { return '<text class="chart-xlabel" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + d.m + "</text>"; }).join("");
+      var dots = data.map(function (d, i) { return '<circle cx="' + x(i) + '" cy="' + y(d.v) + '" r="3.6" fill="#c9a24b" stroke="rgba(255,255,255,.8)" stroke-width="1.6"/>'; }).join("");
+      document.getElementById("revChart").innerHTML =
+        '<svg viewBox="0 0 ' + W + " " + H + '">' +
+        '<defs><linearGradient id="ltLineGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f0d795"/><stop offset="1" stop-color="#c9a24b"/></linearGradient>' +
+        '<linearGradient id="ltAreaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(201,162,75,.34)"/><stop offset="1" stop-color="rgba(201,162,75,0)"/></linearGradient></defs>' +
+        '<g class="chart-grid">' + grid + "</g>" +
+        '<path class="area-fill in" d="' + area + '" fill="url(#ltAreaGrad)"/>' +
+        '<path class="area-line" d="' + line + '"/>' + dots + labels + "</svg>";
+
+      // Activity feed
+      var icons = {
+        join: '<path d="M15 14c-2.7 0-8 1.34-8 4v2h16v-2c0-2.66-5.3-4-8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM6 10V7H4v3H1v2h3v3h2v-3h3v-2z"/>',
+        pay: '<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1H6.32c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>',
+        trophy: '<path d="M19 5h-2V3H7v2H5a2 2 0 0 0-2 2v1a5 5 0 0 0 4.5 4.97A5.5 5.5 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.5 5.5 0 0 0 3.5-2.93A5 5 0 0 0 21 8V7a2 2 0 0 0-2-2z"/>',
+        att: '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>',
+      };
+      document.getElementById("feed").innerHTML = LT_DEMO.activity.map(function (a) {
+        return '<div class="feed-item"><span class="fi-ic"><svg viewBox="0 0 24 24" fill="currentColor">' + icons[a.icon] + "</svg></span>" +
+          '<div><div class="fi-body">' + a.text + '</div><div class="fi-time">' + a.time + "</div></div></div>";
+      }).join("");
+
+      // Due list
+      document.getElementById("dueList").innerHTML = due.map(function (p) {
+        return '<div class="feed-item"><span class="fi-ic" style="color:var(--tx-red);">₹</span>' +
+          '<div class="grow"><div class="fi-body"><strong>' + p.name + "</strong> · " + LT_DEMO.batches.find(function (b) { return b.id === p.batch; }).name + "</div>" +
+          '<div class="fi-time">Paid till ' + new Date(p.feesTill).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + "</div></div>" +
+          '<span class="pill red">Due</span></div>';
+      }).join("");
+    })();
+  </script>
+</body>
+</html>

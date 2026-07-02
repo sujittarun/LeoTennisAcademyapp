@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Attendance — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <main class="lt-page">
+    <div class="card-head" style="margin-bottom: 0;">
+      <div>
+        <div class="kicker">Attendance</div>
+        <h2>Tap to mark present</h2>
+        <div class="sub">Marks save instantly — tap again to undo.</div>
+      </div>
+      <div class="flex">
+        <input type="date" id="attDate" style="width:auto;" />
+        <span class="pill gold" id="attCount">0 present</span>
+      </div>
+    </div>
+
+    <div class="glass glass-card tight">
+      <div class="chip-row" id="batchChips"></div>
+    </div>
+
+    <div class="glass glass-card">
+      <div class="att-grid" id="grid"></div>
+    </div>
+  </main>
+
+  <script src="assets/js/core.js?v=1"></script>
+  <script src="assets/js/demo-data.js?v=1"></script>
+  <script>
+    LT.auth.require();
+    LT.managerShell("attendance.html");
+
+    (function () {
+      var dateInput = document.getElementById("attDate");
+      dateInput.value = LT.today();
+      var batch = "all";
+
+      var chips = [{ id: "all", name: "All batches" }].concat(LT_DEMO.batches);
+      var chipHost = document.getElementById("batchChips");
+      chipHost.innerHTML = chips.map(function (b) {
+        return '<button class="chip' + (b.id === "all" ? " active" : "") + '" data-b="' + b.id + '">' + b.name + "</button>";
+      }).join("");
+      chipHost.addEventListener("click", function (e) {
+        var btn = e.target.closest(".chip");
+        if (!btn) return;
+        batch = btn.dataset.b;
+        chipHost.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+        render();
+      });
+
+      function key() { return "att-" + dateInput.value; }
+      function present() { return LT.store.read(key(), []); }
+
+      function render() {
+        var marks = present();
+        var list = LT_DEMO.players.filter(function (p) { return batch === "all" || p.batch === batch; });
+        document.getElementById("grid").innerHTML = list.map(function (p) {
+          var on = marks.indexOf(p.id) !== -1;
+          var b = LT_DEMO.batches.find(function (x) { return x.id === p.batch; });
+          return '<div class="att-tile' + (on ? " present" : "") + '" data-id="' + p.id + '">' +
+            '<span class="av">' + (on ? "✓" : LT.initials(p.name)) + "</span>" +
+            '<span><span class="nm">' + p.name + '</span><br /><span class="bt">' + b.name + "</span></span></div>";
+        }).join("");
+        document.getElementById("attCount").textContent = marks.length + " present";
+      }
+
+      document.getElementById("grid").addEventListener("click", function (e) {
+        var tile = e.target.closest(".att-tile");
+        if (!tile) return;
+        var id = +tile.dataset.id;
+        var marks = present();
+        var i = marks.indexOf(id);
+        if (i === -1) marks.push(id); else marks.splice(i, 1);
+        LT.store.write(key(), marks);
+        render();
+      });
+
+      dateInput.addEventListener("change", render);
+      render();
+    })();
+  </script>
+</body>
+</html>

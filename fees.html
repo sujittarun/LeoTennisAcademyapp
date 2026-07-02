@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Fees — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <main class="lt-page">
+    <div class="card-head" style="margin-bottom: 0;">
+      <div>
+        <div class="kicker">Finance</div>
+        <h2>Fees &amp; payments</h2>
+        <div class="sub">June–July 2026 · demo data</div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="recBtn">+ Record payment</button>
+    </div>
+
+    <div class="lt-grid cols-3">
+      <div class="glass glass-hover stat-card reveal">
+        <span class="stat-copy">Collected · June</span>
+        <span class="stat-value" data-countup="171200" data-prefix="₹">0</span>
+      </div>
+      <div class="glass glass-hover stat-card reveal d1">
+        <span class="stat-copy">Pending renewals</span>
+        <span class="stat-value" id="pendVal">—</span>
+      </div>
+      <div class="glass glass-hover stat-card reveal d2">
+        <span class="stat-copy">Avg. per player</span>
+        <span class="stat-value" data-countup="14266" data-prefix="₹">0</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="card-head" style="padding: var(--gap-3) var(--gap-3) 0;">
+        <div><div class="kicker">Ledger</div><h2 style="font-size:18px;">Recent payments</h2></div>
+      </div>
+      <div class="table-wrap">
+        <table class="lt-table">
+          <thead><tr><th>Player</th><th>Plan</th><th>Amount</th><th>Mode</th><th>Paid on</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- record payment modal (demo) -->
+  <div class="lt-modal-backdrop" id="payBackdrop">
+    <div class="glass lt-modal">
+      <div class="modal-head">
+        <div><div class="kicker">Record payment</div><h2 style="font-size:20px;">New fee entry</h2></div>
+        <button class="btn btn-icon btn-ghost" id="payClose">✕</button>
+      </div>
+      <form id="payForm" class="lt-grid" style="gap: var(--gap-3);">
+        <label class="field"><span>Player</span><select name="player" id="paySel"></select></label>
+        <label class="field"><span>Plan</span>
+          <div class="chip-row" id="planChips"></div>
+        </label>
+        <label class="field"><span>Amount</span><input type="number" name="amount" id="payAmt" /></label>
+        <label class="field"><span>Mode</span><select name="mode"><option>UPI</option><option>Cash</option><option>Bank transfer</option></select></label>
+        <button class="btn btn-primary btn-block" type="submit">Save payment</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js?v=1"></script>
+  <script src="assets/js/demo-data.js?v=1"></script>
+  <script>
+    LT.auth.require();
+    LT.managerShell("fees.html");
+
+    (function () {
+      var due = LT_DEMO.players.filter(function (p) { return p.status === "due"; });
+      document.getElementById("pendVal").textContent = due.length + " players";
+
+      function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+
+      function render() {
+        var extra = LT.store.read("payments", []);
+        var all = extra.concat(LT_DEMO.payments);
+        document.getElementById("rows").innerHTML = all.map(function (p) {
+          return "<tr><td class='t-name'>" + p.player + "</td><td>" + p.plan + "</td>" +
+            "<td class='num gold' style='font-weight:700;'>" + LT.fmtINR(p.amount) + "</td>" +
+            "<td><span class='pill'>" + p.mode + "</span></td><td>" + fmtD(p.on) + "</td></tr>";
+        }).join("");
+      }
+
+      // modal wiring
+      var backdrop = document.getElementById("payBackdrop");
+      document.getElementById("recBtn").addEventListener("click", function () {
+        backdrop.classList.add("open");
+      });
+      document.getElementById("payClose").addEventListener("click", function () { backdrop.classList.remove("open"); });
+      backdrop.addEventListener("click", function (e) { if (e.target === backdrop) backdrop.classList.remove("open"); });
+
+      document.getElementById("paySel").innerHTML = LT_DEMO.players.map(function (p) {
+        return "<option>" + p.name + "</option>";
+      }).join("");
+
+      var plan = LT_DEMO.plans[0];
+      var chipHost = document.getElementById("planChips");
+      chipHost.innerHTML = LT_DEMO.plans.map(function (pl, i) {
+        return '<button type="button" class="chip' + (i === 0 ? " active" : "") + '" data-i="' + i + '">' + pl.label + (pl.note ? " · " + pl.note : "") + "</button>";
+      }).join("");
+      document.getElementById("payAmt").value = plan.amount;
+      chipHost.addEventListener("click", function (e) {
+        var btn = e.target.closest(".chip");
+        if (!btn) return;
+        plan = LT_DEMO.plans[+btn.dataset.i];
+        chipHost.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+        document.getElementById("payAmt").value = plan.amount;
+      });
+
+      document.getElementById("payForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var d = new FormData(this);
+        var list = LT.store.read("payments", []);
+        list.unshift({ player: d.get("player"), plan: plan.label, amount: +d.get("amount") || plan.amount, mode: d.get("mode"), on: LT.today() });
+        LT.store.write("payments", list);
+        backdrop.classList.remove("open");
+        LT.toast("Payment recorded ✓");
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

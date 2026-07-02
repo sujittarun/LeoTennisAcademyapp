@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Book a Free Trial — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .adm-wrap { max-width: 720px; margin: 0 auto; width: 100%; }
+    .adm-hero { text-align: center; margin-bottom: var(--gap-4); }
+    .adm-hero h1 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; }
+    .adm-hero p { color: var(--ink-mid); margin-top: 8px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
+    .form-grid .full { grid-column: 1 / -1; }
+    @media (max-width: 620px) { .form-grid { grid-template-columns: 1fr; } }
+    .batch-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 620px) { .batch-pick { grid-template-columns: 1fr; } }
+    .batch-pick .choice { flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; }
+    .batch-pick .choice .bp-top { display: flex; align-items: center; gap: 10px; width: 100%; }
+    .batch-pick .choice .bp-name { font-weight: 700; color: var(--ink-hi); font-size: 14px; }
+    .batch-pick .choice .bp-meta { font-size: 12px; color: var(--ink-low); padding-left: 28px; }
+    .done-card { text-align: center; padding: clamp(36px, 6vh, 60px) var(--gap-4); display: none; }
+    .done-card.show { display: block; animation: lt-step-in .5s var(--ease-spring) both; }
+    .done-card .big-check { width: 74px; height: 74px; margin: 0 auto var(--gap-3); border-radius: 50%; display: grid; place-items: center;
+      background: rgba(52, 211, 153, .15); border: 1.5px solid rgba(52, 211, 153, .5); color: var(--tx-green); }
+    .done-card .big-check svg { width: 34px; height: 34px; }
+  </style>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <nav class="lt-nav glass">
+    <a class="nav-brand" href="index.html">
+      <span class="mark" data-logo="30"></span>
+      <span class="t"><strong>Leo Tennis Academy</strong><span>Hyderabad</span></span>
+    </a>
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle"></button>
+      <a class="btn btn-ghost btn-sm" href="index.html">← Back to site</a>
+    </div>
+  </nav>
+
+  <main class="lt-page">
+    <div class="adm-wrap">
+      <div class="adm-hero reveal">
+        <span class="pill gold">Free trial · No commitment</span>
+        <h1 class="mt-2">Book your trial session</h1>
+        <p>Three quick steps — we'll confirm your slot on WhatsApp within a few hours.</p>
+      </div>
+
+      <div class="glass glass-card" id="wizard">
+        <div class="adm-stepper" id="stepper">
+          <div class="step active" data-s="1"><span class="num"><span class="n">1</span></span><span class="lbl">Player</span></div>
+          <div class="bar" id="bar1"></div>
+          <div class="step" data-s="2"><span class="num"><span class="n">2</span></span><span class="lbl">Program</span></div>
+          <div class="bar" id="bar2"></div>
+          <div class="step" data-s="3"><span class="num"><span class="n">3</span></span><span class="lbl">Confirm</span></div>
+        </div>
+
+        <form id="admForm" novalidate>
+          <!-- step 1: player -->
+          <section class="adm-step active" data-step="1">
+            <div class="form-grid">
+              <label class="field"><span>Player name</span><input type="text" name="player" placeholder="Full name" required /></label>
+              <label class="field"><span>Age</span><input type="number" name="age" min="4" max="70" placeholder="e.g. 10" required /></label>
+              <label class="field"><span>Parent / contact name</span><input type="text" name="parent" placeholder="For juniors, a parent" /></label>
+              <label class="field"><span>WhatsApp number</span><input type="tel" name="phone" placeholder="98xxxxxxxx" required /></label>
+              <label class="field full"><span>Played before? <span class="opt">(optional)</span></span>
+                <select name="level"><option value="">Select level</option><option>Complete beginner</option><option>Played casually</option><option>Trained before at an academy</option><option>Competitive player</option></select>
+              </label>
+            </div>
+          </section>
+
+          <!-- step 2: program -->
+          <section class="adm-step" data-step="2">
+            <div class="batch-pick" id="batchPick"></div>
+            <label class="field mt-3"><span>Preferred trial date</span><input type="date" name="date" /></label>
+          </section>
+
+          <!-- step 3: confirm -->
+          <section class="adm-step" data-step="3">
+            <div id="summary" class="lt-grid" style="gap: 10px;"></div>
+            <label class="choice mt-3"><input type="checkbox" name="agree" /><span class="dot"></span><span>I'm happy to be contacted on WhatsApp about my trial slot.</span></label>
+          </section>
+
+          <div class="form-msg" id="msg"></div>
+          <div class="adm-nav">
+            <button type="button" class="btn btn-ghost" id="backBtn" style="visibility:hidden;">← Back</button>
+            <span class="grow"></span>
+            <button type="button" class="btn btn-primary" id="nextBtn">Continue →</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- success -->
+      <div class="glass done-card" id="doneCard">
+        <div class="big-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h2>You're booked in! 🎾</h2>
+        <p class="muted mt-2">Our coach will WhatsApp you shortly to confirm the slot.<br />Bring water and sports shoes — racquets are on us.</p>
+        <div class="mt-4 flex" style="justify-content:center; flex-wrap:wrap;">
+          <a class="btn btn-primary" href="index.html">Back to home</a>
+          <a class="btn btn-glass" href="https://www.instagram.com/leotennishyd/" target="_blank" rel="noopener">Follow @leotennishyd</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/core.js?v=1"></script>
+  <script src="assets/js/demo-data.js?v=1"></script>
+  <script>
+    (function () {
+      var step = 1, TOTAL = 3;
+      var form = document.getElementById("admForm");
+      var msg = document.getElementById("msg");
+
+      // batch choices from demo data
+      document.getElementById("batchPick").innerHTML = LT_DEMO.batches.map(function (b, i) {
+        return '<label class="choice"><div class="bp-top"><input type="radio" name="batch" value="' + b.id + '"' + (i === 1 ? " checked" : "") + ' /><span class="dot"></span><span class="bp-name">' + b.name + "</span></div>" +
+          '<span class="bp-meta">' + b.ages + " · " + b.time + "</span></label>";
+      }).join("");
+
+      function paint() {
+        document.querySelectorAll("#stepper .step").forEach(function (el) {
+          var s = +el.dataset.s;
+          el.classList.toggle("active", s === step);
+          el.classList.toggle("done", s < step);
+        });
+        document.getElementById("bar1").style.setProperty("--fill", step > 1 ? "100%" : "0%");
+        document.getElementById("bar2").style.setProperty("--fill", step > 2 ? "100%" : "0%");
+        document.querySelectorAll(".adm-step").forEach(function (el) {
+          el.classList.toggle("active", +el.dataset.step === step);
+        });
+        document.getElementById("backBtn").style.visibility = step === 1 ? "hidden" : "visible";
+        document.getElementById("nextBtn").textContent = step === TOTAL ? "Book my trial 🎾" : "Continue →";
+        msg.textContent = "";
+        if (step === 3) fillSummary();
+      }
+
+      function fillSummary() {
+        var d = new FormData(form);
+        var batch = LT_DEMO.batches.find(function (b) { return b.id === d.get("batch"); }) || {};
+        var rows = [
+          ["Player", d.get("player") + " · " + d.get("age") + " yrs"],
+          ["Contact", (d.get("parent") ? d.get("parent") + " · " : "") + d.get("phone")],
+          ["Program", batch.name + " (" + batch.ages + ")"],
+          ["Trial date", d.get("date") || "First available slot"],
+        ];
+        document.getElementById("summary").innerHTML = rows.map(function (r) {
+          return '<div class="flex between" style="padding:11px 14px;border:1px solid var(--tile-border);border-radius:var(--r-md);background:var(--tile-bg);">' +
+            '<span class="faint" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:650;">' + r[0] + "</span>" +
+            '<span style="font-weight:650;">' + r[1] + "</span></div>";
+        }).join("");
+      }
+
+      function validate() {
+        var d = new FormData(form);
+        if (step === 1) {
+          if (!String(d.get("player") || "").trim()) return "Please enter the player's name.";
+          if (!d.get("age")) return "Please enter the player's age.";
+          if (String(d.get("phone") || "").replace(/\D/g, "").length < 10) return "Please enter a valid 10-digit WhatsApp number.";
+        }
+        if (step === 3 && !d.get("agree")) return "Please tick the consent box so we can contact you.";
+        return "";
+      }
+
+      document.getElementById("nextBtn").addEventListener("click", function () {
+        var err = validate();
+        if (err) { msg.textContent = err; msg.className = "form-msg error"; return; }
+        if (step < TOTAL) { step++; paint(); return; }
+        // demo submit — store locally, show success
+        var d = new FormData(form);
+        var enq = LT.store.read("enquiries", []);
+        enq.unshift({ player: d.get("player"), age: d.get("age"), phone: d.get("phone"), batch: d.get("batch"), date: d.get("date"), at: new Date().toISOString() });
+        LT.store.write("enquiries", enq);
+        document.getElementById("wizard").style.display = "none";
+        document.querySelector(".adm-hero").style.display = "none";
+        document.getElementById("doneCard").classList.add("show");
+        LT.toast("Trial booked — see you on court! 🎾");
+      });
+      document.getElementById("backBtn").addEventListener("click", function () { if (step > 1) { step--; paint(); } });
+
+      paint();
+    })();
+  </script>
+</body>
+</html>
