@@ -1,7 +1,7 @@
 # Leo Tennis Academy — Web App
 
 Website + staff console for **Leo Tennis Academy, Hyderabad**
-([@leotennishyd](https://www.instagram.com/leotennishyd/)) — an adults-only tennis
+([@leotennishyd](https://www.instagram.com/leotennishyd/)) — a tennis
 academy offering coaching programs and floodlit courts bookable by the hour.
 
 Repo: https://github.com/sujittarun/LeoTennisAcademyapp
@@ -32,7 +32,7 @@ locally and merge with the seeds — replace those two files to go live against 
 real backend without touching page controllers.
 
 ## Business rules
-- Adults only — programs are Foundations, Performance, Cardio Tennis, Private.
+- Programs: Foundations, Performance, Cardio Tennis, Private (no kids batches or parent fields).
 - Real venue: Opp. Lingampally MMTS Station, Serilingampally, Hyderabad ·
   +91 96768 29060 / +91 72081 95649 · court photos in assets/img/courts/
   (sourced from the academy's Google Business listing).
