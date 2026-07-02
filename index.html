@@ -512,9 +512,9 @@
         SETTLE: 0.45,   // s — bounce duration after landing
         BOUNCE_H: 22, DAMP: 5.0, FREQ: 9.0,
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
-        HOLD_MS: 4000,  // epilogue: max linger; first scroll intent melts them sooner
-        FADE_MS: 1200,  // epilogue: how slowly the balls melt into the page bottom
-        GESTURE_FADE_MS: 550, // snappier melt when the user is trying to scroll
+        HOLD_MS: 0,     // epilogue: melt starts as soon as the page lands
+        FADE_MS: 1800,  // epilogue: slow melt of the balls into the page bottom
+        GESTURE_FADE_MS: 300, // remaining melt is snapped to this when the user scrolls
       };
       var T_LAND = CFG.T_WAVE;
       var docH = inner.scrollHeight;
@@ -579,12 +579,11 @@
          HOLD_MS is the max linger) -> DISSOLVE (only the video fades; the
          strip under the page's fade edge melts into the page color) ->
          CLEANUP. Error/safety paths skip straight to cleanup(). */
-      var dissolving = false;
+      var dissolving = false, hurried = false;
       function dissolve(ms) {
         if (done || dissolving) return;
         dissolving = true;
         clearTimeout(holdTimer);
-        removeGestures();
         // behind the fading balls must be exactly the page color
         video.style.backgroundColor = getComputedStyle(win).backgroundColor;
         video.style.transition = "opacity " + Math.round(ms / rate) + "ms ease-out";
@@ -595,7 +594,19 @@
       function onGesture(e) {
         if (e.type === "keydown" &&
             ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " ", "Spacebar"].indexOf(e.key) === -1) return;
-        dissolve(CFG.GESTURE_FADE_MS);
+        if (!dissolving) { dissolve(CFG.GESTURE_FADE_MS); return; }
+        if (hurried || done) return;
+        hurried = true;
+        // melt already running: snap the remainder so the page unlocks
+        // right under their scroll
+        var cur = getComputedStyle(video).opacity;
+        video.style.transition = "none";
+        video.style.opacity = cur;
+        void video.offsetWidth;
+        video.style.transition = "opacity " + Math.round(CFG.GESTURE_FADE_MS / rate) + "ms ease-out";
+        video.style.opacity = "0";
+        clearTimeout(fadeTimer);
+        fadeTimer = setTimeout(cleanup, CFG.GESTURE_FADE_MS / rate + 60);
       }
       function removeGestures() {
         removeEventListener("wheel", onGesture);
