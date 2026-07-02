@@ -527,21 +527,21 @@
         BASE: 0.06,     // front starts at 6% of viewport height
         SPAN: 0.94,
         BAND: 0.14,     // ball band kept visible below the fade (fraction of vh)
-        SETTLE: 0.6,    // s — bounce duration after landing
-        BOUNCE_H: 12, DAMP: 4.0, FREQ: 6.0, // soft landing: ~4px peak, one slow arc
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
         HOLD_MS: 0,     // epilogue: melt starts as soon as the page lands
         FADE_MS: 1800,  // epilogue: slow melt of the balls into the page bottom
         GESTURE_FADE_MS: 300, // remaining melt is snapped to this when the user scrolls
       };
-      var T_LAND = CFG.T_WAVE;
+      var T_LAND = CFG.T_WAVE; // the halt: no bounce, just a long soft deceleration
       var docH = inner.scrollHeight;
       function streamSpan() {
         var full = Math.max(docH - innerHeight, 0);
         return CFG.STREAM_MAX > 0 ? Math.min(full, innerHeight * CFG.STREAM_MAX) : full;
       }
 
-      function ease(x) { return x * x * (3 - 2 * x); } // smoothstep
+      function ease(x) { return x * x * (3 - 2 * x); } // smoothstep (matches the footage)
+      function easeSofter(x) { return x * x * x * (x * (x * 6 - 15) + 10); } // smootherstep:
+      // zero velocity AND zero acceleration at the end — the stream glides to a halt
       function frontAt(t) { // wave front position in px
         var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
         return innerHeight * (CFG.BASE + CFG.SPAN * ease(x));
@@ -549,24 +549,16 @@
       function edgeAt(t) { // window's bottom edge, screen px
         return Math.min(Math.max(frontAt(t) - innerHeight * CFG.BAND, 6), innerHeight);
       }
-      function winYAt(t) { // window translateY; 0 once the wave completes
-        if (t >= T_LAND) {
-          var u = t - T_LAND;
-          if (u >= CFG.SETTLE) return 0;
-          return -CFG.BOUNCE_H * Math.abs(Math.sin(CFG.FREQ * u)) * Math.exp(-CFG.DAMP * u);
-        }
+      function winYAt(t) { // window translateY; halts at exactly 0, no bounce
+        if (t >= T_LAND) return 0;
         return edgeAt(t) - innerHeight;
       }
       function innerYAt(t) { // stream translateY; footer first, hero at 0
         // pour runs over the visible ride [V_OFFSET, T_LAND] so the footer
-        // sits on the balls at frame one
+        // sits on the balls at frame one; smootherstep = fast middle, then a
+        // long gentle slow-down into the halt
         var x = (t - CFG.V_OFFSET) / (T_LAND - CFG.V_OFFSET);
-        return -streamSpan() * (1 - ease(Math.min(Math.max(x, 0), 1)));
-      }
-      function squashAt(t) { // tiny landing compression, anchored to the top
-        var u = t - T_LAND;                 // so the give happens at the bottom,
-        if (u < 0 || u > 0.5) return 1;     // into the ball carpet — never a
-        return 1 - 0.022 * Math.exp(-6 * u); // bright flash at the screen top
+        return -streamSpan() * (1 - easeSofter(Math.min(Math.max(x, 0), 1)));
       }
 
       // debug: append ?bwlslow=0.25 to watch the ride in slow motion
@@ -580,13 +572,13 @@
         return CFG.V_OFFSET + (fallbackT0 ? ((performance.now() - fallbackT0) / 1000) * rate : 0);
       }
       function apply(t) {
-        win.style.transform = "translateY(" + winYAt(t) + "px) scaleY(" + squashAt(t) + ")";
+        win.style.transform = "translateY(" + winYAt(t) + "px)";
         inner.style.transform = "translateY(" + innerYAt(t) + "px)";
       }
       function frame() {
         if (done) return;
         var t = now();
-        if (t >= T_LAND + CFG.SETTLE) { apply(T_LAND + CFG.SETTLE); epilogue(); return; }
+        if (t >= T_LAND) { apply(T_LAND); epilogue(); return; }
         apply(t);
         raf = requestAnimationFrame(frame);
       }
