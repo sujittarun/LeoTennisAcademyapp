@@ -9,8 +9,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=3" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .req-tray { display: flex; flex-direction: column; gap: 8px; }
+    .req-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px;
+      border: 1px solid rgba(215,239,79,.35); background: rgba(215,239,79,.07); border-radius: var(--r-md); }
+    .req-row .rq-who { font-weight: 700; color: var(--ink-hi); font-size: 13.5px; }
+    .req-row .rq-what { font-size: 12.5px; color: var(--ink-mid); }
+    .req-row .rq-amt { font-weight: 700; color: var(--tx-gold); font-size: 13px; }
+  </style>
 </head>
 <body>
   <div class="lt-bg" aria-hidden="true"></div>
@@ -19,42 +27,54 @@
     <div class="card-head" style="margin-bottom: 0;">
       <div>
         <div class="kicker">Court Bookings</div>
-        <h2>Slot schedule</h2>
+        <h2>Courts at a glance</h2>
         <div class="sub" id="dayLine"></div>
       </div>
-      <div class="flex">
+      <div class="flex wrap">
         <input type="date" id="bkDate" style="width:auto;" />
-        <span class="pill gold" id="dayTotal">₹0</span>
+        <span class="pill gold" id="dayStats">—</span>
       </div>
     </div>
 
-    <div class="lt-grid cols-3">
-      <div class="glass glass-hover stat-card reveal">
-        <span class="stat-copy">Bookings this day</span>
-        <span class="stat-value" id="kpiCount">0</span>
+    <!-- unassigned web requests -->
+    <div class="glass glass-card tight hide" id="reqCard">
+      <div class="card-head" style="margin-bottom: 10px;">
+        <div><div class="kicker">New requests</div><h2 style="font-size:16px;">Waiting for a court</h2></div>
       </div>
-      <div class="glass glass-hover stat-card reveal d1">
-        <span class="stat-copy">Pending confirmation</span>
-        <span class="stat-value" id="kpiPending">0</span>
-      </div>
-      <div class="glass glass-hover stat-card reveal d2">
-        <span class="stat-copy">Court hours sold</span>
-        <span class="stat-value" id="kpiHours">0</span>
-      </div>
+      <div class="req-tray" id="reqTray"></div>
     </div>
 
-    <div class="glass">
-      <div class="table-wrap">
-        <table class="lt-table">
-          <thead><tr><th>Ref</th><th>Booked by</th><th>Slot</th><th>Court</th><th>Amount</th><th>Status</th><th></th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
+    <!-- court photo grid -->
+    <div class="court-grid" id="courtGrid"></div>
+
+    <div class="tl-legend glass glass-card tight" style="justify-content:center;">
+      <span><span class="sw" style="background:linear-gradient(115deg,#f0d795,#c9a24b);"></span>Booked</span>
+      <span><span class="sw" style="background:repeating-linear-gradient(45deg, rgba(215,239,79,.55) 0 4px, rgba(215,239,79,.12) 4px 8px);"></span>Pending</span>
+      <span><span class="sw" style="background:rgba(255,255,255,.16);"></span>Free</span>
+      <span><span class="sw" style="background:rgba(255,255,255,.16);opacity:.3;"></span>Past</span>
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=2"></script>
-  <script src="assets/js/data.js?v=2"></script>
+  <!-- court schedule modal -->
+  <div class="lt-modal-backdrop" id="cmBackdrop">
+    <div class="glass lt-modal court-modal" id="cmModal">
+      <div class="cm-hero">
+        <img id="cmPhoto" src="" alt="" />
+        <div class="cm-title"><div class="sub" id="cmSub"></div><h2 id="cmName"></h2></div>
+        <button class="btn btn-icon btn-ghost cm-close" id="cmClose">✕</button>
+      </div>
+      <div class="cm-body">
+        <div class="flex between wrap">
+          <span class="pill gold" id="cmSummary"></span>
+          <span class="faint" style="font-size:12px;" id="cmDate"></span>
+        </div>
+        <div class="sched" id="cmSched"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js?v=3"></script>
+  <script src="assets/js/data.js?v=3"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -62,62 +82,148 @@
     (function () {
       var dateInput = document.getElementById("bkDate");
       dateInput.value = LT.today();
+      var openCourt = null;
+
+      function overrides() { return LT.store.read("booking-status", {}); }
 
       function allBookings() {
-        // Requests from the public site + seed schedule, with any status
-        // overrides applied (confirmations are persisted by booking id).
-        var overrides = LT.store.read("booking-status", {});
-        var merged = LT.store.read("bookings", []).concat(LT_DATA.bookings);
-        return merged.map(function (b) {
-          return Object.assign({}, b, overrides[b.id] ? { status: overrides[b.id], court: overrides[b.id + ":court"] || b.court } : {});
+        var ov = overrides();
+        return LT.store.read("bookings", []).concat(LT_DATA.bookings).map(function (b) {
+          return Object.assign({}, b, ov[b.id] ? { status: ov[b.id], court: ov[b.id + ":court"] || b.court } : {});
         });
       }
 
-      function render() {
-        var day = dateInput.value;
-        var list = allBookings().filter(function (b) { return b.date === day; })
-          .sort(function (a, b) { return a.hour - b.hour; });
-
-        var total = list.reduce(function (s, b) { return s + b.amount; }, 0);
-        var pending = list.filter(function (b) { return b.status === "pending"; }).length;
-
-        document.getElementById("dayLine").textContent = new Date(day).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-        document.getElementById("dayTotal").textContent = LT.fmtINR(total);
-        document.getElementById("kpiCount").textContent = list.length;
-        document.getElementById("kpiPending").textContent = pending;
-        document.getElementById("kpiHours").textContent = list.length + " / " + (LT_DATA.courts * (LT_DATA.slotHours.close - LT_DATA.slotHours.open));
-
-        document.getElementById("rows").innerHTML = list.map(function (b) {
-          var st = b.status === "confirmed"
-            ? '<span class="pill green">Confirmed</span>'
-            : '<span class="pill gold">Pending</span>';
-          var act = b.status === "pending"
-            ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>'
-            : "";
-          return "<tr>" +
-            '<td class="num faint">' + b.id + "</td>" +
-            '<td class="t-name">' + b.name + '<div class="faint" style="font-size:11.5px;font-weight:400;">' + (b.phone || "") + "</div></td>" +
-            "<td>" + LT_SLOTS.label(b.hour) + "</td>" +
-            "<td>" + (b.court ? "Court " + b.court : '<span class="faint">To assign</span>') + "</td>" +
-            '<td class="num gold" style="font-weight:700;">' + LT.fmtINR(b.amount) + "</td>" +
-            "<td>" + st + "</td><td>" + act + "</td></tr>";
-        }).join("") || '<tr><td colspan="7"><div class="empty-state">No bookings for this date yet.</div></td></tr>';
+      function dayBookings() {
+        return allBookings().filter(function (b) { return b.date === dateInput.value; });
       }
 
-      document.getElementById("rows").addEventListener("click", function (e) {
+      function hourLabelShort(h) { var ap = h >= 12 ? "PM" : "AM"; var v = h % 12 || 12; return v + ap; }
+
+      function statusOfCourt(list, nowH, isToday) {
+        var inPlay = isToday && list.find(function (b) { return b.hour === nowH && b.status === "confirmed"; });
+        if (inPlay) return { cls: "gold", label: "In play · till " + hourLabelShort(inPlay.hour + 1) };
+        var next = list.filter(function (b) { return !isToday || b.hour > nowH; }).sort(function (a, b) { return a.hour - b.hour; })[0];
+        if (next) return { cls: "green", label: (isToday ? "Free · next " : "First booking ") + hourLabelShort(next.hour) };
+        return { cls: "green", label: "Free all day" };
+      }
+
+      function render() {
+        var day = dayBookings();
+        var isToday = dateInput.value === LT.today();
+        var nowH = new Date().getHours();
+        var hours = [];
+        for (var h = LT_DATA.slotHours.open; h < LT_DATA.slotHours.close; h++) hours.push(h);
+
+        document.getElementById("dayLine").textContent =
+          new Date(dateInput.value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+        var pending = day.filter(function (b) { return b.status === "pending"; }).length;
+        var revenue = day.reduce(function (s, b) { return s + b.amount; }, 0);
+        document.getElementById("dayStats").textContent =
+          day.length + " bookings · " + pending + " pending · " + LT.fmtINR(revenue);
+
+        // requests without a court yet
+        var waiting = day.filter(function (b) { return !b.court && b.status === "pending"; });
+        document.getElementById("reqCard").classList.toggle("hide", waiting.length === 0);
+        document.getElementById("reqTray").innerHTML = waiting.map(function (b) {
+          return '<div class="req-row"><span class="rq-who">' + b.name + "</span>" +
+            '<span class="rq-what">' + LT_SLOTS.label(b.hour) + (b.phone ? " · " + b.phone : "") + "</span>" +
+            '<span class="grow"></span><span class="rq-amt">' + LT.fmtINR(b.amount) + "</span>" +
+            '<button class="btn btn-primary btn-sm" data-confirm="' + b.id + '">Confirm &amp; assign</button></div>';
+        }).join("");
+
+        // court cards
+        document.getElementById("courtGrid").innerHTML = LT_DATA.courtsMeta.map(function (c, ci) {
+          var list = day.filter(function (b) { return b.court === c.n; });
+          var booked = list.filter(function (b) { return b.status === "confirmed"; }).length;
+          var earn = list.reduce(function (s, b) { return s + (b.status === "confirmed" ? b.amount : 0); }, 0);
+          var st = statusOfCourt(list, nowH, isToday);
+
+          var segs = hours.map(function (h, i) {
+            var b = list.find(function (x) { return x.hour === h; });
+            var cls = "seg";
+            if (b) cls += b.status === "confirmed" ? " booked" : " pending";
+            if (isToday && h < nowH) cls += " past";
+            if (isToday && h === nowH) cls += " now";
+            return '<span class="' + cls + '" style="animation-delay:' + (ci * 90 + i * 22) + 'ms;"></span>';
+          }).join("");
+
+          return '<div class="court-card" data-court="' + c.n + '">' +
+            '<img class="cc-photo" src="' + c.img + '" alt="Court ' + c.n + ' — ' + c.surface + '" loading="lazy" />' +
+            '<div class="cc-shade"></div>' +
+            '<span class="cc-status"><span class="pill ' + st.cls + '">' + st.label + "</span></span>" +
+            '<div class="cc-body">' +
+            '<div class="cc-name">Court ' + c.n + "<small>" + c.surface + " · " + c.note + "</small></div>" +
+            '<div class="tl">' + segs + "</div>" +
+            '<div class="tl-hours"><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11 PM</span></div>' +
+            '<div class="cc-meta"><span><b>' + booked + "</b> of " + hours.length + " hours booked</span><span><b>" + LT.fmtINR(earn) + "</b> confirmed</span></div>" +
+            "</div></div>";
+        }).join("");
+
+        if (openCourt) paintModal();
+      }
+
+      /* ---------- modal ---------- */
+      var backdrop = document.getElementById("cmBackdrop");
+
+      function paintModal() {
+        var c = LT_DATA.courtsMeta.find(function (x) { return x.n === openCourt; });
+        var day = dayBookings().filter(function (b) { return b.court === c.n; });
+        var isToday = dateInput.value === LT.today();
+        var nowH = new Date().getHours();
+
+        document.getElementById("cmPhoto").src = c.img;
+        document.getElementById("cmName").textContent = "Court " + c.n;
+        document.getElementById("cmSub").textContent = c.surface + " · " + c.note;
+        document.getElementById("cmDate").textContent =
+          new Date(dateInput.value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+        var booked = day.filter(function (b) { return b.status === "confirmed"; });
+        document.getElementById("cmSummary").textContent =
+          booked.length + " hour" + (booked.length === 1 ? "" : "s") + " booked · " +
+          LT.fmtINR(booked.reduce(function (s, b) { return s + b.amount; }, 0));
+
+        var rows = [];
+        for (var h = LT_DATA.slotHours.open, i = 0; h < LT_DATA.slotHours.close; h++, i++) {
+          var b = day.find(function (x) { return x.hour === h; });
+          var cls = "sched-row " + (b ? b.status === "confirmed" ? "booked" : "pending" : "free");
+          if (isToday && h < nowH) cls += " past";
+          if (isToday && h === nowH) cls += " now";
+          var who = b
+            ? '<span class="sr-who">' + b.name + "<small>" + LT.fmtINR(b.amount) + (b.status === "pending" ? " · pending" : "") + "</small></span>"
+            : '<span class="sr-who">Free · ' + LT.fmtINR(LT_SLOTS.rate(h)) + "</span>";
+          var act = b && b.status === "pending"
+            ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>' : "";
+          rows.push('<div class="' + cls + '" style="animation-delay:' + i * 28 + 'ms;">' +
+            '<span class="sr-time">' + LT_SLOTS.label(h) + "</span>" +
+            '<span class="sr-bar"><i style="animation-delay:' + (i * 28 + 120) + 'ms;"></i></span>' +
+            who + act + "</div>");
+        }
+        document.getElementById("cmSched").innerHTML = rows.join("");
+      }
+
+      document.getElementById("courtGrid").addEventListener("click", function (e) {
+        var card = e.target.closest(".court-card");
+        if (!card) return;
+        openCourt = +card.dataset.court;
+        paintModal();
+        backdrop.classList.add("open");
+      });
+      document.getElementById("cmClose").addEventListener("click", function () { backdrop.classList.remove("open"); openCourt = null; });
+      backdrop.addEventListener("click", function (e) { if (e.target === backdrop) { backdrop.classList.remove("open"); openCourt = null; } });
+
+      /* confirm actions (tray + modal) */
+      document.addEventListener("click", function (e) {
         var btn = e.target.closest("[data-confirm]");
         if (!btn) return;
         var id = btn.dataset.confirm;
-        var overrides = LT.store.read("booking-status", {});
-        overrides[id] = "confirmed";
-        // assign the first free court for that hour
+        var ov = overrides();
+        ov[id] = "confirmed";
         var b = allBookings().find(function (x) { return x.id === id; });
         if (b && !b.court) {
           var used = allBookings().filter(function (x) { return x.date === b.date && x.hour === b.hour && x.court; })
             .map(function (x) { return x.court; });
-          for (var c = 1; c <= LT_DATA.courts; c++) if (used.indexOf(c) === -1) { overrides[id + ":court"] = c; break; }
+          for (var c = 1; c <= LT_DATA.courts; c++) if (used.indexOf(c) === -1) { ov[id + ":court"] = c; break; }
         }
-        LT.store.write("booking-status", overrides);
+        LT.store.write("booking-status", ov);
         LT.toast("Booking confirmed ✓");
         render();
       });

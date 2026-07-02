@@ -4,165 +4,141 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#04130c" />
-  <title>Leo Tennis Academy — Hyderabad | Adult Coaching &amp; Court Booking</title>
-  <meta name="description" content="Hyderabad's premium adult tennis academy — structured coaching for every level and floodlit courts bookable by the hour. Mornings before work, evenings after." />
+  <title>Leo Tennis Academy — Hyderabad | Coaching &amp; Court Booking</title>
+  <meta name="description" content="Leo Tennis Academy, opposite Lingampally MMTS Station, Hyderabad. Professional adult coaching and pay-&-play courts — synthetic hard & red clay, floodlit, open 6 AM to 11 PM daily." />
   <meta property="og:title" content="Leo Tennis Academy — Hyderabad" />
-  <meta property="og:description" content="Adult coaching programs and floodlit courts by the hour. Book your first session." />
+  <meta property="og:description" content="Train smarter. Play stronger. Coaching programs and courts by the hour, 6 AM – 11 PM daily." />
   <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/img/courts/court-2.jpg" />
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=3" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .lp { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--gap-4); }
 
     /* hero */
-    .hero { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: var(--gap-4); align-items: center; min-height: 92vh; padding-top: calc(var(--nav-h) + 20px); }
-    .hero h1 { font-size: clamp(38px, 5.6vw, 66px); line-height: 1.03; font-weight: 800; letter-spacing: -.02em; }
+    .hero { position: relative; display: grid; grid-template-columns: 1.02fr .98fr; gap: var(--gap-4); align-items: center; min-height: 86vh; padding-top: calc(var(--nav-h) + 20px); }
+    .hero h1 { font-size: clamp(38px, 5.4vw, 64px); line-height: 1.04; font-weight: 800; letter-spacing: -.02em; }
     .hero h1 .grad { background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero .lede { color: var(--ink-mid); font-size: clamp(15px, 1.7vw, 18px); max-width: 50ch; margin-top: var(--gap-3); }
+    .hero .lede { color: var(--ink-mid); font-size: clamp(15px, 1.7vw, 17.5px); max-width: 50ch; margin-top: var(--gap-3); }
     .hero-cta { display: flex; gap: var(--gap-2); flex-wrap: wrap; margin-top: var(--gap-4); }
-    .hero-points { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--gap-4); }
     .gold-rule { height: 4px; width: 130px; border-radius: 99px; margin-top: var(--gap-3); background: var(--gold-grad); box-shadow: 0 4px 16px rgba(201,162,75,.4); }
 
-    /* hero art */
-    .hero-art { position: relative; height: min(560px, 68vh); display: grid; place-items: center; }
-    .hero-art .halo { position: absolute; width: 76%; aspect-ratio: 1; border-radius: 50%;
-      background: radial-gradient(circle at 36% 30%, rgba(224,189,108,.4), rgba(52,211,153,.2) 55%, transparent 74%); filter: blur(10px); animation: floaty 7s ease-in-out infinite; }
-    .hero-art .ring { position: absolute; width: 66%; aspect-ratio: 1; border-radius: 50%;
-      border: 1.5px solid rgba(224,189,108,.4); box-shadow: inset 0 0 40px rgba(201,162,75,.12); animation: spin-slow 40s linear infinite; }
-    .hero-art .ring::after { content:""; position: absolute; top: 6%; left: 78%; width: 12px; height: 12px; border-radius: 50%;
-      background: var(--gold-grad); box-shadow: 0 0 18px rgba(224,189,108,.9); }
-    @keyframes spin-slow { to { transform: rotate(360deg); } }
-    .hero-art .ball { position: relative; width: clamp(160px, 22vw, 250px); aspect-ratio: 1; border-radius: 50%;
-      background: radial-gradient(circle at 32% 28%, #f2fca1 0%, #d7ef4f 48%, #93a726 100%);
-      box-shadow: inset -16px -20px 40px rgba(70,90,10,.5), inset 10px 12px 28px rgba(255,255,255,.45), 0 34px 70px rgba(0,0,0,.45);
-      animation: floaty 6s ease-in-out infinite; }
-    .hero-art .ball svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* hero photo card */
+    .hero-art { position: relative; display: grid; place-items: center; padding: 20px 0; }
+    .hero-art .frame { position: relative; width: min(560px, 100%); border-radius: var(--r-xl); overflow: hidden;
+      border: 1px solid var(--glass-border); box-shadow: 0 40px 90px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.3);
+      transform: rotate(1.6deg); animation: floaty 8s ease-in-out infinite; }
+    .hero-art .frame img { display: block; width: 100%; aspect-ratio: 16/10.5; object-fit: cover; }
+    .hero-art .frame::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(4,19,12,0) 55%, rgba(4,19,12,.72)); pointer-events: none; }
+    .hero-art .frame .cap { position: absolute; left: 16px; right: 16px; bottom: 12px; z-index: 1;
+      display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .hero-art .frame .cap strong { color: #fff; font-size: 13.5px; }
+    .hero-art .frame .cap span { color: rgba(224,189,108,.95); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
     .hero-art .chiplet { position: absolute; padding: 10px 16px; border-radius: var(--r-pill); font-size: 12.5px; font-weight: 700; color: var(--ink-hi);
-      display: flex; align-items: center; gap: 8px; animation: floaty 7s ease-in-out infinite; }
+      display: flex; align-items: center; gap: 8px; animation: floaty 7s ease-in-out infinite; z-index: 2; }
     .hero-art .chiplet svg { width: 15px; height: 15px; color: var(--tx-gold); flex: none; }
-    .hero-art .c1 { top: 10%; left: 2%; animation-delay: -1.5s; }
-    .hero-art .c2 { bottom: 16%; right: 0%; animation-delay: -3s; }
-    .hero-art .c3 { bottom: 4%; left: 10%; animation-delay: -4.5s; }
-    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+    .hero-art .c1 { top: 2%; left: -2%; animation-delay: -2s; }
+    .hero-art .c2 { bottom: 4%; right: -1%; animation-delay: -4.5s; }
+    @keyframes floaty { 0%,100% { transform: translateY(0) rotate(1.6deg); } 50% { transform: translateY(-14px) rotate(1.6deg); } }
+    .hero-art .chiplet { animation-name: floaty-chip; }
+    @keyframes floaty-chip { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+    /* fact strip (in hero flow) */
+    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); margin-top: calc(var(--gap-5) * -0.2); }
+    .fact { text-align: center; padding: var(--gap-3); }
+    .fact .v { font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 3vw, 34px);
+      background: var(--stat-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .fact .l { font-size: 12px; color: var(--ink-low); margin-top: 2px; }
 
     /* sections */
-    .sec { padding: clamp(48px, 8vh, 96px) 0; }
-    .sec-h { text-align: center; max-width: 62ch; margin: 0 auto var(--gap-5); }
-    .sec-h h2 { font-size: clamp(26px, 3.6vw, 40px); font-weight: 800; letter-spacing: -.02em; }
-    .sec-h p { color: var(--ink-mid); font-size: 16px; margin-top: 10px; }
-
-    /* stats band */
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); }
-    .stat-b { text-align: center; padding: var(--gap-4) var(--gap-3); }
-    .stat-b .v { font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 4vw, 46px);
-      background: var(--stat-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-b .l { font-size: 12.5px; color: var(--ink-low); margin-top: 4px; letter-spacing: .02em; }
+    .sec { padding: clamp(44px, 7vh, 84px) 0; }
+    .sec-h { text-align: center; max-width: 62ch; margin: 0 auto var(--gap-4); }
+    .sec-h h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; letter-spacing: -.02em; }
+    .sec-h p { color: var(--ink-mid); font-size: 15.5px; margin-top: 8px; }
 
     /* programs */
     .prog { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); }
     .prog-c { padding: var(--gap-4); display: flex; flex-direction: column; gap: 10px; }
-    .prog-c .ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #1c1503;
+    .prog-c .ic { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; color: #1c1503;
       background: var(--gold-grad); box-shadow: 0 10px 22px rgba(201,162,75,.35); }
-    .prog-c .ic svg { width: 26px; height: 26px; }
-    .prog-c h3 { font-size: 17px; font-weight: 700; }
-    .prog-c .lvl { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-optic); }
-    .prog-c p { font-size: 13.5px; color: var(--ink-mid); flex: 1; }
-    .prog-c .tm { font-size: 12.5px; color: var(--ink-low); display: flex; align-items: center; gap: 6px; }
-    .prog-c .tm svg { width: 14px; height: 14px; flex: none; }
+    .prog-c .ic svg { width: 24px; height: 24px; }
+    .prog-c h3 { font-size: 16.5px; font-weight: 700; }
+    .prog-c .lvl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-optic); }
+    .prog-c p { font-size: 13px; color: var(--ink-mid); flex: 1; }
+    .prog-c .tm { font-size: 12px; color: var(--ink-low); display: flex; align-items: center; gap: 6px; }
+    .prog-c .tm svg { width: 13px; height: 13px; flex: none; }
 
-    /* court booking band */
-    .court-band { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--gap-4); align-items: center; padding: clamp(28px, 4vw, 44px); }
-    .court-band h2 { font-size: clamp(24px, 3.2vw, 36px); font-weight: 800; letter-spacing: -.02em; }
-    .court-band .sub { color: var(--ink-mid); margin-top: 10px; max-width: 52ch; }
-    .rate-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
-    .rate-c { padding: var(--gap-3) var(--gap-4); border-radius: var(--r-lg); border: 1px solid var(--tile-border); background: var(--tile-bg); }
-    .rate-c .rc-l { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-low); }
-    .rate-c .rc-v { font-family: var(--font-display); font-size: 30px; font-weight: 800; color: var(--ink-hi); margin-top: 2px; }
-    .rate-c .rc-v small { font-size: 13px; font-weight: 600; color: var(--ink-low); }
-    .rate-c .rc-t { font-size: 12.5px; color: var(--ink-mid); margin-top: 3px; }
+    /* courts band */
+    .court-band { padding: clamp(26px, 4vw, 40px); }
+    .cb-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: var(--gap-4); align-items: center; }
+    .court-band h2 { font-size: clamp(24px, 3.2vw, 34px); font-weight: 800; letter-spacing: -.02em; }
+    .court-band .sub { color: var(--ink-mid); margin-top: 8px; max-width: 52ch; }
+    .cb-ticks { list-style: none; margin: var(--gap-3) 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 9px 18px; font-size: 13.5px; color: var(--ink-mid); }
+    .cb-ticks li::before { content: "✓  "; color: var(--tx-green); font-weight: 700; }
+    .rate-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-2); margin-top: var(--gap-3); }
+    .rate-c { padding: 12px 18px; border-radius: var(--r-lg); border: 1px solid var(--tile-border); background: var(--tile-bg); }
+    .rate-c .rc-l { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-low); }
+    .rate-c .rc-v { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--ink-hi); }
+    .rate-c .rc-v small { font-size: 12.5px; font-weight: 600; color: var(--ink-low); }
+    .rate-c .rc-t { font-size: 12px; color: var(--ink-mid); }
     .rate-c.peak { border-color: rgba(224,189,108,.5); }
     .rate-c.peak .rc-v { color: var(--tx-gold); }
 
-    /* why leo */
-    .why { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
-    .why-c { padding: var(--gap-4); display: flex; gap: 14px; align-items: flex-start; }
-    .why-c .ic { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center;
-      background: rgba(215,239,79,.14); border: 1px solid rgba(215,239,79,.3); color: var(--tx-optic); }
-    .why-c .ic svg { width: 22px; height: 22px; }
-    .why-c h3 { font-size: 15.5px; font-weight: 700; }
-    .why-c p { font-size: 13px; color: var(--ink-mid); margin-top: 4px; }
-
-    /* coaches */
-    .coach { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
-    .coach-c { padding: var(--gap-4); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .coach-c .avatar { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
-      font-family: var(--font-display); font-size: 28px; font-weight: 800; color: #1c1503;
-      background: var(--gold-grad); box-shadow: 0 14px 30px rgba(201,162,75,.35), inset 0 2px 0 rgba(255,255,255,.5); }
-    .coach-c h3 { font-size: 17px; }
-    .coach-c .role { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tx-gold); }
-    .coach-c p { font-size: 13px; color: var(--ink-mid); }
+    .cb-photos { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 132px; gap: var(--gap-2); }
+    .cb-photos a { position: relative; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--glass-border); display: block; }
+    .cb-photos a img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.01); transition: transform .6s ease; }
+    .cb-photos a:hover img { transform: scale(1.07); }
+    .cb-photos a:first-child { grid-row: span 2; }
+    .cb-photos a .tag { position: absolute; left: 10px; bottom: 8px; z-index: 1; color: #fff; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 99px; background: rgba(4,19,12,.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 
     /* pricing */
     .price { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); align-items: stretch; }
     .price-c { padding: var(--gap-4); text-align: center; display: flex; flex-direction: column; gap: 6px; }
     .price-c.feature { border-color: rgba(224,189,108,.55); }
     .price-c .plan { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-gold); }
-    .price-c .amt { font-family: var(--font-display); font-size: clamp(34px, 3.6vw, 44px); font-weight: 800; }
+    .price-c .amt { font-family: var(--font-display); font-size: clamp(32px, 3.4vw, 42px); font-weight: 800; }
     .price-c .amt small { font-size: 14px; font-weight: 600; color: var(--ink-low); }
-    .price-c ul { list-style: none; margin: var(--gap-3) 0; padding: 0; display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: var(--ink-mid); }
+    .price-c ul { list-style: none; margin: var(--gap-3) 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--ink-mid); }
     .price-c ul li::before { content: "✓  "; color: var(--tx-green); font-weight: 700; }
     .price-c .save { align-self: center; }
     .price-note { text-align: center; color: var(--ink-low); font-size: 13px; margin-top: var(--gap-3); }
 
-    /* steps */
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
-    .step-c { padding: var(--gap-4); }
-    .step-c .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
-      font-family: var(--font-display); font-weight: 800; color: #1c1503; background: var(--gold-grad); margin-bottom: 12px; }
-    .step-c h3 { font-size: 16.5px; font-weight: 700; }
-    .step-c p { font-size: 13.5px; color: var(--ink-mid); margin-top: 5px; }
-
-    /* testimonials */
-    .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-3); }
-    .quote-c { padding: var(--gap-4); display: flex; flex-direction: column; gap: 12px; }
-    .quote-c .stars { color: var(--tx-gold); letter-spacing: 3px; font-size: 14px; }
-    .quote-c blockquote { margin: 0; font-size: 14px; color: var(--ink-mid); font-style: italic; flex: 1; }
-    .quote-c .who { display: flex; align-items: center; gap: 10px; }
-    .quote-c .who .av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
-    .quote-c .who .nm { font-size: 13.5px; font-weight: 700; color: var(--ink-hi); }
-    .quote-c .who .rl { font-size: 11.5px; color: var(--ink-low); }
-
     /* final cta */
-    .cta-card { text-align: center; padding: clamp(40px, 7vh, 72px) var(--gap-4); }
-    .cta-card h2 { font-size: clamp(28px, 4vw, 46px); font-weight: 800; letter-spacing: -.02em; }
-    .cta-card p { color: var(--ink-mid); margin: 12px auto var(--gap-4); max-width: 48ch; }
+    .cta-card { text-align: center; padding: clamp(36px, 6vh, 64px) var(--gap-4); }
+    .cta-card h2 { font-size: clamp(26px, 3.8vw, 42px); font-weight: 800; letter-spacing: -.02em; }
+    .cta-card p { color: var(--ink-mid); margin: 10px auto var(--gap-4); max-width: 48ch; }
 
     /* footer */
-    .lp-foot { padding: var(--gap-5) 0 calc(var(--gap-5) + 10px); border-top: 1px solid var(--line); margin-top: var(--gap-5); }
-    .lp-foot .row { display: flex; justify-content: space-between; gap: var(--gap-3); flex-wrap: wrap; align-items: center; }
-    .lp-foot a { font-size: 13px; }
-    .lp-foot .ig { display: inline-flex; align-items: center; gap: 7px; }
-    .lp-foot .ig svg { width: 16px; height: 16px; }
-    .lp-foot .staff { color: var(--ink-faint); font-size: 12px; }
-    .lp-foot .staff:hover { color: var(--tx-gold); }
+    .lp-foot { padding: var(--gap-5) 0 calc(var(--gap-5) + 10px); border-top: 1px solid var(--line); margin-top: var(--gap-4); }
+    .foot-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: var(--gap-4); }
+    .foot-grid h4 { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tx-gold); margin-bottom: 10px; }
+    .foot-grid p, .foot-grid a { font-size: 13.5px; color: var(--ink-mid); display: block; line-height: 1.7; }
+    .foot-grid a:hover { color: var(--tx-gold); }
+    .foot-base { display: flex; justify-content: space-between; gap: var(--gap-3); flex-wrap: wrap; align-items: center; margin-top: var(--gap-4); padding-top: var(--gap-3); border-top: 1px solid var(--line); }
+    .foot-base .ig { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; }
+    .foot-base .ig svg { width: 16px; height: 16px; }
+    .foot-base .staff { color: var(--ink-faint); font-size: 12px; }
+    .foot-base .staff:hover { color: var(--tx-gold); }
 
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; min-height: auto; text-align: center; gap: var(--gap-3); }
       .hero .lede { margin-left: auto; margin-right: auto; }
       .gold-rule { margin-left: auto; margin-right: auto; }
-      .hero-cta, .hero-points { justify-content: center; }
-      .hero-art { height: 340px; order: -1; }
-      .stats, .prog { grid-template-columns: repeat(2, 1fr); }
-      .why, .coach, .price, .steps, .quotes { grid-template-columns: 1fr; }
-      .court-band { grid-template-columns: 1fr; text-align: center; }
-      .court-band .sub { margin-left: auto; margin-right: auto; }
-      .court-band .hero-cta { justify-content: center; }
+      .hero-cta { justify-content: center; }
+      .hero-art { order: -1; }
+      .hero-art .c1 { left: 2%; } .hero-art .c2 { right: 2%; }
+      .facts, .prog { grid-template-columns: repeat(2, 1fr); }
+      .cb-grid { grid-template-columns: 1fr; }
+      .price { grid-template-columns: 1fr; }
+      .foot-grid { grid-template-columns: 1fr; gap: var(--gap-3); }
     }
-    @media (max-width: 520px) { .nav-brand .t span { display: none; } .stats { grid-template-columns: 1fr 1fr; } .rate-cards { grid-template-columns: 1fr; } }
+    @media (max-width: 520px) { .nav-brand .t span { display: none; } .cb-ticks { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -187,165 +163,109 @@
     <div class="hero">
       <div class="lt-court-scene" aria-hidden="true">
         <span class="tb tb1"></span><span class="tb tb2"></span><span class="tb tb3"></span>
-        <svg class="court-lines" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax meet">
-          <path d="M 200 300 L 420 40 L 780 40 L 1000 300 Z" />
-          <line x1="310" y1="170" x2="890" y2="170" />
-          <line x1="600" y1="40" x2="600" y2="300" />
-          <line x1="420" y1="40" x2="780" y2="40" />
-        </svg>
-        <svg class="racquet" viewBox="0 0 120 200" fill="none" stroke="currentColor" stroke-width="5">
-          <ellipse cx="60" cy="52" rx="42" ry="50" />
-          <path d="M 48 100 L 42 190 M 72 100 L 78 190 M 42 190 Q 60 198 78 190" />
-          <path d="M 30 30 H 90 M 26 52 H 94 M 32 74 H 88 M 44 12 V 96 M 60 4 V 102 M 76 12 V 96" stroke-width="1.5" opacity=".7" />
-        </svg>
       </div>
 
       <div>
-        <span class="pill gold">★ Memberships open · Courts bookable daily</span>
-        <h1 class="mt-3">Tennis that fits<br /><span class="grad">around your work.</span></h1>
+        <span class="pill gold">★ Opp. Lingampally MMTS Station · Open daily 6 AM – 11 PM</span>
+        <h1 class="mt-3">Train smarter.<br /><span class="grad">Play stronger.</span></h1>
         <div class="gold-rule"></div>
-        <p class="lede">Hyderabad's premium adult tennis academy — structured coaching for every level, and six floodlit courts you can book by the hour. Mornings before office, evenings after.</p>
+        <p class="lede">Professional coaching for adults and pay-&amp;-play courts by the hour — synthetic hard and red clay, floodlit for night tennis. Hitting partners and coaches provided.</p>
         <div class="hero-cta">
           <a class="btn btn-primary btn-lg" href="booking.html">Book a court
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
           <a class="btn btn-glass btn-lg" href="admission.html">Join coaching</a>
         </div>
-        <div class="hero-points">
-          <span class="pill">Certified coaches</span>
-          <span class="pill">Video analysis</span>
-          <span class="pill">League pathway</span>
-          <span class="pill optic">Courts from ₹500/hr</span>
-        </div>
       </div>
 
-      <div class="hero-art" aria-hidden="true">
-        <div class="halo"></div>
-        <div class="ring"></div>
-        <div class="ball">
-          <svg viewBox="0 0 100 100">
-            <path d="M 22 4 Q 58 50 22 96" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3.4" />
-            <path d="M 78 4 Q 42 50 78 96" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3.4" />
-          </svg>
+      <div class="hero-art">
+        <div class="frame">
+          <img src="assets/img/courts/court-2.jpg" alt="Leo Tennis Academy courts under floodlights at night" />
+          <div class="cap"><strong>Night tennis under floodlights</strong><span>Till 11 PM</span></div>
         </div>
-        <div class="chiplet glass c1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 15 8.5 22 9.3 17 14l1.2 7L12 17.8 5.8 21 7 14 2 9.3 9 8.5z"/></svg>ITF-pattern coaching</div>
-        <div class="chiplet glass c2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg>Video analysis</div>
-        <div class="chiplet glass c3"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-5.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2"/></svg>Floodlit till 10 PM</div>
+        <div class="chiplet glass c1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 15 8.5 22 9.3 17 14l1.2 7L12 17.8 5.8 21 7 14 2 9.3 9 8.5z"/></svg>Coaching · Pay &amp; Play · Match practice</div>
+        <div class="chiplet glass c2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>60-minute power sessions</div>
       </div>
+    </div>
+
+    <!-- facts -->
+    <div class="facts">
+      <div class="glass glass-hover fact reveal"><div class="v num" data-countup="4">0</div><div class="l">Floodlit courts</div></div>
+      <div class="glass glass-hover fact reveal d1"><div class="v num" data-countup="2">0</div><div class="l">Surfaces — hard &amp; clay</div></div>
+      <div class="glass glass-hover fact reveal d2"><div class="v num" data-countup="17" data-suffix=" hrs">0</div><div class="l">Open every day</div></div>
+      <div class="glass glass-hover fact reveal d3"><div class="v num" data-countup="60" data-suffix=" min">0</div><div class="l">Power sessions</div></div>
     </div>
   </header>
 
   <main class="lp">
-    <!-- stats -->
-    <section class="sec" style="padding-top: 20px;">
-      <div class="stats">
-        <div class="glass glass-hover stat-b reveal"><div class="v num" data-countup="250" data-suffix="+">0</div><div class="l">Members coached</div></div>
-        <div class="glass glass-hover stat-b reveal d1"><div class="v num" data-countup="6">0</div><div class="l">Floodlit courts</div></div>
-        <div class="glass glass-hover stat-b reveal d2"><div class="v num" data-countup="16" data-suffix=" hrs">0</div><div class="l">Open every day</div></div>
-        <div class="glass glass-hover stat-b reveal d3"><div class="v num" data-countup="10" data-suffix="+">0</div><div class="l">Years of coaching</div></div>
-      </div>
-    </section>
-
     <!-- programs -->
     <section class="sec" id="programs">
       <div class="sec-h reveal">
         <div class="kicker">Coaching Programs</div>
         <h2>Built for adults, at every level</h2>
-        <p>Whether you're picking up a racquet for the first time or chasing league titles — there's a squad and a time slot that fits your day.</p>
+        <p>Small-group sessions with personalized coaching — from first rally to match play.</p>
       </div>
       <div class="prog">
         <div class="glass glass-hover prog-c reveal">
           <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 5.5 Q 12 12 5.5 18.5 M18.5 5.5 Q 12 12 18.5 18.5" fill="none" stroke="currentColor" stroke-width="2"/></svg></div>
           <div class="lvl">Beginner · returning</div>
           <h3>Foundations</h3>
-          <p>Never played, or rusty after years off? Grips, groundstrokes, serves and scoring — from zero to confident rallies.</p>
+          <p>Fundamental training — grips, groundstrokes, serves and scoring. From zero to confident rallies.</p>
           <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Mon · Wed · Fri — 6–7 AM &amp; 7–8 PM</div>
         </div>
         <div class="glass glass-hover prog-c reveal d1">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20 L20 4 M14 4 h6 v6"/></svg></div>
           <div class="lvl">Intermediate · advanced</div>
           <h3>Performance</h3>
-          <p>Pattern play, serve +1, match tactics and supervised sets — for players competing in leagues and open events.</p>
+          <p>Pattern play, serve +1, tactics and supervised sets — real match confidence, step by step.</p>
           <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Tue · Thu · Sat — 6–7:30 AM &amp; 8–9:30 PM</div>
         </div>
         <div class="glass glass-hover prog-c reveal d2">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.8 12.7 12 21.5l-8.8-8.8a5.5 5.5 0 0 1 7.8-7.8l1 1 1-1a5.5 5.5 0 0 1 7.8 7.8z"/></svg></div>
           <div class="lvl">Fitness first · all levels</div>
           <h3>Cardio Tennis</h3>
-          <p>High-energy drill sessions to music — burn 600+ calories a class while grooving real strokes. No rallies wasted.</p>
+          <p>High-energy drills to music — burn 600+ calories a class while grooving real strokes.</p>
           <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Daily — 7–8 AM &amp; 6–7 PM</div>
         </div>
         <div class="glass glass-hover prog-c reveal d3">
           <div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>
           <div class="lvl">1-on-1 · any level</div>
           <h3>Private Coaching</h3>
-          <p>A coach and a court to yourself. Fix one stroke or rebuild your whole game — scheduled around your calendar.</p>
+          <p>A coach and a court to yourself — hitting partner provided. Scheduled around your calendar.</p>
           <div class="tm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>By appointment — any open hour</div>
         </div>
       </div>
     </section>
 
-    <!-- court booking -->
+    <!-- courts + booking -->
     <section class="sec" id="courts">
       <div class="glass court-band reveal">
-        <div>
-          <div class="kicker">Court Booking</div>
-          <h2>Six floodlit courts, yours by the hour.</h2>
-          <p class="sub">Pick a date, pick your hours, get an instant quote and confirm — open 6 AM to 10 PM, every day. Bring a partner or join the hitting list.</p>
-          <div class="hero-cta">
-            <a class="btn btn-primary btn-lg" href="booking.html">Check slots &amp; book
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </a>
+        <div class="cb-grid">
+          <div>
+            <div class="kicker">Court Booking · Pay &amp; Play</div>
+            <h2>Four courts, yours by the hour.</h2>
+            <p class="sub">Pick a date, tap your hours, get an instant quote — we confirm your court on WhatsApp. No membership needed.</p>
+            <ul class="cb-ticks">
+              <li>Synthetic hard &amp; red clay</li>
+              <li>Floodlit till 11 PM</li>
+              <li>Hitting partners on request</li>
+              <li>60-minute slots, 6 AM – 11 PM</li>
+            </ul>
+            <div class="rate-cards">
+              <div class="rate-c"><div class="rc-l">Off-peak · 6 AM – 4 PM</div><div class="rc-v">₹500<small> /hr</small></div></div>
+              <div class="rate-c peak"><div class="rc-l">Peak · 4 – 11 PM</div><div class="rc-v">₹700<small> /hr</small></div></div>
+            </div>
+            <div class="hero-cta">
+              <a class="btn btn-primary btn-lg" href="booking.html">Check slots &amp; book
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
           </div>
-        </div>
-        <div class="rate-cards">
-          <div class="rate-c"><div class="rc-l">Off-peak</div><div class="rc-v">₹500<small> /hr</small></div><div class="rc-t">6 AM – 4 PM · all courts</div></div>
-          <div class="rate-c peak"><div class="rc-l">Peak · floodlights</div><div class="rc-v">₹700<small> /hr</small></div><div class="rc-t">4 PM – 10 PM · all courts</div></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- why leo -->
-    <section class="sec">
-      <div class="sec-h reveal">
-        <div class="kicker">Why Leo</div>
-        <h2>Coaching that goes beyond rallies</h2>
-        <p>Everything a serious club should offer — built into every membership.</p>
-      </div>
-      <div class="why">
-        <div class="glass glass-hover why-c reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-5"/><circle cx="12" cy="12" r="9"/></svg></div><div><h3>Certified coaches</h3><p>ITF &amp; AITA-certified coaching team with a 1:6 coach-to-player ratio in every adult squad.</p></div></div>
-        <div class="glass glass-hover why-c reveal d1"><div class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg></div><div><h3>Video analysis</h3><p>Monthly stroke breakdowns with slow-motion review, so you can see exactly what changed.</p></div></div>
-        <div class="glass glass-hover why-c reveal d2"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v6a6 6 0 0 0 12 0V4M4 4h16M12 16v5M8 21h8"/></svg></div><div><h3>League &amp; match play</h3><p>Club ladder, corporate league fixtures and guided entry into AITA open events when you're ready.</p></div></div>
-        <div class="glass glass-hover why-c reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.8 12.7 12 21.5l-8.8-8.8a5.5 5.5 0 0 1 7.8-7.8l1 1 1-1a5.5 5.5 0 0 1 7.8 7.8z"/></svg></div><div><h3>Strength &amp; mobility</h3><p>Tennis-specific conditioning and injury-prevention work — built for desk-job bodies.</p></div></div>
-        <div class="glass glass-hover why-c reveal d1"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 9h18"/></svg></div><div><h3>Flexible scheduling</h3><p>Morning and late-evening batches, plus make-up sessions when work travel gets in the way.</p></div></div>
-        <div class="glass glass-hover why-c reveal d2"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-5.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2"/></svg></div><div><h3>Floodlit till 10 PM</h3><p>Six synthetic hard courts under professional floodlights — prime-time tennis after office hours.</p></div></div>
-      </div>
-    </section>
-
-    <!-- coaches -->
-    <section class="sec" id="coaches">
-      <div class="sec-h reveal">
-        <div class="kicker">The Team</div>
-        <h2>Learn from players who've been there</h2>
-      </div>
-      <div class="coach">
-        <div class="glass glass-hover coach-c reveal">
-          <div class="avatar">RS</div>
-          <div class="role">Head Coach</div>
-          <h3>Rahul Sharma</h3>
-          <p>Former AITA circuit player · ITF Level 2 · 12 years coaching adults from first rally to state leagues.</p>
-        </div>
-        <div class="glass glass-hover coach-c reveal d1">
-          <div class="avatar">PK</div>
-          <div class="role">Performance Coach</div>
-          <h3>Priya Krishnan</h3>
-          <p>State champion · runs the Performance squad — periodisation, match tactics and league preparation.</p>
-        </div>
-        <div class="glass glass-hover coach-c reveal d2">
-          <div class="avatar">DM</div>
-          <div class="role">Fitness &amp; Conditioning</div>
-          <h3>David Manuel</h3>
-          <p>Certified S&amp;C trainer — leads Cardio Tennis and the mobility work behind every big serve.</p>
+          <div class="cb-photos" aria-label="Court photos">
+            <a href="booking.html"><img src="assets/img/courts/court-1.jpg" alt="Aerial view of Leo Tennis Academy courts beside Lingampally MMTS station" loading="lazy" /><span class="tag">The academy from above</span></a>
+            <a href="booking.html"><img src="assets/img/courts/court-3.jpg" alt="Red clay court at Leo Tennis Academy" loading="lazy" /><span class="tag">Red clay</span></a>
+            <a href="booking.html"><img src="assets/img/courts/court-4.jpg" alt="Member serving on clay court" loading="lazy" /><span class="tag">Match practice</span></a>
+          </div>
         </div>
       </div>
     </section>
@@ -353,7 +273,7 @@
     <!-- pricing -->
     <section class="sec" id="fees">
       <div class="sec-h reveal">
-        <div class="kicker">Membership</div>
+        <div class="kicker">Coaching Membership</div>
         <h2>Simple, transparent fees</h2>
         <p>One-time joining fee ₹1,000 includes your kit and a level assessment with the head coach.</p>
       </div>
@@ -381,48 +301,10 @@
       <p class="price-note">Just want to play? Courts rent at ₹500/hr off-peak and ₹700/hr under lights — <a href="booking.html">book a slot</a>, no membership needed.</p>
     </section>
 
-    <!-- steps -->
-    <section class="sec">
-      <div class="sec-h reveal">
-        <div class="kicker">Getting Started</div>
-        <h2>Three steps to the baseline</h2>
-      </div>
-      <div class="steps">
-        <div class="glass glass-hover step-c reveal"><div class="n">1</div><h3>Book a trial session</h3><p>Drop in for a complimentary session with your squad — racquets available if you don't own one yet.</p></div>
-        <div class="glass glass-hover step-c reveal d1"><div class="n">2</div><h3>Level assessment</h3><p>The head coach maps your game and places you in Foundations, Performance or Cardio.</p></div>
-        <div class="glass glass-hover step-c reveal d2"><div class="n">3</div><h3>Train &amp; play</h3><p>Pick a plan, lock your batch timings, and book extra court hours whenever you want more.</p></div>
-      </div>
-    </section>
-
-    <!-- testimonials -->
-    <section class="sec">
-      <div class="sec-h reveal">
-        <div class="kicker">Members</div>
-        <h2>Loved by the Leo family</h2>
-      </div>
-      <div class="quotes">
-        <div class="glass glass-hover quote-c reveal">
-          <div class="stars">★★★★★</div>
-          <blockquote>"Started at 34 having never held a racquet. A year later I'm playing weekend sets with the Performance group. The progression is genuinely structured."</blockquote>
-          <div class="who"><span class="av">MI</span><div><div class="nm">Meera Iyer</div><div class="rl">Foundations → Performance</div></div></div>
-        </div>
-        <div class="glass glass-hover quote-c reveal d1">
-          <div class="stars">★★★★★</div>
-          <blockquote>"The video analysis fixed a serve I'd been fighting for ten years. Best adult coaching setup I've seen in Hyderabad, and I've tried three academies."</blockquote>
-          <div class="who"><span class="av">RV</span><div><div class="nm">Rohit Venkatesh</div><div class="rl">Performance squad · league player</div></div></div>
-        </div>
-        <div class="glass glass-hover quote-c reveal d2">
-          <div class="stars">★★★★★</div>
-          <blockquote>"The 6 AM batch is the best part of my day — and booking a court for Saturday doubles takes thirty seconds on the site. Great courts, great energy."</blockquote>
-          <div class="who"><span class="av">KN</span><div><div class="nm">Kabir Nair</div><div class="rl">Member since 2025</div></div></div>
-        </div>
-      </div>
-    </section>
-
     <!-- final CTA -->
     <section class="sec">
       <div class="glass cta-card reveal">
-        <div class="kicker">Limited seats per squad</div>
+        <div class="kicker">Join the pride 🦁</div>
         <h2>Your first session is on us.</h2>
         <p>Book a trial, meet the coaches, feel the courts under lights. No commitment — just tennis.</p>
         <div class="flex" style="justify-content:center; flex-wrap:wrap;">
@@ -436,26 +318,37 @@
 
     <!-- footer -->
     <footer class="lp-foot">
-      <div class="row">
-        <div class="nav-brand">
-          <span class="mark" data-logo="26" style="width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:radial-gradient(circle at 32% 24%, #0f3d27, var(--forest-900) 70%);border:1px solid rgba(201,162,75,.4);"></span>
-          <span class="t"><strong style="font-size:14px;">Leo Tennis Academy</strong><span style="font-size:9.5px;">Hyderabad</span></span>
+      <div class="foot-grid">
+        <div>
+          <div class="nav-brand" style="margin-bottom: 12px;">
+            <span class="mark" data-logo="26" style="width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:radial-gradient(circle at 32% 24%, #0f3d27, var(--forest-900) 70%);border:1px solid rgba(201,162,75,.4);"></span>
+            <span class="t"><strong style="font-size:14px;">Leo Tennis Academy</strong><span style="font-size:9.5px;">Hyderabad</span></span>
+          </div>
+          <p>Opp. Lingampally MMTS Station,<br />Venkat Reddy Colony, Serilingampally,<br />Hyderabad</p>
         </div>
-        <div class="flex wrap" style="gap: var(--gap-3);">
-          <a href="#programs">Programs</a>
-          <a href="#courts">Courts</a>
-          <a href="#coaches">Coaches</a>
-          <a href="#fees">Fees</a>
-          <a class="ig" href="https://www.instagram.com/leotennishyd/" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.8" cy="6.2" r="1.3" fill="currentColor" stroke="none"/></svg>
-            @leotennishyd
-          </a>
+        <div>
+          <h4>Contact</h4>
+          <a href="tel:+919676829060">+91 96768 29060</a>
+          <a href="tel:+917208195649">+91 72081 95649</a>
+          <p>Open daily · 6 AM – 11 PM</p>
         </div>
+        <div>
+          <h4>Explore</h4>
+          <a href="#programs">Coaching programs</a>
+          <a href="booking.html">Book a court</a>
+          <a href="#fees">Membership fees</a>
+        </div>
+      </div>
+      <div class="foot-base">
+        <a class="ig" href="https://www.instagram.com/leotennishyd/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.8" cy="6.2" r="1.3" fill="currentColor" stroke="none"/></svg>
+          @leotennishyd
+        </a>
         <a class="staff" href="login.html">Staff access</a>
       </div>
     </footer>
   </main>
 
-  <script src="assets/js/core.js?v=2"></script>
+  <script src="assets/js/core.js?v=3"></script>
 </body>
 </html>

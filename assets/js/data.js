@@ -22,10 +22,24 @@
       { id: "h", label: "Half-yearly", amount: 24300, months: 6, note: "10% off" },
     ],
 
-    // Court rental — one-hour slots, 6 courts, 06:00–22:00
-    courts: 6,
-    slotHours: { open: 6, close: 22 },          // last slot starts 21:00
+    // Court rental — one-hour slots, 4 bookable courts, 6 AM – 11 PM daily
+    courts: 4,
+    courtsMeta: [
+      { n: 1, surface: "Synthetic hard", note: "Floodlit centre court", img: "assets/img/courts/court-2.jpg" },
+      { n: 2, surface: "Synthetic hard", note: "Match court by the stands", img: "assets/img/courts/court-1.jpg" },
+      { n: 3, surface: "Red clay", note: "Classic clay, slower rallies", img: "assets/img/courts/court-3.jpg" },
+      { n: 4, surface: "Red clay", note: "Coaching & rally court", img: "assets/img/courts/court-4.jpg" },
+    ],
+    slotHours: { open: 6, close: 23 },          // last slot starts 22:00 (10–11 PM)
     rates: { offPeak: 500, peak: 700, peakFrom: 16 }, // peak = 4 PM onward (floodlights)
+
+    contact: {
+      address: "Opp. Lingampally MMTS Station, Venkat Reddy Colony, Serilingampally, Hyderabad",
+      phone: "+91 96768 29060",
+      phone2: "+91 72081 95649",
+      hours: "Open daily · 6 AM – 11 PM",
+      instagram: "https://www.instagram.com/leotennishyd/",
+    },
 
     members: [
       { id: 1,  name: "Kabir Nair",       program: "perf",    age: 32, phone: "99490 55876", joined: "2025-04-05", validTill: daysFromNow(29),  status: "active" },
@@ -46,11 +60,16 @@
 
     // Court bookings (seed). Hour = slot start in 24h.
     bookings: [
-      { id: "B-1041", name: "Rohit Venkatesh", phone: "90000 87641", court: 2, date: daysFromNow(0), hour: 6,  amount: 500, status: "confirmed" },
+      { id: "B-1041", name: "Rohit Venkatesh", phone: "90000 87641", court: 1, date: daysFromNow(0), hour: 6,  amount: 500, status: "confirmed" },
       { id: "B-1042", name: "Kabir Nair",      phone: "99490 55876", court: 1, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed" },
-      { id: "B-1043", name: "Priyanka Joshi",  phone: "98220 45671", court: 4, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed" },
-      { id: "B-1044", name: "Cygnus Tech (corporate)", phone: "98450 22110", court: 5, date: daysFromNow(0), hour: 19, amount: 700, status: "pending" },
+      { id: "B-1048", name: "Meera Iyer",      phone: "98661 90035", court: 2, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed" },
+      { id: "B-1049", name: "Lakshmi Menon",   phone: "98123 40987", court: 3, date: daysFromNow(0), hour: 8,  amount: 500, status: "confirmed" },
+      { id: "B-1050", name: "Vikram Bhat",     phone: "98850 61147", court: 4, date: daysFromNow(0), hour: 10, amount: 500, status: "confirmed" },
+      { id: "B-1043", name: "Priyanka Joshi",  phone: "98220 45671", court: 1, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed" },
+      { id: "B-1051", name: "Ananya Deshpande", phone: "98481 33290", court: 2, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed" },
+      { id: "B-1044", name: "Cygnus Tech (corporate)", phone: "98450 22110", court: 4, date: daysFromNow(0), hour: 19, amount: 700, status: "pending" },
       { id: "B-1045", name: "Farhan Sheikh",   phone: "90104 22983", court: 3, date: daysFromNow(0), hour: 20, amount: 700, status: "confirmed" },
+      { id: "B-1052", name: "Sanjay Reddy",    phone: "98490 11223", court: 1, date: daysFromNow(0), hour: 21, amount: 700, status: "confirmed" },
       { id: "B-1046", name: "Lakshmi Menon",   phone: "98123 40987", court: 1, date: daysFromNow(1), hour: 6,  amount: 500, status: "confirmed" },
       { id: "B-1047", name: "Dheeraj Kamath",  phone: "97411 88976", court: 2, date: daysFromNow(1), hour: 21, amount: 700, status: "pending" },
     ],
@@ -60,7 +79,7 @@
       { id: 102, name: "Priyanka Joshi",   type: "Court",      detail: "Court 4 · 6–7 PM",       amount: 700,   on: daysFromNow(-1),  mode: "UPI" },
       { id: 103, name: "Kabir Nair",       type: "Membership", detail: "Quarterly · Performance", amount: 12825, on: daysFromNow(-4),  mode: "UPI" },
       { id: 104, name: "Vikram Bhat",      type: "Membership", detail: "Monthly · Foundations",  amount: 4500,  on: daysFromNow(-5),  mode: "Cash" },
-      { id: 105, name: "Cygnus Tech",      type: "Court",      detail: "Courts 5–6 · 7–9 PM",    amount: 2800,  on: daysFromNow(-6),  mode: "Bank" },
+      { id: 105, name: "Cygnus Tech",      type: "Court",      detail: "Courts 3–4 · 7–9 PM",    amount: 2800,  on: daysFromNow(-6),  mode: "Bank" },
       { id: 106, name: "Lakshmi Menon",    type: "Membership", detail: "Half-yearly · Private",  amount: 24300, on: daysFromNow(-12), mode: "Bank" },
       { id: 107, name: "Ananya Deshpande", type: "Membership", detail: "Monthly · Performance",  amount: 4500,  on: daysFromNow(-15), mode: "UPI" },
       { id: 108, name: "Sanjay Reddy",     type: "Membership", detail: "Quarterly · Cardio",     amount: 12825, on: daysFromNow(-19), mode: "UPI" },

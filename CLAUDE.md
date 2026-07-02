@@ -8,8 +8,9 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
 - ADULTS ONLY. No kids programs, no parent/guardian fields, no age-group batches.
   People are "members" (never "students"/"kids"; "player" only in natural tennis
   phrasing like "league player").
-- Two revenue lines: coaching memberships AND hourly court booking (6 courts,
-  one-hour slots 06:00–22:00, ₹500 off-peak / ₹700 peak from 4 PM).
+- Two revenue lines: coaching memberships AND hourly court booking (4 courts —
+  2 synthetic hard + 2 red clay, one-hour slots 06:00–23:00, ₹500 off-peak /
+  ₹700 peak from 4 PM).
 - Court booking flow: public requests a date + hour slots (instant quote) →
   status `pending` → staff confirms in bookings.html, which auto-assigns the
   first free court for that hour (override stored under `lt-booking-status`).
@@ -26,8 +27,7 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
   light, over a VIVID animated background (.lt-bg). Never make glass milky.
 - `assets/js/core.js` — `window.LT`: logo SVG, theme manager (localStorage
   `lt-theme`, default dark), toast, `LT.store` (localStorage persistence seam),
-  local auth session, staff nav shell (Dashboard/Members/Bookings/Attendance/
-  Finance), count-up, scroll reveal, glass-hover cursor tracking.
+  local auth session, staff nav shell (Dashboard/Members/Bookings/Finance), count-up, scroll reveal, glass-hover cursor tracking.
 - `assets/js/data.js` — `window.LT_DATA` (programs, plans, members, bookings,
   payments, revenue, activity; dates generated relative to today) and
   `window.LT_SLOTS` (hour list, rate + label helpers). Seed data until the
@@ -37,7 +37,7 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
 Public: index.html · booking.html (slot quote + request) · admission.html
 (membership wizard — no parent fields) · login.html.
 Staff (behind LT.auth.require): dashboard.html · players.html (Members roster) ·
-bookings.html · attendance.html · fees.html (Finance).
+bookings.html (graphical court cards + schedule modal) · fees.html (Finance).
 
 ## Conventions
 - Prefix classes/keys `lt-`. Only use tokens from glass.css, never hardcoded colors.

@@ -988,6 +988,89 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .quote-bar .qb-total { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--tx-gold); }
 .quote-bar .qb-note { font-size: 12.5px; color: var(--ink-mid); }
 
+/* ---------- Court photo cards (staff bookings view) ---------- */
+.court-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
+@media (max-width: 767px) { .court-grid { grid-template-columns: 1fr; } }
+
+.court-card {
+  position: relative;
+  min-height: 250px;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.45s var(--ease-spring), box-shadow 0.45s ease, border-color 0.3s ease;
+}
+.court-card:hover { transform: translateY(-4px); border-color: var(--glass-border-hover); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.court-card img.cc-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.02); transition: transform 0.7s ease; }
+.court-card:hover img.cc-photo { transform: scale(1.07); }
+.court-card .cc-shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(4, 19, 12, 0.06) 28%, rgba(4, 19, 12, 0.62) 62%, rgba(4, 19, 12, 0.92) 100%);
+}
+.court-card .cc-status { position: absolute; top: 14px; right: 14px; }
+.court-card .cc-body { position: absolute; inset: auto 0 0 0; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 9px; }
+.court-card .cc-name { font-family: var(--font-display); font-weight: 800; font-size: 19px; color: #fff; line-height: 1.15; }
+.court-card .cc-name small { display: block; font-family: var(--font-body); font-weight: 600; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(224, 189, 108, 0.95); margin-top: 2px; }
+.court-card .cc-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: rgba(255, 255, 255, 0.66); }
+.court-card .cc-meta b { color: #f0d795; font-weight: 700; }
+
+/* Hour occupancy strip: one segment per bookable hour */
+.tl { display: flex; gap: 3px; height: 24px; }
+.tl .seg {
+  flex: 1; border-radius: 5px;
+  background: rgba(255, 255, 255, 0.16);
+  transform-origin: bottom;
+  animation: lt-grow-bar 0.6s var(--ease-spring) both;
+}
+.tl .seg.past { opacity: 0.22; }
+.tl .seg.booked { background: var(--gold-grad); box-shadow: 0 2px 8px rgba(201, 162, 75, 0.5); }
+.tl .seg.pending {
+  background: repeating-linear-gradient(45deg, rgba(215, 239, 79, 0.55) 0 4px, rgba(215, 239, 79, 0.12) 4px 8px);
+  outline: 1px dashed rgba(215, 239, 79, 0.7); outline-offset: -1px;
+}
+.tl .seg.now { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 2px 8px rgba(201, 162, 75, 0.5); }
+@media (prefers-reduced-motion: reduce) { .tl .seg { animation: none; } }
+.tl-hours { display: flex; justify-content: space-between; font-size: 9.5px; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.45); }
+
+/* Legend chips shared by cards + modal */
+.tl-legend { display: flex; gap: var(--gap-3); flex-wrap: wrap; font-size: 12px; color: var(--ink-low); align-items: center; }
+.tl-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
+
+/* ---------- Court schedule modal ---------- */
+.lt-modal.court-modal { padding: 0; overflow: hidden; }
+.court-modal .cm-hero { position: relative; height: 170px; }
+.court-modal .cm-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.court-modal .cm-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(4, 19, 12, 0.85)); }
+.court-modal .cm-hero .cm-title { position: absolute; left: 20px; bottom: 14px; z-index: 1; }
+.court-modal .cm-hero .cm-title h2 { color: #fff; font-size: 22px; }
+.court-modal .cm-hero .cm-title .sub { color: rgba(224, 189, 108, 0.95); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.court-modal .cm-hero .cm-close { position: absolute; top: 12px; right: 12px; z-index: 1; color: #fff; background: rgba(4, 19, 12, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.court-modal .cm-body { padding: var(--gap-3) var(--gap-4) var(--gap-4); }
+
+.sched { display: flex; flex-direction: column; gap: 6px; margin-top: var(--gap-2); }
+.sched-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--tile-border); background: var(--tile-bg);
+  animation: lt-sched-in 0.45s var(--ease-spring) both;
+}
+@keyframes lt-sched-in { from { opacity: 0; transform: translateX(14px); } }
+@media (prefers-reduced-motion: reduce) { .sched-row { animation: none; } }
+.sched-row .sr-time { flex: none; width: 92px; font-size: 12px; font-weight: 700; color: var(--ink-mid); font-variant-numeric: tabular-nums; }
+.sched-row .sr-bar { flex: 1; height: 10px; border-radius: 6px; background: var(--line); position: relative; overflow: hidden; }
+.sched-row .sr-bar i { position: absolute; inset: 0; border-radius: 6px; transform-origin: left; animation: lt-fill-bar 0.7s var(--ease-spring) both; }
+@keyframes lt-fill-bar { from { transform: scaleX(0); } }
+.sched-row.free .sr-bar i { display: none; }
+.sched-row.booked .sr-bar i { background: var(--gold-grad); box-shadow: 0 2px 8px rgba(201, 162, 75, 0.4); }
+.sched-row.pending .sr-bar i { background: repeating-linear-gradient(45deg, rgba(215, 239, 79, 0.6) 0 5px, rgba(215, 239, 79, 0.15) 5px 10px); }
+.sched-row .sr-who { flex: none; max-width: 200px; font-size: 12.5px; font-weight: 650; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-row .sr-who small { display: block; font-weight: 500; font-size: 10.5px; color: var(--ink-low); }
+.sched-row.free .sr-who { color: var(--ink-faint); font-weight: 500; }
+.sched-row.past { opacity: 0.45; }
+.sched-row.now { border-color: rgba(224, 189, 108, 0.6); background: rgba(201, 162, 75, 0.1); }
+
 /* ---------- Wizard stepper (membership / trial form) ---------- */
 .adm-stepper { display: flex; align-items: center; gap: 6px; margin-bottom: var(--gap-4); }
 .adm-stepper .step { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
