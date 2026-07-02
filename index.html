@@ -66,16 +66,23 @@
        page cannot shift left when scrolling unlocks */
     html.bwl-loading { overflow-y: scroll; }
     html.bwl-loading body { overflow: visible; }
-    /* the mask's solid stop is a registered property so the fade band can
-       heal smoothly during the melt instead of popping off at cleanup */
-    @property --bwl-solid { syntax: "<percentage>"; inherits: false; initial-value: 78%; }
+    /* the mask is a STATIC double-height gradient: its lower half carries the
+       fade band, its upper half is solid. Healing = sliding mask-position
+       (GPU-composited, never re-rasterized), so the melt cannot glitch or
+       flash while the band brightens. */
     html.bwl-loading .bwl-page {
       height: 100vh; height: 100svh;
       overflow: hidden;
       will-change: transform;
       transform-origin: 50% 0;
-      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 var(--bwl-solid, 78%), transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 0%, #000 var(--bwl-solid, 78%), transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 89%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 89%, transparent 100%);
+      -webkit-mask-size: 100% 200%;
+      mask-size: 100% 200%;
+      -webkit-mask-position: 0 100%;
+      mask-position: 0 100%;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
     }
     html.bwl-loading .bwl-inner { will-change: transform; }
     /* the ambient gradient rides inside the window (not the stream) so it is
@@ -501,7 +508,8 @@
         docEl.classList.remove("bwl-loading"); // drops height clamp, overflow, mask
         win.style.transform = "";
         win.style.transition = "";
-        win.style.removeProperty("--bwl-solid");
+        win.style.webkitMaskPosition = "";
+        win.style.maskPosition = "";
         inner.style.transform = "";
         scrollTo(0, 0);
         if (video) { try { video.pause(); } catch (e) {} if (video.parentNode) video.remove(); }
@@ -602,10 +610,11 @@
         video.style.opacity = "0";
         fadeTimer = setTimeout(cleanup, ms / rate + 80);
       }
-      function healMask(ms) { // needs @property support; otherwise cleanup unmasks as before
-        if (!(window.CSS && CSS.registerProperty)) return;
-        win.style.transition = "--bwl-solid " + Math.round(ms / rate) + "ms ease-out";
-        win.style.setProperty("--bwl-solid", "100%");
+      function healMask(ms) { // slide the fade band off the bottom, in step with the melt
+        var d = Math.round(ms / rate) + "ms ease-out";
+        win.style.transition = "-webkit-mask-position " + d + ", mask-position " + d;
+        win.style.webkitMaskPosition = "0 0";
+        win.style.maskPosition = "0 0";
       }
       function onGesture(e) {
         if (e.type === "keydown" &&
