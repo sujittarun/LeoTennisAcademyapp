@@ -209,7 +209,9 @@ body {
     radial-gradient(34% 30% at 30% 32%, rgba(52, 211, 153, 0.3), transparent 66%),
     radial-gradient(30% 26% at 70% 62%, rgba(224, 189, 108, 0.28), transparent 64%),
     radial-gradient(24% 22% at 48% 78%, rgba(215, 239, 79, 0.16), transparent 66%);
-  animation: lt-drift 24s ease-in-out infinite alternate;
+  /* ambient drift, tuned below perception: one direction change per ~40s
+     and a gentle range, so the background never reads as "shifting" */
+  animation: lt-drift 80s ease-in-out infinite alternate;
   filter: blur(42px);
 }
 :root[data-theme="light"] .lt-bg::before {
@@ -226,8 +228,8 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 @keyframes lt-drift {
-  from { transform: translate3d(-4%, -2%, 0) rotate(-2deg) scale(1); }
-  to { transform: translate3d(4%, 3%, 0) rotate(2deg) scale(1.12); }
+  from { transform: translate3d(-2%, -1%, 0) rotate(-1deg) scale(1); }
+  to { transform: translate3d(2%, 1.5%, 0) rotate(1deg) scale(1.05); }
 }
 @media (prefers-reduced-motion: reduce) {
   .lt-bg::before { animation: none; }
