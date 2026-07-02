@@ -73,7 +73,7 @@
       height: 100vh; height: 100svh;
       overflow: hidden;
       will-change: transform;
-      transform-origin: 50% 100%;
+      transform-origin: 50% 0;
       -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 var(--bwl-solid, 78%), transparent 100%);
       mask-image: linear-gradient(to bottom, #000 0%, #000 var(--bwl-solid, 78%), transparent 100%);
     }
@@ -555,10 +555,10 @@
         var x = (t - CFG.V_OFFSET) / (T_LAND - CFG.V_OFFSET);
         return -streamSpan() * (1 - ease(Math.min(Math.max(x, 0), 1)));
       }
-      function squashAt(t) { // tiny landing compression, origin bottom
-        var u = t - T_LAND;
-        if (u < 0 || u > 0.4) return 1;
-        return 1 - 0.03 * Math.exp(-8 * u);
+      function squashAt(t) { // tiny landing compression, anchored to the top
+        var u = t - T_LAND;                 // so the give happens at the bottom,
+        if (u < 0 || u > 0.5) return 1;     // into the ball carpet — never a
+        return 1 - 0.022 * Math.exp(-6 * u); // bright flash at the screen top
       }
 
       // debug: append ?bwlslow=0.25 to watch the ride in slow motion
