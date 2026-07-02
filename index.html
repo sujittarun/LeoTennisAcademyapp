@@ -529,7 +529,7 @@
         BAND: 0.14,     // ball band kept visible below the fade (fraction of vh)
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
         HOLD_MS: 0,     // epilogue: melt starts as soon as the page lands
-        FADE_MS: 2400,  // epilogue: the ball band wipes away top-to-bottom over this
+        FADE_MS: 4800,  // epilogue: the ball band wipes away top-to-bottom over this
         GESTURE_FADE_MS: 350, // remaining melt is snapped to this when the user scrolls
       };
       var T_LAND = CFG.T_WAVE; // the halt: no bounce, just a long soft deceleration
@@ -540,8 +540,11 @@
       }
 
       function ease(x) { return x * x * (3 - 2 * x); } // smoothstep (matches the footage)
-      function easeSofter(x) { return x * x * x * (x * (x * 6 - 15) + 10); } // smootherstep:
-      // zero velocity AND zero acceleration at the end — the stream glides to a halt
+      function easeArrive(x) { // bus-stop arrival: slow start, fast middle, then a
+        // LONG very-slow crawl into the stop (quartic-order tail — the final
+        // pixels take a good fraction of the ride, so the halt is imperceptible)
+        return 1 - Math.pow(1 - ease(x), 2.2);
+      }
       function frontAt(t) { // wave front position in px
         var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
         return innerHeight * (CFG.BASE + CFG.SPAN * ease(x));
@@ -558,7 +561,7 @@
         // sits on the balls at frame one; smootherstep = fast middle, then a
         // long gentle slow-down into the halt
         var x = (t - CFG.V_OFFSET) / (T_LAND - CFG.V_OFFSET);
-        return -streamSpan() * (1 - easeSofter(Math.min(Math.max(x, 0), 1)));
+        return -streamSpan() * (1 - easeArrive(Math.min(Math.max(x, 0), 1)));
       }
 
       // debug: append ?bwlslow=0.25 to watch the ride in slow motion
