@@ -53,21 +53,26 @@
     @keyframes floaty-chip { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 
 
-    /* ball-wave load: page rides the wave down (JS-driven, no keyframes) */
+    /* ball-wave load, "window + stream": the page becomes a viewport-sized
+       clipping window whose bottom edge rides the wave front, while the
+       document pours through it footer-first (JS-driven, no keyframes) */
     .bwl-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
     .bwl-page { position: relative; z-index: 1; background: var(--forest-950); }
     :root[data-theme="light"] .bwl-page { background: #dcead9; }
     html:not(.bwl-loading) .bwl-video { display: none; }
     html.bwl-loading, html.bwl-loading body { overflow: hidden; height: 100%; }
     html.bwl-loading .bwl-page {
+      height: 100vh; height: 100svh;
+      overflow: hidden;
       will-change: transform;
       transform-origin: 50% 100%;
       -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 22vh), transparent 100%);
       mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 22vh), transparent 100%);
     }
-    /* while riding, pin the bg gradient to a viewport-sized box at the page top
-       so removing the transform on settle is pixel-identical */
-    html.bwl-loading .lt-bg { position: absolute; top: 0; left: 0; right: 0; bottom: auto; height: 100vh; }
+    html.bwl-loading .bwl-inner { will-change: transform; }
+    /* the ambient gradient rides inside the window (not the stream) so it is
+       viewport-sized during the ride and pixel-identical after settle */
+    html.bwl-loading .lt-bg { position: absolute; inset: 0; }
 
     /* fact strip (in hero flow) */
     .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); margin-top: calc(var(--gap-5) * -0.2); }
@@ -189,6 +194,7 @@
 
   <div class="bwl-page" id="bwlPage">
   <div class="lt-bg" aria-hidden="true"></div>
+  <div class="bwl-inner" id="bwlInner">
 
   <!-- top nav -->
   <nav class="lt-nav glass">
@@ -450,110 +456,128 @@
     </footer>
   </main>
 
+  </div><!-- /.bwl-inner -->
   </div><!-- /.bwl-page -->
 
   <script>
-    /* Ball-wave page load. The page slab's bottom edge rides the wave front
-       of assets/video/hero2.mp4, computed per-frame from video.currentTime.
-       Tuning knobs: T_WAVE (wave hits bottom), BAND (ball band kept visible
-       below the fade), T_SPLIT (page stops tracking, starts final sweep),
-       T_LAND (page fully lands). */
+    /* Ball-wave page load — "window + stream".
+       The .bwl-page window (100svh, clipped, soft-faded bottom edge) rides
+       the wave front of assets/video/hero2.mp4; inside it the .bwl-inner
+       stream pours the whole document through footer-first, so the END of
+       the page sits on the balls at frame one and the hero lands last —
+       no long scroll-past. Everything is computed per-frame from
+       video.currentTime (rAF, never CSS keyframes).
+       Tuning knobs: T_WAVE (wave front hits frame bottom = landing), BAND
+       (ball band kept visible below the fade), STREAM_MAX (0 = pour the
+       full document; e.g. 2.5 = only the last 2.5 screens).
+       Debug: ?bwlslow=0.25 plays the whole ride in slow motion. */
     (function () {
       var docEl = document.documentElement;
-      var wrapper = document.getElementById("bwlPage");
+      var win = document.getElementById("bwlPage");   // the window
+      var inner = document.getElementById("bwlInner"); // the stream
       var video = document.getElementById("bwlVideo");
       var done = false, started = false, driving = false, fallbackT0 = null, raf = 0;
+      var tailBase = null, tailStart = 0; // wall-clock tail after the video ends
 
       function cleanup() {
         if (done) return;
         done = true;
         cancelAnimationFrame(raf);
-        docEl.classList.remove("bwl-loading");
-        wrapper.style.transform = "";
+        docEl.classList.remove("bwl-loading"); // drops height clamp, overflow, mask
+        win.style.transform = "";
+        inner.style.transform = "";
+        scrollTo(0, 0);
         if (video) { try { video.pause(); } catch (e) {} if (video.parentNode) video.remove(); }
       }
 
-      if (!wrapper || !video || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (!win || !inner || !video || matchMedia("(prefers-reduced-motion: reduce)").matches) {
         docEl.classList.remove("bwl-loading");
         if (video && video.parentNode) video.remove();
         return;
       }
 
       var CFG = {
-        V_OFFSET: 0.8, // s — footage trimmed by this much; keeps knobs in original-video time
-        T_WAVE: 3.7,   // s — wave front reaches bottom of frame
-        BASE: 0.06,    // front starts at 6% of viewport height
+        V_OFFSET: 0.8,  // s — footage trimmed by this much; keeps knobs in original-video time
+        T_WAVE: 3.7,    // s — wave front reaches frame bottom = the window lands
+        BASE: 0.06,     // front starts at 6% of viewport height
         SPAN: 0.94,
-        BAND: 0.14,    // ball band kept visible below the fade (fraction of vh)
-        T_SPLIT: 2.6,  // s — page stops tracking wave, starts final sweep
-        T_LAND: 3.5,   // s — page fully lands
-        SETTLE: 0.45,  // s — bounce duration after landing
+        BAND: 0.14,     // ball band kept visible below the fade (fraction of vh)
+        SETTLE: 0.45,   // s — bounce duration after landing
         BOUNCE_H: 22, DAMP: 5.0, FREQ: 9.0,
+        STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
       };
-      var pageH = wrapper.offsetHeight;
+      var T_LAND = CFG.T_WAVE;
+      var docH = inner.scrollHeight;
+      function streamSpan() {
+        var full = Math.max(docH - innerHeight, 0);
+        return CFG.STREAM_MAX > 0 ? Math.min(full, innerHeight * CFG.STREAM_MAX) : full;
+      }
 
-      function frontAt(t) { // wave front position in px (smoothstep)
+      function ease(x) { return x * x * (3 - 2 * x); } // smoothstep
+      function frontAt(t) { // wave front position in px
         var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
-        var s = x * x * (3 - 2 * x);
-        return innerHeight * (CFG.BASE + CFG.SPAN * s);
+        return innerHeight * (CFG.BASE + CFG.SPAN * ease(x));
       }
-      function frontVelAt(t) {
-        var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
-        return innerHeight * CFG.SPAN * 6 * x * (1 - x) / CFG.T_WAVE;
+      function edgeAt(t) { // window's bottom edge, screen px
+        return Math.min(Math.max(frontAt(t) - innerHeight * CFG.BAND, 6), innerHeight);
       }
-      function edgeAt(t) { // page's bottom edge, screen px
-        if (t < CFG.T_SPLIT)
-          return Math.max(frontAt(t) - innerHeight * CFG.BAND, 6);
-        var e1 = Math.max(frontAt(CFG.T_SPLIT) - innerHeight * CFG.BAND, 6);
-        var v1 = frontVelAt(CFG.T_SPLIT);
-        var du = CFG.T_LAND - CFG.T_SPLIT;
-        var D = pageH - e1;
-        var u = Math.min(t - CFG.T_SPLIT, du);
-        return e1 + v1 * u + (D - v1 * du) * (u / du) * (u / du); // velocity-continuous
-      }
-      function yAt(t) { // wrapper translateY
-        if (t >= CFG.T_LAND) {
-          var u = t - CFG.T_LAND;
+      function winYAt(t) { // window translateY; 0 once the wave completes
+        if (t >= T_LAND) {
+          var u = t - T_LAND;
           if (u >= CFG.SETTLE) return 0;
           return -CFG.BOUNCE_H * Math.abs(Math.sin(CFG.FREQ * u)) * Math.exp(-CFG.DAMP * u);
         }
-        return edgeAt(t) - pageH;
+        return edgeAt(t) - innerHeight;
+      }
+      function innerYAt(t) { // stream translateY; footer first, hero at 0
+        // pour runs over the visible ride [V_OFFSET, T_LAND] so the footer
+        // sits on the balls at frame one
+        var x = (t - CFG.V_OFFSET) / (T_LAND - CFG.V_OFFSET);
+        return -streamSpan() * (1 - ease(Math.min(Math.max(x, 0), 1)));
       }
       function squashAt(t) { // tiny landing compression, origin bottom
-        var u = t - CFG.T_LAND;
+        var u = t - T_LAND;
         if (u < 0 || u > 0.4) return 1;
         return 1 - 0.03 * Math.exp(-8 * u);
       }
-
-      function now() { // physics runs in original-footage time
-        if (driving) return video.currentTime + CFG.V_OFFSET;
-        return CFG.V_OFFSET + (fallbackT0 ? (performance.now() - fallbackT0) / 1000 : 0);
-      }
-      function frame() {
-        if (done) return;
-        var t = now();
-        wrapper.style.transform = "translateY(" + yAt(t) + "px) scaleY(" + squashAt(t) + ")";
-        if (t >= CFG.T_LAND + CFG.SETTLE) { cleanup(); return; }
-        raf = requestAnimationFrame(frame);
-      }
-      function start() { if (started || done) return; started = true; frame(); }
-
-      scrollTo(0, 0);
-      wrapper.style.transform = "translateY(" + yAt(CFG.V_OFFSET) + "px)";
 
       // debug: append ?bwlslow=0.25 to watch the ride in slow motion
       var rate = parseFloat(new URLSearchParams(location.search).get("bwlslow")) || 1;
       rate = Math.max(0.1, Math.min(1, rate));
       video.playbackRate = rate;
 
+      function now() { // physics runs in original-footage time
+        if (tailBase !== null) return tailBase + ((performance.now() - tailStart) / 1000) * rate;
+        if (driving) return video.currentTime + CFG.V_OFFSET;
+        return CFG.V_OFFSET + (fallbackT0 ? ((performance.now() - fallbackT0) / 1000) * rate : 0);
+      }
+      function apply(t) {
+        win.style.transform = "translateY(" + winYAt(t) + "px) scaleY(" + squashAt(t) + ")";
+        inner.style.transform = "translateY(" + innerYAt(t) + "px)";
+      }
+      function frame() {
+        if (done) return;
+        var t = now();
+        apply(t);
+        if (t >= T_LAND + CFG.SETTLE) { cleanup(); return; }
+        raf = requestAnimationFrame(frame);
+      }
+      function start() { if (started || done) return; started = true; frame(); }
+
+      scrollTo(0, 0);
+      apply(CFG.V_OFFSET);
+
       video.addEventListener("playing", function () { driving = true; fallbackT0 = null; start(); }, { once: true });
+      video.addEventListener("ended", function () { // finish the bounce on a wall clock
+        if (!done && tailBase === null) { tailBase = video.currentTime + CFG.V_OFFSET; tailStart = performance.now(); }
+      });
       video.addEventListener("error", cleanup);
       setTimeout(function () { // autoplay blocked / slow network: internal clock
         if (!driving && !done) { fallbackT0 = performance.now(); start(); }
       }, 1200);
       setTimeout(cleanup, 8000 / rate); // absolute safety net
 
-      function remeasure() { pageH = wrapper.offsetHeight; }
+      function remeasure() { docH = inner.scrollHeight; }
       addEventListener("resize", remeasure);
       setTimeout(remeasure, 400); // page grows after first paint (fonts/images)
 
