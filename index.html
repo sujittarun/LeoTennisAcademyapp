@@ -61,13 +61,16 @@
     :root[data-theme="light"] .bwl-page { background: #dcead9; }
     html:not(.bwl-loading) .bwl-video { display: none; }
     html.bwl-loading, html.bwl-loading body { overflow: hidden; height: 100%; }
+    /* the mask's solid stop is a registered property so the fade band can
+       heal smoothly during the melt instead of popping off at cleanup */
+    @property --bwl-solid { syntax: "<percentage>"; inherits: false; initial-value: 78%; }
     html.bwl-loading .bwl-page {
       height: 100vh; height: 100svh;
       overflow: hidden;
       will-change: transform;
       transform-origin: 50% 100%;
-      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 22vh), transparent 100%);
-      mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 22vh), transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 var(--bwl-solid, 78%), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 var(--bwl-solid, 78%), transparent 100%);
     }
     html.bwl-loading .bwl-inner { will-change: transform; }
     /* the ambient gradient rides inside the window (not the stream) so it is
@@ -492,6 +495,8 @@
         if (typeof removeGestures === "function") removeGestures();
         docEl.classList.remove("bwl-loading"); // drops height clamp, overflow, mask
         win.style.transform = "";
+        win.style.transition = "";
+        win.style.removeProperty("--bwl-solid");
         inner.style.transform = "";
         scrollTo(0, 0);
         if (video) { try { video.pause(); } catch (e) {} if (video.parentNode) video.remove(); }
@@ -587,9 +592,15 @@
         // behind the fading balls must be exactly the page color
         video.style.backgroundColor = getComputedStyle(win).backgroundColor;
         video.style.transition = "opacity " + Math.round(ms / rate) + "ms ease-out";
+        healMask(ms); // fade band brightens to full in step with the melt
         void video.offsetWidth; // flush so the transition takes
         video.style.opacity = "0";
         fadeTimer = setTimeout(cleanup, ms / rate + 80);
+      }
+      function healMask(ms) { // needs @property support; otherwise cleanup unmasks as before
+        if (!(window.CSS && CSS.registerProperty)) return;
+        win.style.transition = "--bwl-solid " + Math.round(ms / rate) + "ms ease-out";
+        win.style.setProperty("--bwl-solid", "100%");
       }
       function onGesture(e) {
         if (e.type === "keydown" &&
@@ -605,6 +616,7 @@
         void video.offsetWidth;
         video.style.transition = "opacity " + Math.round(CFG.GESTURE_FADE_MS / rate) + "ms ease-out";
         video.style.opacity = "0";
+        healMask(CFG.GESTURE_FADE_MS);
         clearTimeout(fadeTimer);
         fadeTimer = setTimeout(cleanup, CFG.GESTURE_FADE_MS / rate + 60);
       }
