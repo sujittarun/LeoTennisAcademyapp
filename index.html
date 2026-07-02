@@ -469,8 +469,10 @@
        video.currentTime (rAF, never CSS keyframes).
        Tuning knobs: T_WAVE (wave front hits frame bottom = landing), BAND
        (ball band kept visible below the fade), STREAM_MAX (0 = pour the
-       full document; e.g. 2.5 = only the last 2.5 screens), HOLD_MS (let
-       the settled balls breathe), FADE_MS (how slowly they melt away).
+       full document; e.g. 2.5 = only the last 2.5 screens), HOLD_MS (max
+       linger of the settled balls — the user's first scroll intent melts
+       them sooner), FADE_MS (auto-melt speed), GESTURE_FADE_MS (melt speed
+       when the user scrolls).
        Debug: ?bwlslow=0.25 plays the whole ride in slow motion. */
     (function () {
       var docEl = document.documentElement;
@@ -487,6 +489,7 @@
         cancelAnimationFrame(raf);
         clearTimeout(holdTimer);
         clearTimeout(fadeTimer);
+        if (typeof removeGestures === "function") removeGestures();
         docEl.classList.remove("bwl-loading"); // drops height clamp, overflow, mask
         win.style.transform = "";
         inner.style.transform = "";
@@ -509,8 +512,9 @@
         SETTLE: 0.45,   // s — bounce duration after landing
         BOUNCE_H: 22, DAMP: 5.0, FREQ: 9.0,
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
-        HOLD_MS: 400,   // epilogue: settled balls linger under the fade
-        FADE_MS: 800,   // epilogue: balls melt into the page bottom
+        HOLD_MS: 4000,  // epilogue: max linger; first scroll intent melts them sooner
+        FADE_MS: 1200,  // epilogue: how slowly the balls melt into the page bottom
+        GESTURE_FADE_MS: 550, // snappier melt when the user is trying to scroll
       };
       var T_LAND = CFG.T_WAVE;
       var docH = inner.scrollHeight;
@@ -570,21 +574,41 @@
       }
 
       /* Staged epilogue: LAND (mask/clip/video kept, footage frozen on its
-         settled ball carpet) -> HOLD -> DISSOLVE (only the video fades; the
+         settled ball carpet) -> HOLD (balls linger; the user's first scroll
+         intent — wheel / touch / arrow keys — starts the melt early, else
+         HOLD_MS is the max linger) -> DISSOLVE (only the video fades; the
          strip under the page's fade edge melts into the page color) ->
          CLEANUP. Error/safety paths skip straight to cleanup(). */
+      var dissolving = false;
+      function dissolve(ms) {
+        if (done || dissolving) return;
+        dissolving = true;
+        clearTimeout(holdTimer);
+        removeGestures();
+        // behind the fading balls must be exactly the page color
+        video.style.backgroundColor = getComputedStyle(win).backgroundColor;
+        video.style.transition = "opacity " + Math.round(ms / rate) + "ms ease-out";
+        void video.offsetWidth; // flush so the transition takes
+        video.style.opacity = "0";
+        fadeTimer = setTimeout(cleanup, ms / rate + 80);
+      }
+      function onGesture(e) {
+        if (e.type === "keydown" &&
+            ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " ", "Spacebar"].indexOf(e.key) === -1) return;
+        dissolve(CFG.GESTURE_FADE_MS);
+      }
+      function removeGestures() {
+        removeEventListener("wheel", onGesture);
+        removeEventListener("touchstart", onGesture);
+        removeEventListener("keydown", onGesture);
+      }
       function epilogue() {
         if (done || epStarted) return;
         epStarted = true;
-        holdTimer = setTimeout(function () {
-          if (done) return;
-          // behind the fading balls must be exactly the page color
-          video.style.backgroundColor = getComputedStyle(win).backgroundColor;
-          video.style.transition = "opacity " + Math.round(CFG.FADE_MS / rate) + "ms ease-out";
-          void video.offsetWidth; // flush so the transition takes
-          video.style.opacity = "0";
-          fadeTimer = setTimeout(cleanup, CFG.FADE_MS / rate + 80);
-        }, CFG.HOLD_MS / rate);
+        addEventListener("wheel", onGesture, { passive: true });
+        addEventListener("touchstart", onGesture, { passive: true });
+        addEventListener("keydown", onGesture);
+        holdTimer = setTimeout(function () { dissolve(CFG.FADE_MS); }, CFG.HOLD_MS / rate);
       }
       function start() { if (started || done) return; started = true; frame(); }
 
@@ -599,7 +623,7 @@
       setTimeout(function () { // autoplay blocked / slow network: internal clock
         if (!driving && !done) { fallbackT0 = performance.now(); start(); }
       }, 1200);
-      setTimeout(cleanup, 8000 / rate); // absolute safety net
+      setTimeout(cleanup, (8000 + CFG.HOLD_MS + CFG.FADE_MS + 1000) / rate); // absolute safety net (covers ride + hold + melt)
 
       function remeasure() { docH = inner.scrollHeight; }
       addEventListener("resize", remeasure);
