@@ -530,7 +530,7 @@
         BAND: 0.14,     // ball band kept visible below the fade (fraction of vh)
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
         HOLD_MS: 0,     // epilogue: meltdown starts as soon as the page lands
-        MELT_MS: 8000,  // epilogue: the page's soft edge swallows the ball band top-down
+        MELT_MS: 8500,  // epilogue: the page's soft edge swallows the ball band top-down
         GESTURE_MELT_MS: 350, // remaining meltdown is snapped to this when the user scrolls
         PARK: 0.45,     // s — content parks this long BEFORE the balls finish, so nothing
                         // is still creeping under the navbar at the halt
@@ -559,12 +559,18 @@
         if (t >= T_LAND) return 0;
         return edgeAt(t) - innerHeight;
       }
-      function innerYAt(t) { // stream translateY; footer first, hero at 0
-        // pour runs over [V_OFFSET, T_LAND - PARK] so the footer sits on the
-        // balls at frame one and the content is already parked while the wave
-        // finishes its landing — the halt itself shows zero content motion
-        var x = (t - CFG.V_OFFSET) / (T_LAND - CFG.PARK - CFG.V_OFFSET);
-        return -streamSpan() * (1 - easeArrive(Math.min(Math.max(x, 0), 1)));
+      function innerYAt(t) { // stream translateY; footer first, hero locks at top
+        // The content's position ON SCREEN is winY + innerY. The pour ends at
+        // t1 with the document top exactly at the viewport top, and from t1 on
+        // innerY counter-moves the window (-winY) so the content is FROZEN in
+        // the viewport while the wave finishes landing beneath it — no
+        // shifting under the navbar at the halt.
+        var t1 = T_LAND - CFG.PARK;
+        if (t >= t1) return -winYAt(t);
+        var span = streamSpan();
+        var target = -winYAt(t1); // compensation the freeze phase starts with
+        var x = (t - CFG.V_OFFSET) / (t1 - CFG.V_OFFSET);
+        return -span + (span + target) * easeArrive(Math.min(Math.max(x, 0), 1));
       }
 
       // debug: append ?bwlslow=0.25 to watch the ride in slow motion
