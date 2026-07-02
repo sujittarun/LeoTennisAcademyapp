@@ -25,11 +25,12 @@
     // Court rental — one-hour slots, 4 bookable courts, 6 AM – 11 PM daily
     courts: 4,
     courtsMeta: [
-      { n: 1, surface: "Synthetic hard", note: "Floodlit centre court", img: "assets/img/courts/court-2.jpg" },
-      { n: 2, surface: "Synthetic hard", note: "Match court by the stands", img: "assets/img/courts/court-1.jpg" },
-      { n: 3, surface: "Red clay", note: "Classic clay, slower rallies", img: "assets/img/courts/court-3.jpg" },
-      { n: 4, surface: "Red clay", note: "Coaching & rally court", img: "assets/img/courts/court-4.jpg" },
+      { n: 1, surface: "Synthetic hard", note: "Centre court · floodlit", img: "assets/img/courts/court-1.jpg" },
+      { n: 2, surface: "Synthetic hard", note: "Match court · floodlit", img: "assets/img/courts/court-2.jpg" },
+      { n: 3, surface: "Synthetic hard", note: "Training court · floodlit", img: "assets/img/courts/court-3.jpg" },
+      { n: 4, surface: "Synthetic hard", note: "Rally court · floodlit", img: "assets/img/courts/court-4.jpg" },
     ],
+    courtNightImg: "assets/img/courts/court-night.jpg",
     slotHours: { open: 6, close: 23 },          // last slot starts 22:00 (10–11 PM)
     rates: { offPeak: 500, peak: 700, peakFrom: 16 }, // peak = 4 PM onward (floodlights)
 
@@ -86,11 +87,19 @@
       { id: 109, name: "Walk-in",          type: "Court",      detail: "Court 3 · 8–10 PM",      amount: 1400,  on: daysFromNow(-20), mode: "Cash" },
     ],
 
-    // Trailing six months of revenue for the finance chart (₹ thousands)
-    revenue: [
-      { m: "Feb", v: 132 }, { m: "Mar", v: 141 }, { m: "Apr", v: 128 },
-      { m: "May", v: 156 }, { m: "Jun", v: 171 }, { m: "Jul", v: 84 },
+    // Trailing six months for the finance charts (₹ thousands).
+    // rev splits into memberships + court rental; exp = coach salaries,
+    // maintenance, lights/power, balls & stringing.
+    finance: [
+      { m: "Feb", rev: 132, exp: 84,  memberships: 106, courts: 26, salaries: 52, maintenance: 14, power: 11, gear: 7 },
+      { m: "Mar", rev: 141, exp: 88,  memberships: 110, courts: 31, salaries: 52, maintenance: 16, power: 12, gear: 8 },
+      { m: "Apr", rev: 128, exp: 90,  memberships: 98,  courts: 30, salaries: 55, maintenance: 15, power: 13, gear: 7 },
+      { m: "May", rev: 156, exp: 92,  memberships: 118, courts: 38, salaries: 55, maintenance: 17, power: 13, gear: 7 },
+      { m: "Jun", rev: 171, exp: 95,  memberships: 126, courts: 45, salaries: 58, maintenance: 16, power: 14, gear: 7 },
+      { m: "Jul", rev: 84,  exp: 46,  memberships: 62,  courts: 22, salaries: 29, maintenance: 8,  power: 6,  gear: 3 },
     ],
+    // kept for the dashboard revenue chart
+    get revenue() { return this.finance.map(function (f) { return { m: f.m, v: f.rev }; }); },
 
     activity: [
       { icon: "join",  text: "<strong>Tarun Agarwal</strong> joined Performance · Monthly plan", time: "Yesterday" },

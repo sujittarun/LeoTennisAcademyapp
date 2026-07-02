@@ -9,8 +9,70 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=3" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=4" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
+    @media (max-width: 1099px) { .fin-main { grid-template-columns: 1fr; } }
+
+    /* revenue vs expenses chart */
+    .rv-legend { display: flex; gap: var(--gap-3); flex-wrap: wrap; font-size: 12px; color: var(--ink-mid); align-items: center; }
+    .rv-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
+    .rv-host { position: relative; width: 100%; min-height: 250px; }
+    .rv-host svg { width: 100%; height: 100%; display: block; overflow: visible; }
+    .rv-bar { cursor: pointer; transform-origin: bottom; animation: lt-grow-bar .7s var(--ease-spring) both; transition: opacity .3s ease, filter .3s ease; }
+    .rv-bar.rev { fill: url(#rvGold); }
+    .rv-bar.exp { fill: rgba(255, 107, 107, 0.75); }
+    :root[data-theme="light"] .rv-bar.exp { fill: rgba(194, 56, 63, 0.7); }
+    .rv-group.dim .rv-bar { opacity: .25; filter: saturate(.4); }
+    .rv-group.focus .rv-bar { filter: brightness(1.12); }
+    .rv-net { fill: none; stroke: var(--optic-400); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 600; stroke-dashoffset: 600; animation: rv-draw 1.4s ease-out .5s forwards; }
+    :root[data-theme="light"] .rv-net { stroke: #5c7a00; }
+    @keyframes rv-draw { to { stroke-dashoffset: 0; } }
+    .rv-net-dot { fill: var(--optic-400); stroke: rgba(0,0,0,.35); stroke-width: 1.4; opacity: 0; animation: rv-dot-in .3s ease forwards; }
+    :root[data-theme="light"] .rv-net-dot { fill: #5c7a00; stroke: #fff; }
+    @keyframes rv-dot-in { to { opacity: 1; } }
+    .rv-xlabel { fill: var(--ink-low); font-size: 11px; font-family: var(--font-body); font-weight: 600; cursor: pointer; }
+    .rv-group.focus + text, text.rv-xlabel.focus { fill: var(--tx-gold); font-weight: 800; }
+    .rv-tip { position: absolute; pointer-events: none; z-index: 4; transform: translate(-50%, -115%); padding: 8px 12px;
+      border-radius: 10px; white-space: nowrap; opacity: 0; background: var(--toast-bg); border: 1px solid var(--toast-border);
+      -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 10px 26px rgba(0,0,0,.3);
+      transition: opacity .18s ease; font-size: 12px; color: var(--ink-hi); }
+    .rv-tip.show { opacity: 1; }
+    .rv-tip b { font-family: var(--font-display); }
+    .rv-hint { font-size: 11.5px; color: var(--ink-faint); text-align: center; margin-top: 4px; }
+
+    /* month drill-down */
+    .rv-detail { display: none; margin-top: var(--gap-3); border-top: 1px solid var(--line); padding-top: var(--gap-3); }
+    .rv-detail.show { display: block; animation: lt-step-in .45s var(--ease-spring) both; }
+    .rv-detail .rd-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .rv-detail .rd-head h3 { font-size: 16px; }
+    .rd-rows { display: flex; flex-direction: column; gap: 7px; }
+    .rd-row { display: flex; align-items: center; gap: 12px; font-size: 12.5px; }
+    .rd-row .rd-l { flex: none; width: 130px; color: var(--ink-mid); font-weight: 650; }
+    .rd-row .rd-bar { flex: 1; height: 9px; border-radius: 6px; background: var(--line); overflow: hidden; }
+    :root[data-theme="light"] .rd-row .rd-bar { background: rgba(20, 50, 34, 0.14); }
+    .rd-row .rd-bar i { display: block; height: 100%; border-radius: 6px; transform-origin: left; animation: lt-fill-bar .7s var(--ease-spring) both; }
+    .rd-row.g .rd-bar i { background: var(--gold-grad); }
+    .rd-row.r .rd-bar i { background: rgba(255, 107, 107, 0.8); }
+    :root[data-theme="light"] .rd-row.r .rd-bar i { background: rgba(194, 56, 63, 0.75); }
+    .rd-row .rd-v { flex: none; width: 64px; text-align: right; font-weight: 700; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+
+    /* reminders */
+    .rem-list { display: flex; flex-direction: column; gap: 10px; }
+    .rem-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-md);
+      border: 1px solid rgba(255, 107, 107, 0.32); background: rgba(255, 107, 107, 0.07); }
+    :root[data-theme="light"] .rem-item { background: rgba(194, 56, 63, 0.07); }
+    .rem-item.done { border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+    .rem-item .av { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center;
+      font-size: 12.5px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
+    .rem-item .rm-body { flex: 1; min-width: 0; }
+    .rem-item .rm-name { font-weight: 700; font-size: 13.5px; color: var(--ink-hi); }
+    .rem-item .rm-sub { font-size: 11.5px; color: var(--ink-low); }
+    .rem-item .rm-sub .late { color: var(--tx-red); font-weight: 700; }
+    .rem-empty { text-align: center; color: var(--ink-low); font-size: 13.5px; padding: var(--gap-4) var(--gap-2); }
+  </style>
 </head>
 <body>
   <div class="lt-bg" aria-hidden="true"></div>
@@ -35,8 +97,33 @@
         <span class="stat-value" id="kpiCourt">—</span>
       </div>
       <div class="glass glass-hover stat-card reveal d2">
-        <span class="stat-copy">Renewals pending</span>
-        <span class="stat-value" id="kpiPend">—</span>
+        <span class="stat-copy">Net margin · June</span>
+        <span class="stat-value" id="kpiNet">—</span>
+      </div>
+    </div>
+
+    <!-- chart + reminders -->
+    <div class="fin-main">
+      <div class="glass glass-card chart-card reveal">
+        <div class="card-head">
+          <div><div class="kicker">Performance</div><h2>Revenue vs expenses</h2></div>
+          <div class="rv-legend">
+            <span><span class="sw" style="background:linear-gradient(115deg,#f0d795,#c9a24b);"></span>Revenue</span>
+            <span><span class="sw" style="background:rgba(255,107,107,.75);"></span>Expenses</span>
+            <span><span class="sw" style="background:var(--optic-400);border-radius:99px;height:4px;margin-top:4px;"></span>Net profit</span>
+          </div>
+        </div>
+        <div class="rv-host" id="rvHost"></div>
+        <div class="rv-hint" id="rvHint">Tap a month to zoom into its breakdown</div>
+        <div class="rv-detail" id="rvDetail"></div>
+      </div>
+
+      <div class="glass glass-card reveal d1">
+        <div class="card-head">
+          <div><div class="kicker">Renewals due</div><h2 style="font-size:19px;">Reminders</h2></div>
+          <button class="btn btn-glass btn-sm" id="remindAll">Remind all</button>
+        </div>
+        <div class="rem-list" id="remList"></div>
       </div>
     </div>
 
@@ -77,8 +164,8 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=3"></script>
-  <script src="assets/js/data.js?v=3"></script>
+  <script src="assets/js/core.js?v=4"></script>
+  <script src="assets/js/data.js?v=4"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -99,12 +186,158 @@
         var total = all.reduce(function (s, p) { return s + p.amount; }, 0);
         var court = all.filter(function (p) { return p.type === "Court"; })
           .reduce(function (s, p) { return s + p.amount; }, 0);
-        var due = LT_DATA.members.filter(function (m) { return m.status === "due"; }).length;
         LT.countUp(document.getElementById("kpiTotal"), total, { prefix: "₹" });
         LT.countUp(document.getElementById("kpiCourt"), court, { prefix: "₹" });
-        document.getElementById("kpiPend").textContent = due + " members";
+        // net margin of the last CLOSED month
+        var f = LT_DATA.finance[LT_DATA.finance.length - 2];
+        LT.countUp(document.getElementById("kpiNet"), Math.round(((f.rev - f.exp) / f.rev) * 100), { suffix: "%" });
       }
 
+      /* ================= revenue vs expenses chart ================= */
+      var F = LT_DATA.finance;
+      var focused = -1;
+      var W = 640, H = 250, P = 34;
+      var max = Math.max.apply(null, F.map(function (f) { return f.rev; })) * 1.12;
+      var groupW = (W - 2 * P) / F.length;
+      var barW = Math.min(22, groupW / 3.2);
+      function gx(i) { return P + i * groupW + groupW / 2; }
+      function y(v) { return H - P - (v / max) * (H - 2 * P); }
+
+      function drawChart() {
+        var grid = [0.25, 0.5, 0.75, 1].map(function (g) {
+          var gy = y(max * g * 0.9);
+          return '<line x1="' + P + '" y1="' + gy + '" x2="' + (W - P) + '" y2="' + gy + '" stroke="var(--line)" stroke-width="1"/>' +
+            '<text x="' + (P - 6) + '" y="' + (gy + 3) + '" text-anchor="end" fill="var(--ink-faint)" font-size="9" font-family="var(--font-body)">₹' + Math.round(max * g * 0.9) + 'k</text>';
+        }).join("");
+
+        var groups = F.map(function (f, i) {
+          var cls = "rv-group" + (focused === -1 ? "" : focused === i ? " focus" : " dim");
+          var revH = (H - P) - y(f.rev), expH = (H - P) - y(f.exp);
+          return '<g class="' + cls + '" data-i="' + i + '">' +
+            '<rect class="rv-bar rev" x="' + (gx(i) - barW - 2) + '" y="' + y(f.rev) + '" width="' + barW + '" height="' + revH + '" rx="5" style="animation-delay:' + (i * 70) + 'ms;"/>' +
+            '<rect class="rv-bar exp" x="' + (gx(i) + 2) + '" y="' + y(f.exp) + '" width="' + barW + '" height="' + expH + '" rx="5" style="animation-delay:' + (i * 70 + 45) + 'ms;"/>' +
+            "</g>";
+        }).join("");
+
+        var netLine = F.map(function (f, i) { return (i ? "L" : "M") + gx(i) + " " + y(f.rev - f.exp); }).join(" ");
+        var netDots = F.map(function (f, i) {
+          return '<circle class="rv-net-dot" cx="' + gx(i) + '" cy="' + y(f.rev - f.exp) + '" r="3.4" style="animation-delay:' + (700 + i * 90) + 'ms;"/>';
+        }).join("");
+
+        var labels = F.map(function (f, i) {
+          return '<text class="rv-xlabel' + (focused === i ? " focus" : "") + '" data-i="' + i + '" x="' + gx(i) + '" y="' + (H - 10) + '" text-anchor="middle">' + f.m + "</text>";
+        }).join("");
+
+        document.getElementById("rvHost").innerHTML =
+          '<svg viewBox="0 0 ' + W + " " + H + '">' +
+          '<defs><linearGradient id="rvGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0d795"/><stop offset="1" stop-color="#c9a24b"/></linearGradient></defs>' +
+          grid + groups + '<path class="rv-net" d="' + netLine + '"/>' + netDots + labels +
+          "</svg>" + '<div class="rv-tip" id="rvTip"></div>';
+      }
+
+      function paintDetail() {
+        var box = document.getElementById("rvDetail");
+        document.getElementById("rvHint").style.display = focused === -1 ? "" : "none";
+        if (focused === -1) { box.classList.remove("show"); box.innerHTML = ""; return; }
+        var f = F[focused];
+        var net = f.rev - f.exp;
+        var rows = [
+          ["Memberships", f.memberships, f.rev, "g"],
+          ["Court rental", f.courts, f.rev, "g"],
+          ["Coach salaries", f.salaries, f.rev, "r"],
+          ["Maintenance", f.maintenance, f.rev, "r"],
+          ["Lights & power", f.power, f.rev, "r"],
+          ["Balls & stringing", f.gear, f.rev, "r"],
+        ];
+        box.innerHTML =
+          '<div class="rd-head"><h3>' + f.m + " breakdown</h3>" +
+          '<div class="flex"><span class="pill ' + (net >= 0 ? "green" : "red") + '">Net ' + (net >= 0 ? "+" : "−") + "₹" + Math.abs(net) + 'k</span>' +
+          '<button class="btn btn-ghost btn-sm" id="rdClose">✕ Close</button></div></div>' +
+          '<div class="rd-rows">' + rows.map(function (r, i) {
+            return '<div class="rd-row ' + r[3] + '"><span class="rd-l">' + r[0] + "</span>" +
+              '<span class="rd-bar"><i style="width:' + Math.round((r[1] / r[2]) * 100) + "%;animation-delay:" + (i * 70) + 'ms;"></i></span>' +
+              '<span class="rd-v">₹' + r[1] + "k</span></div>";
+          }).join("") + "</div>";
+        box.classList.add("show");
+      }
+
+      function setFocus(i) {
+        focused = focused === i ? -1 : i;
+        drawChart();
+        paintDetail();
+      }
+
+      var host = document.getElementById("rvHost");
+      host.addEventListener("click", function (e) {
+        var g = e.target.closest(".rv-group, .rv-xlabel");
+        if (g) setFocus(+g.dataset.i);
+      });
+      document.getElementById("rvDetail").addEventListener("click", function (e) {
+        if (e.target.closest("#rdClose")) setFocus(focused);
+      });
+      host.addEventListener("pointermove", function (e) {
+        var tip = document.getElementById("rvTip");
+        var g = e.target.closest(".rv-group");
+        if (!g) { tip.classList.remove("show"); return; }
+        var f = F[+g.dataset.i];
+        var r = host.getBoundingClientRect();
+        tip.innerHTML = "<b>" + f.m + "</b> · Rev ₹" + f.rev + "k · Exp ₹" + f.exp + "k · Net ₹" + (f.rev - f.exp) + "k";
+        tip.style.left = (e.clientX - r.left) + "px";
+        tip.style.top = (e.clientY - r.top) + "px";
+        tip.classList.add("show");
+      });
+      host.addEventListener("pointerleave", function () { document.getElementById("rvTip").classList.remove("show"); });
+
+      /* ================= renewal reminders ================= */
+      function reminders() { return LT.store.read("reminders", {}); }
+
+      function paintReminders() {
+        var rem = reminders();
+        var due = LT_DATA.members.filter(function (m) { return m.status === "due"; });
+        var host = document.getElementById("remList");
+        if (!due.length) { host.innerHTML = '<div class="rem-empty">Everyone is paid up 🎾</div>'; return; }
+        host.innerHTML = due.map(function (m) {
+          var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+          var daysLate = Math.max(0, Math.round((Date.now() - new Date(m.validTill)) / 864e5));
+          var when = rem[m.id];
+          var today = when && when.slice(0, 10) === LT.today();
+          return '<div class="rem-item' + (when ? " done" : "") + '">' +
+            '<span class="av">' + LT.initials(m.name) + "</span>" +
+            '<span class="rm-body"><span class="rm-name">' + m.name + "</span><br />" +
+            '<span class="rm-sub">' + p.name + ' · <span class="late">' + (daysLate ? daysLate + " day" + (daysLate > 1 ? "s" : "") + " overdue" : "due today") + "</span></span></span>" +
+            (when
+              ? '<span class="pill green">Reminded ' + (today ? "today" : fmtD(when)) + "</span>"
+              : '<button class="btn btn-glass btn-sm" data-remind="' + m.id + '">Remind</button>') +
+            "</div>";
+        }).join("");
+      }
+
+      function sendReminder(ids) {
+        var rem = reminders();
+        var names = [];
+        ids.forEach(function (id) {
+          rem[id] = new Date().toISOString();
+          var m = LT_DATA.members.find(function (x) { return x.id === id; });
+          if (m) names.push(m.name.split(" ")[0]);
+        });
+        LT.store.write("reminders", rem);
+        LT.toast("WhatsApp renewal reminder sent to " + (names.length > 2 ? names.length + " members" : names.join(" & ")) + " ✓");
+        paintReminders();
+      }
+
+      document.getElementById("remList").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-remind]");
+        if (btn) sendReminder([+btn.dataset.remind]);
+      });
+      document.getElementById("remindAll").addEventListener("click", function () {
+        var rem = reminders();
+        var ids = LT_DATA.members.filter(function (m) { return m.status === "due" && !rem[m.id]; })
+          .map(function (m) { return m.id; });
+        if (!ids.length) { LT.toast("All due members already reminded ✓"); return; }
+        sendReminder(ids);
+      });
+
+      /* ================= ledger ================= */
       function render() {
         var list = allPayments().filter(function (p) { return typeFilter === "all" || p.type === typeFilter; });
         document.getElementById("rows").innerHTML = list.map(function (p) {
@@ -169,6 +402,8 @@
       });
 
       paintKPIs();
+      drawChart();
+      paintReminders();
       render();
     })();
   </script>

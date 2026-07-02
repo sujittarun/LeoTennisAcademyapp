@@ -717,6 +717,11 @@ table.lt-table { width: 100%; border-collapse: separate; border-spacing: 0; font
   transition: opacity 0.3s ease;
 }
 .lt-modal-backdrop.open { opacity: 1; pointer-events: auto; }
+/* Modals sit over busy photo content — give them a much more solid fill
+   than ambient glass so rows and bars stay legible in BOTH themes. */
+.lt-modal.glass { background: rgba(9, 36, 24, 0.82); }
+:root[data-theme="light"] .lt-modal.glass { background: rgba(255, 255, 255, 0.82); }
+:root[data-theme="light"] .lt-modal-backdrop { background: rgba(22, 52, 36, 0.45); }
 .lt-modal {
   width: min(620px, 100%);
   max-height: min(86vh, 86dvh);
@@ -1027,11 +1032,27 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .tl .seg.past { opacity: 0.22; }
 .tl .seg.booked { background: var(--gold-grad); box-shadow: 0 2px 8px rgba(201, 162, 75, 0.5); }
 .tl .seg.pending {
+  position: relative; overflow: hidden;
   background: repeating-linear-gradient(45deg, rgba(215, 239, 79, 0.55) 0 4px, rgba(215, 239, 79, 0.12) 4px 8px);
   outline: 1px dashed rgba(215, 239, 79, 0.7); outline-offset: -1px;
 }
-.tl .seg.now { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 2px 8px rgba(201, 162, 75, 0.5); }
-@media (prefers-reduced-motion: reduce) { .tl .seg { animation: none; } }
+.tl .seg.pending::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.45) 50%, transparent 75%);
+  transform: translateX(-120%);
+  animation: lt-seg-sweep 2.4s ease-in-out infinite;
+}
+@keyframes lt-seg-sweep { 45% { transform: translateX(-120%); } 80%, 100% { transform: translateX(120%); } }
+.tl .seg.now {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 2px 8px rgba(201, 162, 75, 0.5);
+  animation: lt-grow-bar 0.6s var(--ease-spring) both, lt-now-pulse 2.2s ease-in-out infinite 0.6s;
+}
+@keyframes lt-now-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 0 0 0 rgba(215, 239, 79, 0.55); }
+  50% { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 14px 3px rgba(215, 239, 79, 0.55); }
+}
+.court-card:hover .tl .seg.booked { filter: brightness(1.15); }
+@media (prefers-reduced-motion: reduce) { .tl .seg, .tl .seg.pending::after, .tl .seg.now { animation: none; } }
 .tl-hours { display: flex; justify-content: space-between; font-size: 9.5px; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.45); }
 
 /* Legend chips shared by cards + modal */
@@ -1058,8 +1079,10 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 }
 @keyframes lt-sched-in { from { opacity: 0; transform: translateX(14px); } }
 @media (prefers-reduced-motion: reduce) { .sched-row { animation: none; } }
+:root[data-theme="light"] .sched-row { background: rgba(255, 255, 255, 0.6); border-color: rgba(20, 50, 34, 0.14); }
 .sched-row .sr-time { flex: none; width: 92px; font-size: 12px; font-weight: 700; color: var(--ink-mid); font-variant-numeric: tabular-nums; }
 .sched-row .sr-bar { flex: 1; height: 10px; border-radius: 6px; background: var(--line); position: relative; overflow: hidden; }
+:root[data-theme="light"] .sched-row .sr-bar { background: rgba(20, 50, 34, 0.14); }
 .sched-row .sr-bar i { position: absolute; inset: 0; border-radius: 6px; transform-origin: left; animation: lt-fill-bar 0.7s var(--ease-spring) both; }
 @keyframes lt-fill-bar { from { transform: scaleX(0); } }
 .sched-row.free .sr-bar i { display: none; }

@@ -9,7 +9,7 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
   People are "members" (never "students"/"kids"; "player" only in natural tennis
   phrasing like "league player").
 - Two revenue lines: coaching memberships AND hourly court booking (4 courts —
-  2 synthetic hard + 2 red clay, one-hour slots 06:00–23:00, ₹500 off-peak /
+  synthetic hard, one-hour slots 06:00–23:00, ₹500 off-peak /
   ₹700 peak from 4 PM).
 - Court booking flow: public requests a date + hour slots (instant quote) →
   status `pending` → staff confirms in bookings.html, which auto-assigns the
