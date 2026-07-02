@@ -10,7 +10,9 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
   no age-group batches. People are "members" (never "students"/"kids"; "player"
   only in natural tennis phrasing like "league player").
 - Landing page must keep the coaches ("The Team") and member-quotes sections,
-  and the scroll-scrubbed hero tennis ball (inline script in index.html).
+  and the ball-wave page-load animation (assets/video/hero2.mp4 + inline
+  script in index.html; page rides the wave, JS-driven from video.currentTime,
+  never CSS keyframes; debug with ?bwlslow=0.25).
 - Two revenue lines: coaching memberships AND hourly court booking (4 courts —
   synthetic hard, one-hour slots 06:00–23:00, ₹500 off-peak /
   ₹700 peak from 4 PM).

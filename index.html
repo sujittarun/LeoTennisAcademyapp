@@ -15,7 +15,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/glass.css?v=4" />
-  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark";
+    document.documentElement.classList.add("lt-js");
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("bwl-loading");
+  </script>
   <style>
     .lp { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--gap-4); }
 
@@ -48,24 +52,22 @@
     .hero-art .chiplet { animation-name: floaty-chip; }
     @keyframes floaty-chip { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 
-    /* loading intro — tennis balls rain in while the page loads */
-    .lt-intro { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center;
-      background: radial-gradient(120% 100% at 50% 0%, #ffffff 0%, #eef2ec 55%, #dde7dc 100%);
-      transition: opacity .7s ease; }
-    .lt-intro.done { opacity: 0; pointer-events: none; }
-    .lt-intro video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
-      -webkit-mask-image: radial-gradient(75% 75% at 50% 45%, #000 55%, transparent 96%);
-      mask-image: radial-gradient(75% 75% at 50% 45%, #000 55%, transparent 96%); }
-    .lt-intro .li-brand { position: relative; z-index: 1; text-align: center; margin-top: 46vh; }
-    .lt-intro .li-brand svg { width: 74px; height: 74px; filter: drop-shadow(0 6px 18px rgba(20,50,34,.25)); }
-    .lt-intro .li-brand .nm { font-family: var(--font-display); font-weight: 800; font-size: 17px; color: #14342a; margin-top: 8px; letter-spacing: .02em; }
-    .lt-intro .li-brand .tg { font-size: 10.5px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #8a6414; margin-top: 3px; }
-    .lt-intro .li-bar { width: 148px; height: 3px; border-radius: 99px; background: rgba(20,50,34,.14); margin: 16px auto 0; overflow: hidden; }
-    .lt-intro .li-bar i { display: block; height: 100%; border-radius: 99px; width: 0;
-      background: linear-gradient(90deg, #e0bd6c, #c9a24b); animation: li-load 2.9s ease-out forwards; }
-    @keyframes li-load { 12% { width: 18%; } 55% { width: 62%; } 100% { width: 100%; } }
-    body.lt-intro-lock { overflow: hidden; }
-    @media (prefers-reduced-motion: reduce) { .lt-intro { display: none; } }
+
+    /* ball-wave load: page rides the wave down (JS-driven, no keyframes) */
+    .bwl-video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+    .bwl-page { position: relative; z-index: 1; background: var(--forest-950); }
+    :root[data-theme="light"] .bwl-page { background: #dcead9; }
+    html:not(.bwl-loading) .bwl-video { display: none; }
+    html.bwl-loading, html.bwl-loading body { overflow: hidden; height: 100%; }
+    html.bwl-loading .bwl-page {
+      will-change: transform;
+      transform-origin: 50% 100%;
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 22vh), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 calc(100% - 22vh), transparent 100%);
+    }
+    /* while riding, pin the bg gradient to a viewport-sized box at the page top
+       so removing the transform on settle is pixel-identical */
+    html.bwl-loading .lt-bg { position: absolute; top: 0; left: 0; right: 0; bottom: auto; height: 100vh; }
 
     /* fact strip (in hero flow) */
     .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); margin-top: calc(var(--gap-5) * -0.2); }
@@ -182,47 +184,10 @@
   </style>
 </head>
 <body>
-  <!-- loading intro -->
-  <div class="lt-intro" id="ltIntro" aria-hidden="true">
-    <video id="ltIntroVid" muted playsinline autoplay preload="auto" src="assets/video/intro-balls.mp4"></video>
-    <div class="li-brand">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs><linearGradient id="liGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#c9a24b"/><stop offset=".5" stop-color="#a67e2e"/><stop offset="1" stop-color="#8a6414"/>
-        </linearGradient></defs>
-        <path d="M 12 34 Q 50 2 88 30" fill="none" stroke="url(#liGold)" stroke-width="5" stroke-linecap="round"/>
-        <path d="M 16 78 Q 50 96 86 74" fill="none" stroke="url(#liGold)" stroke-width="5" stroke-linecap="round"/>
-        <text x="50" y="70" text-anchor="middle" font-family="Cinzel, Times New Roman, serif" font-weight="700" font-size="52" fill="url(#liGold)">LA</text>
-      </svg>
-      <div class="nm">Leo Tennis Academy</div>
-      <div class="tg">Train smarter · Play stronger</div>
-      <div class="li-bar"><i></i></div>
-    </div>
-  </div>
-  <script>
-    (function () {
-      var intro = document.getElementById("ltIntro");
-      var vid = document.getElementById("ltIntroVid");
-      var skip = false;
-      try { skip = sessionStorage.getItem("lt-intro-done") === "1"; } catch (e) {}
-      if (skip || matchMedia("(prefers-reduced-motion: reduce)").matches) { intro.remove(); return; }
-      document.body.classList.add("lt-intro-lock");
-      var closed = false;
-      function close() {
-        if (closed) return;
-        closed = true;
-        try { sessionStorage.setItem("lt-intro-done", "1"); } catch (e) {}
-        intro.classList.add("done");
-        document.body.classList.remove("lt-intro-lock");
-        setTimeout(function () { intro.remove(); }, 750);
-      }
-      vid.addEventListener("ended", close);
-      vid.addEventListener("error", close);
-      intro.addEventListener("click", close);
-      setTimeout(close, 3600); // safety net if the video stalls
-    })();
-  </script>
+  <video class="bwl-video" id="bwlVideo" muted playsinline autoplay preload="auto"
+         src="assets/video/hero2.mp4" aria-hidden="true"></video>
 
+  <div class="bwl-page" id="bwlPage">
   <div class="lt-bg" aria-hidden="true"></div>
 
   <!-- top nav -->
@@ -484,6 +449,116 @@
       </div>
     </footer>
   </main>
+
+  </div><!-- /.bwl-page -->
+
+  <script>
+    /* Ball-wave page load. The page slab's bottom edge rides the wave front
+       of assets/video/hero2.mp4, computed per-frame from video.currentTime.
+       Tuning knobs: T_WAVE (wave hits bottom), BAND (ball band kept visible
+       below the fade), T_SPLIT (page stops tracking, starts final sweep),
+       T_LAND (page fully lands). */
+    (function () {
+      var docEl = document.documentElement;
+      var wrapper = document.getElementById("bwlPage");
+      var video = document.getElementById("bwlVideo");
+      var done = false, started = false, driving = false, fallbackT0 = null, raf = 0;
+
+      function cleanup() {
+        if (done) return;
+        done = true;
+        cancelAnimationFrame(raf);
+        docEl.classList.remove("bwl-loading");
+        wrapper.style.transform = "";
+        if (video) { try { video.pause(); } catch (e) {} if (video.parentNode) video.remove(); }
+      }
+
+      if (!wrapper || !video || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        docEl.classList.remove("bwl-loading");
+        if (video && video.parentNode) video.remove();
+        return;
+      }
+
+      var CFG = {
+        T_WAVE: 3.7,   // s — wave front reaches bottom of frame
+        BASE: 0.06,    // front starts at 6% of viewport height
+        SPAN: 0.94,
+        BAND: 0.14,    // ball band kept visible below the fade (fraction of vh)
+        T_SPLIT: 2.6,  // s — page stops tracking wave, starts final sweep
+        T_LAND: 3.5,   // s — page fully lands
+        SETTLE: 0.45,  // s — bounce duration after landing
+        BOUNCE_H: 22, DAMP: 5.0, FREQ: 9.0,
+      };
+      var pageH = wrapper.offsetHeight;
+
+      function frontAt(t) { // wave front position in px (smoothstep)
+        var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
+        var s = x * x * (3 - 2 * x);
+        return innerHeight * (CFG.BASE + CFG.SPAN * s);
+      }
+      function frontVelAt(t) {
+        var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
+        return innerHeight * CFG.SPAN * 6 * x * (1 - x) / CFG.T_WAVE;
+      }
+      function edgeAt(t) { // page's bottom edge, screen px
+        if (t < CFG.T_SPLIT)
+          return Math.max(frontAt(t) - innerHeight * CFG.BAND, 6);
+        var e1 = Math.max(frontAt(CFG.T_SPLIT) - innerHeight * CFG.BAND, 6);
+        var v1 = frontVelAt(CFG.T_SPLIT);
+        var du = CFG.T_LAND - CFG.T_SPLIT;
+        var D = pageH - e1;
+        var u = Math.min(t - CFG.T_SPLIT, du);
+        return e1 + v1 * u + (D - v1 * du) * (u / du) * (u / du); // velocity-continuous
+      }
+      function yAt(t) { // wrapper translateY
+        if (t >= CFG.T_LAND) {
+          var u = t - CFG.T_LAND;
+          if (u >= CFG.SETTLE) return 0;
+          return -CFG.BOUNCE_H * Math.abs(Math.sin(CFG.FREQ * u)) * Math.exp(-CFG.DAMP * u);
+        }
+        return edgeAt(t) - pageH;
+      }
+      function squashAt(t) { // tiny landing compression, origin bottom
+        var u = t - CFG.T_LAND;
+        if (u < 0 || u > 0.4) return 1;
+        return 1 - 0.03 * Math.exp(-8 * u);
+      }
+
+      function now() {
+        return driving ? video.currentTime : (fallbackT0 ? (performance.now() - fallbackT0) / 1000 : 0);
+      }
+      function frame() {
+        if (done) return;
+        var t = now();
+        wrapper.style.transform = "translateY(" + yAt(t) + "px) scaleY(" + squashAt(t) + ")";
+        if (t >= CFG.T_LAND + CFG.SETTLE) { cleanup(); return; }
+        raf = requestAnimationFrame(frame);
+      }
+      function start() { if (started || done) return; started = true; frame(); }
+
+      scrollTo(0, 0);
+      wrapper.style.transform = "translateY(" + yAt(0) + "px)";
+
+      // debug: append ?bwlslow=0.25 to watch the ride in slow motion
+      var rate = parseFloat(new URLSearchParams(location.search).get("bwlslow")) || 1;
+      rate = Math.max(0.1, Math.min(1, rate));
+      video.playbackRate = rate;
+
+      video.addEventListener("playing", function () { driving = true; fallbackT0 = null; start(); }, { once: true });
+      video.addEventListener("error", cleanup);
+      setTimeout(function () { // autoplay blocked / slow network: internal clock
+        if (!driving && !done) { fallbackT0 = performance.now(); start(); }
+      }, 1200);
+      setTimeout(cleanup, 8000 / rate); // absolute safety net
+
+      function remeasure() { pageH = wrapper.offsetHeight; }
+      addEventListener("resize", remeasure);
+      setTimeout(remeasure, 400); // page grows after first paint (fonts/images)
+
+      var p = video.play();
+      if (p && p.catch) p.catch(function () {});
+    })();
+  </script>
 
   <script src="assets/js/core.js?v=4"></script>
 </body>
