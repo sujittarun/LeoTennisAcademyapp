@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Book a Court — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .bk-wrap { max-width: 860px; margin: 0 auto; width: 100%; }
+    .bk-hero { text-align: center; margin-bottom: var(--gap-4); }
+    .bk-hero h1 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; }
+    .bk-hero p { color: var(--ink-mid); margin-top: 8px; }
+    .bk-controls { display: flex; gap: var(--gap-2); align-items: flex-end; flex-wrap: wrap; }
+    .bk-controls .field { flex: 0 0 auto; }
+    .bk-legend { margin-left: auto; display: flex; gap: var(--gap-3); font-size: 12px; color: var(--ink-low); align-items: center; flex-wrap: wrap; }
+    .bk-legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--gap-2); align-items: end; }
+    @media (max-width: 700px) { .contact-grid { grid-template-columns: 1fr; } }
+    .done-card { text-align: center; padding: clamp(36px, 6vh, 60px) var(--gap-4); display: none; }
+    .done-card.show { display: block; animation: lt-step-in .5s var(--ease-spring) both; }
+    .done-card .big-check { width: 74px; height: 74px; margin: 0 auto var(--gap-3); border-radius: 50%; display: grid; place-items: center;
+      background: rgba(52, 211, 153, .15); border: 1.5px solid rgba(52, 211, 153, .5); color: var(--tx-green); }
+    .done-card .big-check svg { width: 34px; height: 34px; }
+  </style>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <nav class="lt-nav glass">
+    <a class="nav-brand" href="index.html">
+      <span class="mark" data-logo="30"></span>
+      <span class="t"><strong>Leo Tennis Academy</strong><span>Hyderabad</span></span>
+    </a>
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle"></button>
+      <a class="btn btn-ghost btn-sm hide-mobile" href="admission.html">Join coaching</a>
+      <a class="btn btn-glass btn-sm" href="index.html">← Back to site</a>
+    </div>
+  </nav>
+
+  <main class="lt-page">
+    <div class="bk-wrap">
+      <div class="bk-hero reveal">
+        <span class="pill gold">6 floodlit courts · Open 6 AM – 10 PM</span>
+        <h1 class="mt-2">Book a court by the hour</h1>
+        <p>Pick a date and your hours — the quote updates as you select. We confirm on WhatsApp.</p>
+      </div>
+
+      <div id="bookingFlow" class="lt-grid" style="gap: var(--gap-3);">
+        <div class="glass glass-card tight">
+          <div class="bk-controls">
+            <label class="field"><span>Date</span><input type="date" id="bkDate" style="width:auto;" /></label>
+            <div class="bk-legend">
+              <span><span class="sw" style="background:var(--tile-border);"></span>Off-peak ₹500/hr</span>
+              <span><span class="sw" style="background:var(--gold-400);"></span>Peak ₹700/hr · floodlights</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass glass-card">
+          <div class="card-head"><div><div class="kicker">Step 1</div><h2 style="font-size:18px;">Choose your hours</h2></div><span class="pill" id="selCount">Nothing selected</span></div>
+          <div class="slot-grid" id="slotGrid"></div>
+        </div>
+
+        <div class="quote-bar hide" id="quoteBar">
+          <div>
+            <div class="qb-total" id="qbTotal">₹0</div>
+            <div class="qb-note" id="qbNote"></div>
+          </div>
+          <span class="grow"></span>
+          <form id="bkForm" class="contact-grid grow" style="max-width: 560px;">
+            <label class="field"><span>Your name</span><input type="text" name="name" placeholder="Full name" /></label>
+            <label class="field"><span>WhatsApp number</span><input type="tel" name="phone" placeholder="98xxxxxxxx" /></label>
+            <button type="submit" class="btn btn-primary">Request booking</button>
+          </form>
+        </div>
+        <div class="form-msg" id="bkMsg" style="text-align:right;"></div>
+      </div>
+
+      <!-- success -->
+      <div class="glass done-card" id="doneCard">
+        <div class="big-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h2>Booking request sent 🎾</h2>
+        <p class="muted mt-2" id="doneDetail"></p>
+        <p class="faint mt-2" style="font-size:13px;">We'll confirm your court number on WhatsApp. Payment at the front desk or by UPI on arrival.</p>
+        <div class="mt-4 flex" style="justify-content:center; flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="againBtn">Book another slot</button>
+          <a class="btn btn-glass" href="index.html">Back to home</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/core.js?v=2"></script>
+  <script src="assets/js/data.js?v=2"></script>
+  <script>
+    (function () {
+      var dateInput = document.getElementById("bkDate");
+      dateInput.value = LT.today();
+      dateInput.min = LT.today();
+      var selected = [];
+
+      function renderSlots() {
+        var now = new Date();
+        var isToday = dateInput.value === LT.today();
+        document.getElementById("slotGrid").innerHTML = LT_SLOTS.hours.map(function (h) {
+          var past = isToday && h <= now.getHours();
+          var peak = h >= LT_DATA.rates.peakFrom;
+          var cls = "slot" + (selected.indexOf(h) !== -1 ? " sel" : "") + (past ? " taken" : "");
+          return '<button type="button" class="' + cls + '" data-h="' + h + '"' + (past ? " disabled" : "") + ">" +
+            '<span class="sl-time">' + LT_SLOTS.label(h) + "</span>" +
+            '<span class="sl-rate">' + (peak ? '<span class="peak">₹700 · lights</span>' : "₹500") + "</span></button>";
+        }).join("");
+        paintQuote();
+      }
+
+      function paintQuote() {
+        var total = selected.reduce(function (s, h) { return s + LT_SLOTS.rate(h); }, 0);
+        var bar = document.getElementById("quoteBar");
+        document.getElementById("selCount").textContent = selected.length
+          ? selected.length + " hour" + (selected.length > 1 ? "s" : "") + " selected"
+          : "Nothing selected";
+        if (!selected.length) { bar.classList.add("hide"); return; }
+        bar.classList.remove("hide");
+        document.getElementById("qbTotal").textContent = LT.fmtINR(total);
+        var d = new Date(dateInput.value);
+        document.getElementById("qbNote").textContent =
+          selected.slice().sort(function (a, b) { return a - b; }).map(LT_SLOTS.label).join(", ") +
+          " · " + d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+      }
+
+      document.getElementById("slotGrid").addEventListener("click", function (e) {
+        var btn = e.target.closest(".slot");
+        if (!btn || btn.disabled) return;
+        var h = +btn.dataset.h;
+        var i = selected.indexOf(h);
+        if (i === -1) selected.push(h); else selected.splice(i, 1);
+        renderSlots();
+      });
+
+      dateInput.addEventListener("change", function () { selected = []; renderSlots(); });
+
+      document.getElementById("bkForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var d = new FormData(this);
+        var msg = document.getElementById("bkMsg");
+        if (!String(d.get("name") || "").trim()) { msg.textContent = "Please enter your name."; msg.className = "form-msg error"; return; }
+        if (String(d.get("phone") || "").replace(/\D/g, "").length < 10) { msg.textContent = "Please enter a valid 10-digit number."; msg.className = "form-msg error"; return; }
+
+        var total = selected.reduce(function (s, h) { return s + LT_SLOTS.rate(h); }, 0);
+        var reqs = LT.store.read("bookings", []);
+        selected.slice().sort(function (a, b) { return a - b; }).forEach(function (h) {
+          reqs.unshift({
+            id: "B-" + Date.now().toString().slice(-6) + "-" + h,
+            name: d.get("name"), phone: d.get("phone"),
+            court: null, date: dateInput.value, hour: h,
+            amount: LT_SLOTS.rate(h), status: "pending",
+          });
+        });
+        LT.store.write("bookings", reqs);
+
+        document.getElementById("doneDetail").innerHTML =
+          "<strong>" + selected.length + " hour" + (selected.length > 1 ? "s" : "") + "</strong> on " +
+          new Date(dateInput.value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }) +
+          " · total <strong>" + LT.fmtINR(total) + "</strong>";
+        document.getElementById("bookingFlow").style.display = "none";
+        document.querySelector(".bk-hero").style.display = "none";
+        document.getElementById("doneCard").classList.add("show");
+        LT.toast("Booking request sent ✓");
+      });
+
+      document.getElementById("againBtn").addEventListener("click", function () {
+        selected = [];
+        document.getElementById("doneCard").classList.remove("show");
+        document.getElementById("bookingFlow").style.display = "";
+        document.querySelector(".bk-hero").style.display = "";
+        document.getElementById("bkForm").reset();
+        renderSlots();
+      });
+
+      renderSlots();
+    })();
+  </script>
+</body>
+</html>

@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#04130c" />
-  <title>Book a Free Trial — Leo Tennis Academy</title>
+  <title>Join Coaching — Leo Tennis Academy</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .adm-wrap { max-width: 720px; margin: 0 auto; width: 100%; }
@@ -42,21 +42,22 @@
     </a>
     <div class="nav-actions">
       <button type="button" class="theme-toggle"></button>
-      <a class="btn btn-ghost btn-sm" href="index.html">← Back to site</a>
+      <a class="btn btn-ghost btn-sm hide-mobile" href="booking.html">Book a court</a>
+      <a class="btn btn-glass btn-sm" href="index.html">← Back to site</a>
     </div>
   </nav>
 
   <main class="lt-page">
     <div class="adm-wrap">
       <div class="adm-hero reveal">
-        <span class="pill gold">Free trial · No commitment</span>
-        <h1 class="mt-2">Book your trial session</h1>
-        <p>Three quick steps — we'll confirm your slot on WhatsApp within a few hours.</p>
+        <span class="pill gold">First session free · No commitment</span>
+        <h1 class="mt-2">Join the coaching squad</h1>
+        <p>Three quick steps — we'll confirm your trial slot on WhatsApp within a few hours.</p>
       </div>
 
       <div class="glass glass-card" id="wizard">
         <div class="adm-stepper" id="stepper">
-          <div class="step active" data-s="1"><span class="num"><span class="n">1</span></span><span class="lbl">Player</span></div>
+          <div class="step active" data-s="1"><span class="num"><span class="n">1</span></span><span class="lbl">About you</span></div>
           <div class="bar" id="bar1"></div>
           <div class="step" data-s="2"><span class="num"><span class="n">2</span></span><span class="lbl">Program</span></div>
           <div class="bar" id="bar2"></div>
@@ -64,29 +65,36 @@
         </div>
 
         <form id="admForm" novalidate>
-          <!-- step 1: player -->
+          <!-- step 1: about you -->
           <section class="adm-step active" data-step="1">
             <div class="form-grid">
-              <label class="field"><span>Player name</span><input type="text" name="player" placeholder="Full name" required /></label>
-              <label class="field"><span>Age</span><input type="number" name="age" min="4" max="70" placeholder="e.g. 10" required /></label>
-              <label class="field"><span>Parent / contact name</span><input type="text" name="parent" placeholder="For juniors, a parent" /></label>
+              <label class="field full"><span>Full name</span><input type="text" name="name" placeholder="Your name" required /></label>
               <label class="field"><span>WhatsApp number</span><input type="tel" name="phone" placeholder="98xxxxxxxx" required /></label>
-              <label class="field full"><span>Played before? <span class="opt">(optional)</span></span>
-                <select name="level"><option value="">Select level</option><option>Complete beginner</option><option>Played casually</option><option>Trained before at an academy</option><option>Competitive player</option></select>
+              <label class="field"><span>Email <span class="opt">(optional)</span></span><input type="email" name="email" placeholder="you@company.com" /></label>
+              <label class="field full"><span>Where's your game today?</span>
+                <select name="level"><option value="">Select level</option><option>Complete beginner</option><option>Played casually / social sets</option><option>Trained before, getting back into it</option><option>Competitive — leagues or tournaments</option></select>
+              </label>
+              <label class="field full"><span>What are you after? <span class="opt">(optional)</span></span>
+                <select name="goal"><option value="">Select a goal</option><option>Learn the game properly</option><option>Fitness &amp; stress relief</option><option>Compete in leagues</option><option>Sharpen up for corporate events</option></select>
               </label>
             </div>
           </section>
 
           <!-- step 2: program -->
           <section class="adm-step" data-step="2">
-            <div class="batch-pick" id="batchPick"></div>
-            <label class="field mt-3"><span>Preferred trial date</span><input type="date" name="date" /></label>
+            <div class="batch-pick" id="programPick"></div>
+            <div class="form-grid mt-3">
+              <label class="field"><span>Preferred timing</span>
+                <select name="slot"><option>Morning batch</option><option>Evening batch</option><option>Flexible</option></select>
+              </label>
+              <label class="field"><span>Trial date <span class="opt">(optional)</span></span><input type="date" name="date" /></label>
+            </div>
           </section>
 
           <!-- step 3: confirm -->
           <section class="adm-step" data-step="3">
             <div id="summary" class="lt-grid" style="gap: 10px;"></div>
-            <label class="choice mt-3"><input type="checkbox" name="agree" /><span class="dot"></span><span>I'm happy to be contacted on WhatsApp about my trial slot.</span></label>
+            <label class="choice mt-3"><input type="checkbox" name="agree" /><span class="dot"></span><span>Contact me on WhatsApp to confirm my trial slot.</span></label>
           </section>
 
           <div class="form-msg" id="msg"></div>
@@ -101,28 +109,27 @@
       <!-- success -->
       <div class="glass done-card" id="doneCard">
         <div class="big-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-        <h2>You're booked in! 🎾</h2>
-        <p class="muted mt-2">Our coach will WhatsApp you shortly to confirm the slot.<br />Bring water and sports shoes — racquets are on us.</p>
+        <h2>Application received 🎾</h2>
+        <p class="muted mt-2">Our coach will WhatsApp you shortly to confirm your trial slot.<br />Bring water and non-marking sports shoes — racquets are available courtside.</p>
         <div class="mt-4 flex" style="justify-content:center; flex-wrap:wrap;">
-          <a class="btn btn-primary" href="index.html">Back to home</a>
-          <a class="btn btn-glass" href="https://www.instagram.com/leotennishyd/" target="_blank" rel="noopener">Follow @leotennishyd</a>
+          <a class="btn btn-primary" href="booking.html">Book a court meanwhile</a>
+          <a class="btn btn-glass" href="index.html">Back to home</a>
         </div>
       </div>
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=1"></script>
-  <script src="assets/js/demo-data.js?v=1"></script>
+  <script src="assets/js/core.js?v=2"></script>
+  <script src="assets/js/data.js?v=2"></script>
   <script>
     (function () {
       var step = 1, TOTAL = 3;
       var form = document.getElementById("admForm");
       var msg = document.getElementById("msg");
 
-      // batch choices from demo data
-      document.getElementById("batchPick").innerHTML = LT_DEMO.batches.map(function (b, i) {
-        return '<label class="choice"><div class="bp-top"><input type="radio" name="batch" value="' + b.id + '"' + (i === 1 ? " checked" : "") + ' /><span class="dot"></span><span class="bp-name">' + b.name + "</span></div>" +
-          '<span class="bp-meta">' + b.ages + " · " + b.time + "</span></label>";
+      document.getElementById("programPick").innerHTML = LT_DATA.programs.map(function (p, i) {
+        return '<label class="choice"><div class="bp-top"><input type="radio" name="program" value="' + p.id + '"' + (i === 0 ? " checked" : "") + ' /><span class="dot"></span><span class="bp-name">' + p.name + "</span></div>" +
+          '<span class="bp-meta">' + p.level + " · " + p.days + "</span></label>";
       }).join("");
 
       function paint() {
@@ -137,35 +144,35 @@
           el.classList.toggle("active", +el.dataset.step === step);
         });
         document.getElementById("backBtn").style.visibility = step === 1 ? "hidden" : "visible";
-        document.getElementById("nextBtn").textContent = step === TOTAL ? "Book my trial 🎾" : "Continue →";
+        document.getElementById("nextBtn").textContent = step === TOTAL ? "Submit application" : "Continue →";
         msg.textContent = "";
         if (step === 3) fillSummary();
       }
 
       function fillSummary() {
         var d = new FormData(form);
-        var batch = LT_DEMO.batches.find(function (b) { return b.id === d.get("batch"); }) || {};
+        var prog = LT_DATA.programs.find(function (p) { return p.id === d.get("program"); }) || {};
         var rows = [
-          ["Player", d.get("player") + " · " + d.get("age") + " yrs"],
-          ["Contact", (d.get("parent") ? d.get("parent") + " · " : "") + d.get("phone")],
-          ["Program", batch.name + " (" + batch.ages + ")"],
+          ["Name", d.get("name")],
+          ["Contact", d.get("phone") + (d.get("email") ? " · " + d.get("email") : "")],
+          ["Level", d.get("level") || "To be assessed"],
+          ["Program", prog.name + " · " + d.get("slot")],
           ["Trial date", d.get("date") || "First available slot"],
         ];
         document.getElementById("summary").innerHTML = rows.map(function (r) {
           return '<div class="flex between" style="padding:11px 14px;border:1px solid var(--tile-border);border-radius:var(--r-md);background:var(--tile-bg);">' +
             '<span class="faint" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:650;">' + r[0] + "</span>" +
-            '<span style="font-weight:650;">' + r[1] + "</span></div>";
+            '<span style="font-weight:650;text-align:right;">' + r[1] + "</span></div>";
         }).join("");
       }
 
       function validate() {
         var d = new FormData(form);
         if (step === 1) {
-          if (!String(d.get("player") || "").trim()) return "Please enter the player's name.";
-          if (!d.get("age")) return "Please enter the player's age.";
+          if (!String(d.get("name") || "").trim()) return "Please enter your name.";
           if (String(d.get("phone") || "").replace(/\D/g, "").length < 10) return "Please enter a valid 10-digit WhatsApp number.";
         }
-        if (step === 3 && !d.get("agree")) return "Please tick the consent box so we can contact you.";
+        if (step === 3 && !d.get("agree")) return "Please tick the consent box so we can reach you.";
         return "";
       }
 
@@ -173,15 +180,18 @@
         var err = validate();
         if (err) { msg.textContent = err; msg.className = "form-msg error"; return; }
         if (step < TOTAL) { step++; paint(); return; }
-        // demo submit — store locally, show success
         var d = new FormData(form);
-        var enq = LT.store.read("enquiries", []);
-        enq.unshift({ player: d.get("player"), age: d.get("age"), phone: d.get("phone"), batch: d.get("batch"), date: d.get("date"), at: new Date().toISOString() });
-        LT.store.write("enquiries", enq);
+        var apps = LT.store.read("applications", []);
+        apps.unshift({
+          name: d.get("name"), phone: d.get("phone"), email: d.get("email"),
+          level: d.get("level"), goal: d.get("goal"), program: d.get("program"),
+          slot: d.get("slot"), date: d.get("date"), at: new Date().toISOString(),
+        });
+        LT.store.write("applications", apps);
         document.getElementById("wizard").style.display = "none";
         document.querySelector(".adm-hero").style.display = "none";
         document.getElementById("doneCard").classList.add("show");
-        LT.toast("Trial booked — see you on court! 🎾");
+        LT.toast("Application received — see you on court! 🎾");
       });
       document.getElementById("backBtn").addEventListener("click", function () { if (step > 1) { step--; paint(); } });
 

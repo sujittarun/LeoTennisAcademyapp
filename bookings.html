@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Bookings — Leo Tennis Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
+  <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+
+  <main class="lt-page">
+    <div class="card-head" style="margin-bottom: 0;">
+      <div>
+        <div class="kicker">Court Bookings</div>
+        <h2>Slot schedule</h2>
+        <div class="sub" id="dayLine"></div>
+      </div>
+      <div class="flex">
+        <input type="date" id="bkDate" style="width:auto;" />
+        <span class="pill gold" id="dayTotal">₹0</span>
+      </div>
+    </div>
+
+    <div class="lt-grid cols-3">
+      <div class="glass glass-hover stat-card reveal">
+        <span class="stat-copy">Bookings this day</span>
+        <span class="stat-value" id="kpiCount">0</span>
+      </div>
+      <div class="glass glass-hover stat-card reveal d1">
+        <span class="stat-copy">Pending confirmation</span>
+        <span class="stat-value" id="kpiPending">0</span>
+      </div>
+      <div class="glass glass-hover stat-card reveal d2">
+        <span class="stat-copy">Court hours sold</span>
+        <span class="stat-value" id="kpiHours">0</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <div class="table-wrap">
+        <table class="lt-table">
+          <thead><tr><th>Ref</th><th>Booked by</th><th>Slot</th><th>Court</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/core.js?v=2"></script>
+  <script src="assets/js/data.js?v=2"></script>
+  <script>
+    LT.auth.require();
+    LT.managerShell("bookings.html");
+
+    (function () {
+      var dateInput = document.getElementById("bkDate");
+      dateInput.value = LT.today();
+
+      function allBookings() {
+        // Requests from the public site + seed schedule, with any status
+        // overrides applied (confirmations are persisted by booking id).
+        var overrides = LT.store.read("booking-status", {});
+        var merged = LT.store.read("bookings", []).concat(LT_DATA.bookings);
+        return merged.map(function (b) {
+          return Object.assign({}, b, overrides[b.id] ? { status: overrides[b.id], court: overrides[b.id + ":court"] || b.court } : {});
+        });
+      }
+
+      function render() {
+        var day = dateInput.value;
+        var list = allBookings().filter(function (b) { return b.date === day; })
+          .sort(function (a, b) { return a.hour - b.hour; });
+
+        var total = list.reduce(function (s, b) { return s + b.amount; }, 0);
+        var pending = list.filter(function (b) { return b.status === "pending"; }).length;
+
+        document.getElementById("dayLine").textContent = new Date(day).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+        document.getElementById("dayTotal").textContent = LT.fmtINR(total);
+        document.getElementById("kpiCount").textContent = list.length;
+        document.getElementById("kpiPending").textContent = pending;
+        document.getElementById("kpiHours").textContent = list.length + " / " + (LT_DATA.courts * (LT_DATA.slotHours.close - LT_DATA.slotHours.open));
+
+        document.getElementById("rows").innerHTML = list.map(function (b) {
+          var st = b.status === "confirmed"
+            ? '<span class="pill green">Confirmed</span>'
+            : '<span class="pill gold">Pending</span>';
+          var act = b.status === "pending"
+            ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>'
+            : "";
+          return "<tr>" +
+            '<td class="num faint">' + b.id + "</td>" +
+            '<td class="t-name">' + b.name + '<div class="faint" style="font-size:11.5px;font-weight:400;">' + (b.phone || "") + "</div></td>" +
+            "<td>" + LT_SLOTS.label(b.hour) + "</td>" +
+            "<td>" + (b.court ? "Court " + b.court : '<span class="faint">To assign</span>') + "</td>" +
+            '<td class="num gold" style="font-weight:700;">' + LT.fmtINR(b.amount) + "</td>" +
+            "<td>" + st + "</td><td>" + act + "</td></tr>";
+        }).join("") || '<tr><td colspan="7"><div class="empty-state">No bookings for this date yet.</div></td></tr>';
+      }
+
+      document.getElementById("rows").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-confirm]");
+        if (!btn) return;
+        var id = btn.dataset.confirm;
+        var overrides = LT.store.read("booking-status", {});
+        overrides[id] = "confirmed";
+        // assign the first free court for that hour
+        var b = allBookings().find(function (x) { return x.id === id; });
+        if (b && !b.court) {
+          var used = allBookings().filter(function (x) { return x.date === b.date && x.hour === b.hour && x.court; })
+            .map(function (x) { return x.court; });
+          for (var c = 1; c <= LT_DATA.courts; c++) if (used.indexOf(c) === -1) { overrides[id + ":court"] = c; break; }
+        }
+        LT.store.write("booking-status", overrides);
+        LT.toast("Booking confirmed ✓");
+        render();
+      });
+
+      dateInput.addEventListener("change", render);
+      render();
+    })();
+  </script>
+</body>
+</html>

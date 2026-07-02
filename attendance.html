@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
 </head>
 <body>
@@ -29,7 +29,7 @@
     </div>
 
     <div class="glass glass-card tight">
-      <div class="chip-row" id="batchChips"></div>
+      <div class="chip-row" id="programChips"></div>
     </div>
 
     <div class="glass glass-card">
@@ -37,8 +37,8 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=1"></script>
-  <script src="assets/js/demo-data.js?v=1"></script>
+  <script src="assets/js/core.js?v=2"></script>
+  <script src="assets/js/data.js?v=2"></script>
   <script>
     LT.auth.require();
     LT.managerShell("attendance.html");
@@ -46,17 +46,17 @@
     (function () {
       var dateInput = document.getElementById("attDate");
       dateInput.value = LT.today();
-      var batch = "all";
+      var program = "all";
 
-      var chips = [{ id: "all", name: "All batches" }].concat(LT_DEMO.batches);
-      var chipHost = document.getElementById("batchChips");
-      chipHost.innerHTML = chips.map(function (b) {
-        return '<button class="chip' + (b.id === "all" ? " active" : "") + '" data-b="' + b.id + '">' + b.name + "</button>";
+      var chips = [{ id: "all", name: "All programs" }].concat(LT_DATA.programs);
+      var chipHost = document.getElementById("programChips");
+      chipHost.innerHTML = chips.map(function (p) {
+        return '<button class="chip' + (p.id === "all" ? " active" : "") + '" data-p="' + p.id + '">' + p.name + "</button>";
       }).join("");
       chipHost.addEventListener("click", function (e) {
         var btn = e.target.closest(".chip");
         if (!btn) return;
-        batch = btn.dataset.b;
+        program = btn.dataset.p;
         chipHost.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
         render();
       });
@@ -66,13 +66,13 @@
 
       function render() {
         var marks = present();
-        var list = LT_DEMO.players.filter(function (p) { return batch === "all" || p.batch === batch; });
-        document.getElementById("grid").innerHTML = list.map(function (p) {
-          var on = marks.indexOf(p.id) !== -1;
-          var b = LT_DEMO.batches.find(function (x) { return x.id === p.batch; });
-          return '<div class="att-tile' + (on ? " present" : "") + '" data-id="' + p.id + '">' +
-            '<span class="av">' + (on ? "✓" : LT.initials(p.name)) + "</span>" +
-            '<span><span class="nm">' + p.name + '</span><br /><span class="bt">' + b.name + "</span></span></div>";
+        var list = LT_DATA.members.filter(function (m) { return program === "all" || m.program === program; });
+        document.getElementById("grid").innerHTML = list.map(function (m) {
+          var on = marks.indexOf(m.id) !== -1;
+          var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+          return '<div class="att-tile' + (on ? " present" : "") + '" data-id="' + m.id + '">' +
+            '<span class="av">' + (on ? "✓" : LT.initials(m.name)) + "</span>" +
+            '<span><span class="nm">' + m.name + '</span><br /><span class="bt">' + p.name + "</span></span></div>";
         }).join("");
         document.getElementById("attCount").textContent = marks.length + " present";
       }

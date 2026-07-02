@@ -957,7 +957,38 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 }
 .att-tile.present .av { background: linear-gradient(135deg, #6ee7b7, #34d399); }
 
-/* ---------- Wizard stepper (admission / trial form) ---------- */
+/* ---------- Court slot grid (hourly booking) ---------- */
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+.slot {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--tile-border); background: var(--tile-bg);
+  cursor: pointer; user-select: none; text-align: left;
+  font-family: var(--font-body); color: var(--ink-mid);
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
+}
+.slot:hover { border-color: var(--input-border-hover); }
+.slot:active { transform: scale(0.97); }
+.slot .sl-time { font-weight: 700; font-size: 13.5px; color: var(--ink-hi); }
+.slot .sl-rate { font-size: 12px; color: var(--ink-low); }
+.slot .sl-rate .peak { color: var(--tx-gold); font-weight: 700; }
+.slot.sel {
+  border-color: rgba(224, 189, 108, 0.65);
+  background: rgba(201, 162, 75, 0.16);
+  box-shadow: 0 8px 22px rgba(201, 162, 75, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.slot.sel .sl-time { color: var(--tx-gold); }
+.slot:disabled, .slot.taken { opacity: 0.42; cursor: not-allowed; }
+
+.quote-bar {
+  display: flex; align-items: center; gap: var(--gap-3); flex-wrap: wrap;
+  padding: var(--gap-3) var(--gap-4); border-radius: var(--r-lg);
+  border: 1px solid rgba(224, 189, 108, 0.4); background: rgba(201, 162, 75, 0.1);
+}
+.quote-bar .qb-total { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--tx-gold); }
+.quote-bar .qb-note { font-size: 12.5px; color: var(--ink-mid); }
+
+/* ---------- Wizard stepper (membership / trial form) ---------- */
 .adm-stepper { display: flex; align-items: center; gap: 6px; margin-bottom: var(--gap-4); }
 .adm-stepper .step { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
 .adm-stepper .step .num {

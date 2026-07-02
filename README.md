@@ -1,38 +1,51 @@
-# Leo Tennis Academy — Liquid Glass Web App (demo)
+# Leo Tennis Academy — Web App
 
-Showcase demo for **Leo Tennis Academy, Hyderabad** ([@leotennishyd](https://www.instagram.com/leotennishyd/)) —
-a premium liquid-glass website + academy manager console, built to present as a sales demo.
+Website + staff console for **Leo Tennis Academy, Hyderabad**
+([@leotennishyd](https://www.instagram.com/leotennishyd/)) — an adults-only tennis
+academy offering coaching programs and floodlit courts bookable by the hour.
 
 Repo: https://github.com/sujittarun/LeoTennisAcademyapp
 
 ## Stack
-Vanilla HTML/CSS/JS, no build step — deployable straight to GitHub Pages.
-Sibling of the Gen Alpha Cricket Academy app (`genalpha-glass-web`), re-themed for tennis:
-dark-first forest green + metallic gold (from the Leo "LA" monogram) with a tennis
-optic-yellow accent.
+Vanilla HTML/CSS/JS, no build step — deploys straight to GitHub Pages.
+Liquid-glass design system: dark-first forest green + metallic gold (from the Leo
+"LA" monogram) with a tennis optic-yellow accent, light theme included.
 
 ## Pages
 | Page | Purpose |
 |---|---|
-| `index.html` | Public landing — hero, programs, coaches, fees, testimonials, CTA |
-| `admission.html` | 3-step free-trial booking wizard (saves locally in demo mode) |
-| `login.html` | Manager console login (demo: any credentials work) |
-| `dashboard.html` | KPIs, revenue chart, collection donut, activity feed |
-| `players.html` | Roster with search + batch filter |
-| `attendance.html` | Tap-to-mark attendance (persists per date in localStorage) |
-| `fees.html` | Payments ledger + record-payment modal |
+| `index.html` | Public site — programs, court rates, coaches, fees, testimonials |
+| `booking.html` | Court booking — pick a date, select one-hour slots, instant quote, request |
+| `admission.html` | Coaching membership application (3-step wizard, trial session) |
+| `login.html` | Staff console login |
+| `dashboard.html` | KPIs, revenue chart, renewal donut, activity feed |
+| `players.html` | Members roster with search + program filter |
+| `bookings.html` | Court slot schedule per day; confirm requests, auto-assign courts |
+| `attendance.html` | Tap-to-mark attendance per program batch |
+| `fees.html` | Finance — membership & court revenue, ledger, record payment |
 
-## Demo mode
-There is **no backend** — `assets/js/demo-data.js` holds sample data and all writes go
-to `localStorage` (`assets/js/core.js → LT.store`). To productionise, replace `LT.store`
-and the demo dataset with real API/Supabase calls (the cricket app shows the pattern).
+## Data layer
+`assets/js/core.js` exposes `LT.store` (localStorage) as the single persistence
+seam; `assets/js/data.js` (`window.LT_DATA`) provides seed records for members,
+bookings, payments and revenue until the production API is wired in. Booking
+requests, applications, payments and attendance recorded in the app persist
+locally and merge with the seeds — replace those two files to go live against a
+real backend without touching page controllers.
+
+## Business rules
+- Adults only — programs are Foundations, Performance, Cardio Tennis, Private.
+- Courts rent in one-hour slots, 6:00–22:00. Off-peak (before 4 PM) ₹500/hr,
+  peak/floodlit ₹700/hr. Public requests start `pending`; staff confirm and the
+  app assigns the first free court for that hour.
+- Membership plans: Monthly ₹4,500 · Quarterly ₹12,825 · Half-yearly ₹24,300;
+  joining fee ₹1,000.
 
 ## Run locally
 ```bash
-python3 -m http.server 8000
-# open http://localhost:8000
+npx http-server -p 8123 -c-1 .
+# open http://localhost:8123
 ```
 
 ## Deploy
-Push to `main` and enable GitHub Pages (Settings → Pages → Deploy from branch → `main` / root).
-When changing CSS/JS, bump the `?v=N` query string in all HTML files to bust caches.
+Push to `main` and enable GitHub Pages (Settings → Pages → Deploy from branch →
+`main` / root). When changing CSS/JS, bump the `?v=N` query in all HTML files.

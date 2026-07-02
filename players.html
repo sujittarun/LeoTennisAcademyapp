@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#04130c" />
-  <title>Players — Leo Tennis Academy</title>
+  <title>Members — Leo Tennis Academy</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=1" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=2" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -25,72 +25,72 @@
     <div class="card-head" style="margin-bottom: 0;">
       <div>
         <div class="kicker">Roster</div>
-        <h2>Players</h2>
+        <h2>Members</h2>
         <div class="sub" id="countLine"></div>
       </div>
-      <button class="btn btn-primary btn-sm" id="addBtn">+ Add player</button>
+      <button class="btn btn-primary btn-sm" id="addBtn">+ Add member</button>
     </div>
 
     <div class="glass glass-card tight">
       <div class="toolbar">
-        <input type="search" id="q" placeholder="Search players…" />
-        <div class="chip-row" id="batchChips"></div>
+        <input type="search" id="q" placeholder="Search members…" />
+        <div class="chip-row" id="programChips"></div>
       </div>
     </div>
 
     <div class="glass">
       <div class="table-wrap">
         <table class="lt-table">
-          <thead><tr><th>Player</th><th>Batch</th><th>Age</th><th>Phone</th><th>Joined</th><th>Fees till</th><th>Status</th></tr></thead>
+          <thead><tr><th>Member</th><th>Program</th><th>Phone</th><th>Joined</th><th>Valid till</th><th>Status</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=1"></script>
-  <script src="assets/js/demo-data.js?v=1"></script>
+  <script src="assets/js/core.js?v=2"></script>
+  <script src="assets/js/data.js?v=2"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
 
     (function () {
-      var filter = { q: "", batch: "all" };
+      var filter = { q: "", program: "all" };
 
-      var chips = [{ id: "all", name: "All batches" }].concat(LT_DEMO.batches);
-      var chipHost = document.getElementById("batchChips");
-      chipHost.innerHTML = chips.map(function (b) {
-        return '<button class="chip' + (b.id === "all" ? " active" : "") + '" data-b="' + b.id + '">' + b.name + "</button>";
+      var chips = [{ id: "all", name: "All programs" }].concat(LT_DATA.programs);
+      var chipHost = document.getElementById("programChips");
+      chipHost.innerHTML = chips.map(function (p) {
+        return '<button class="chip' + (p.id === "all" ? " active" : "") + '" data-p="' + p.id + '">' + p.name + "</button>";
       }).join("");
       chipHost.addEventListener("click", function (e) {
         var btn = e.target.closest(".chip");
         if (!btn) return;
-        filter.batch = btn.dataset.b;
+        filter.program = btn.dataset.p;
         chipHost.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
         render();
       });
       document.getElementById("q").addEventListener("input", function () { filter.q = this.value.toLowerCase(); render(); });
       document.getElementById("addBtn").addEventListener("click", function () {
-        LT.toast("Demo build — the full version adds players with plan, kit & photo.");
+        LT.toast("Member onboarding opens from an approved application — see Dashboard.");
       });
 
       function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }); }
 
       function render() {
-        var list = LT_DEMO.players.filter(function (p) {
-          if (filter.batch !== "all" && p.batch !== filter.batch) return false;
-          if (filter.q && p.name.toLowerCase().indexOf(filter.q) === -1) return false;
+        var list = LT_DATA.members.filter(function (m) {
+          if (filter.program !== "all" && m.program !== filter.program) return false;
+          if (filter.q && m.name.toLowerCase().indexOf(filter.q) === -1) return false;
           return true;
         });
-        document.getElementById("countLine").textContent = list.length + " of " + LT_DEMO.players.length + " players";
-        document.getElementById("rows").innerHTML = list.map(function (p) {
-          var b = LT_DEMO.batches.find(function (x) { return x.id === p.batch; });
-          var pill = p.status === "due" ? '<span class="pill red">Fees due</span>' : '<span class="pill green">Active</span>';
+        document.getElementById("countLine").textContent = list.length + " of " + LT_DATA.members.length + " members";
+        document.getElementById("rows").innerHTML = list.map(function (m) {
+          var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+          var pill = m.status === "due" ? '<span class="pill red">Renewal due</span>' : '<span class="pill green">Active</span>';
           return "<tr>" +
-            '<td><div class="pl-name"><span class="av">' + LT.initials(p.name) + '</span><span class="t-name">' + p.name + "</span></div></td>" +
-            "<td>" + b.name + "</td><td>" + p.age + '</td><td class="num">' + p.phone + "</td>" +
-            "<td>" + fmtD(p.joined) + "</td><td>" + fmtD(p.feesTill) + "</td><td>" + pill + "</td></tr>";
-        }).join("") || '<tr><td colspan="7"><div class="empty-state">No players match your search.</div></td></tr>';
+            '<td><div class="pl-name"><span class="av">' + LT.initials(m.name) + '</span><span class="t-name">' + m.name + "</span></div></td>" +
+            "<td>" + p.name + '</td><td class="num">' + m.phone + "</td>" +
+            "<td>" + fmtD(m.joined) + "</td><td>" + fmtD(m.validTill) + "</td><td>" + pill + "</td></tr>";
+        }).join("") || '<tr><td colspan="6"><div class="empty-state">No members match your search.</div></td></tr>';
       }
       render();
     })();
