@@ -60,13 +60,26 @@
     .bwl-page { position: relative; z-index: 1; background: var(--forest-950); }
     :root[data-theme="light"] .bwl-page { background: #dcead9; }
     html:not(.bwl-loading) .bwl-video { display: none; }
-    /* brand-coloured veil that washes over the video during the meltdown, so
-       the ball band's colours migrate to the page palette BEFORE the edge
-       swallows them — no colour shift at the end of the melt */
+    /* the veil is an EXACT copy of the page's ambient gradient (.lt-bg),
+       drawn in the same viewport box, that deepens over the whole meltdown —
+       so what's behind the fade band converges to the page's real background
+       (bright glows included) long before the edge arrives, and the final
+       reveal changes nothing the eye can catch */
     .bwl-tint { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0;
-      background: radial-gradient(130% 100% at 50% 100%, rgba(11, 42, 27, 0.96), rgba(4, 19, 12, 0.98)); }
+      background:
+        radial-gradient(46% 42% at 12% 10%, rgba(24, 130, 84, 0.55), transparent 68%),
+        radial-gradient(40% 36% at 86% 14%, rgba(201, 162, 75, 0.32), transparent 66%),
+        radial-gradient(48% 44% at 82% 84%, rgba(16, 100, 70, 0.5), transparent 70%),
+        radial-gradient(34% 30% at 16% 86%, rgba(215, 239, 79, 0.14), transparent 66%),
+        radial-gradient(30% 28% at 52% 50%, rgba(52, 211, 153, 0.14), transparent 70%),
+        linear-gradient(165deg, #082517 0%, #04130c 52%, #07211a 100%); }
     :root[data-theme="light"] .bwl-tint {
-      background: radial-gradient(130% 100% at 50% 100%, rgba(216, 236, 212, 0.96), rgba(220, 234, 217, 0.98)); }
+      background:
+        radial-gradient(46% 42% at 12% 10%, rgba(88, 190, 130, 0.55), transparent 68%),
+        radial-gradient(40% 36% at 86% 14%, rgba(240, 205, 120, 0.6), transparent 66%),
+        radial-gradient(48% 44% at 82% 84%, rgba(120, 200, 150, 0.5), transparent 70%),
+        radial-gradient(38% 34% at 16% 86%, rgba(224, 240, 130, 0.45), transparent 66%),
+        linear-gradient(165deg, #d8ecd4 0%, #e4efdc 45%, #d5e9d8 100%); }
     html:not(.bwl-loading) .bwl-tint { display: none; }
     /* scroll lock without layout shift: the clamped window is exactly
        viewport-height so there is nothing to scroll, and overflow-y:scroll
@@ -627,10 +640,10 @@
         tintIn(ms);
         fadeTimer = setTimeout(cleanup, ms / rate + 80);
       }
-      function tintIn(ms) { // green the band as it melts, so colours match at the swallow
-        if (!tint) return;
-        tint.style.transition = "opacity " + Math.round((ms * 0.8) / rate) + "ms " + MELT_EASE;
-        tint.style.opacity = "0.75";
+      function tintIn(ms) { // the band converges to the page's exact background
+        if (!tint) return;   // over the whole melt — slower than the eye can track
+        tint.style.transition = "opacity " + Math.round(ms / rate) + "ms " + MELT_EASE;
+        tint.style.opacity = "0.96";
       }
       function healMask(ms) { // slide the fade band off the bottom, in step with the melt
         var d = Math.round(ms / rate) + "ms " + MELT_EASE;
