@@ -60,6 +60,14 @@
     .bwl-page { position: relative; z-index: 1; background: var(--forest-950); }
     :root[data-theme="light"] .bwl-page { background: #dcead9; }
     html:not(.bwl-loading) .bwl-video { display: none; }
+    /* brand-coloured veil that washes over the video during the meltdown, so
+       the ball band's colours migrate to the page palette BEFORE the edge
+       swallows them — no colour shift at the end of the melt */
+    .bwl-tint { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0;
+      background: radial-gradient(130% 100% at 50% 100%, rgba(11, 42, 27, 0.96), rgba(4, 19, 12, 0.98)); }
+    :root[data-theme="light"] .bwl-tint {
+      background: radial-gradient(130% 100% at 50% 100%, rgba(216, 236, 212, 0.96), rgba(220, 234, 217, 0.98)); }
+    html:not(.bwl-loading) .bwl-tint { display: none; }
     /* scroll lock without layout shift: the clamped window is exactly
        viewport-height so there is nothing to scroll, and overflow-y:scroll
        keeps the scrollbar track (and its width) present throughout — the
@@ -206,6 +214,7 @@
 <body>
   <video class="bwl-video" id="bwlVideo" muted playsinline autoplay preload="auto"
          src="assets/video/hero2.mp4" aria-hidden="true"></video>
+  <div class="bwl-tint" id="bwlTint" aria-hidden="true"></div>
 
   <!-- top nav -->
   <nav class="lt-nav glass">
@@ -495,6 +504,7 @@
       var win = document.getElementById("bwlPage");   // the window
       var inner = document.getElementById("bwlInner"); // the stream
       var video = document.getElementById("bwlVideo");
+      var tint = document.getElementById("bwlTint");
       var done = false, started = false, driving = false, fallbackT0 = null, raf = 0;
       var tailBase = null, tailStart = 0; // wall-clock tail after the video ends
       var epStarted = false, holdTimer = 0, fadeTimer = 0;
@@ -514,6 +524,7 @@
         inner.style.transform = "";
         scrollTo(0, 0);
         if (video) { try { video.pause(); } catch (e) {} if (video.parentNode) video.remove(); }
+        if (tint && tint.parentNode) tint.remove();
       }
 
       if (!win || !inner || !video || matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -613,7 +624,13 @@
         // the screen. When the edge reaches the bottom the page is fully
         // opaque, so removing the video at cleanup changes nothing.
         healMask(ms);
+        tintIn(ms);
         fadeTimer = setTimeout(cleanup, ms / rate + 80);
+      }
+      function tintIn(ms) { // green the band as it melts, so colours match at the swallow
+        if (!tint) return;
+        tint.style.transition = "opacity " + Math.round((ms * 0.8) / rate) + "ms " + MELT_EASE;
+        tint.style.opacity = "0.75";
       }
       function healMask(ms) { // slide the fade band off the bottom, in step with the melt
         var d = Math.round(ms / rate) + "ms " + MELT_EASE;
@@ -634,6 +651,7 @@
         win.style.webkitMaskPosition = win.style.maskPosition = cur;
         void win.offsetWidth;
         healMask(CFG.GESTURE_MELT_MS);
+        tintIn(CFG.GESTURE_MELT_MS);
         clearTimeout(fadeTimer);
         fadeTimer = setTimeout(cleanup, CFG.GESTURE_MELT_MS / rate + 60);
       }
