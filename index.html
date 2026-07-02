@@ -529,8 +529,8 @@
         BAND: 0.14,     // ball band kept visible below the fade (fraction of vh)
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
         HOLD_MS: 0,     // epilogue: melt starts as soon as the page lands
-        FADE_MS: 1800,  // epilogue: slow melt of the balls into the page bottom
-        GESTURE_FADE_MS: 300, // remaining melt is snapped to this when the user scrolls
+        FADE_MS: 2400,  // epilogue: the ball band wipes away top-to-bottom over this
+        GESTURE_FADE_MS: 350, // remaining melt is snapped to this when the user scrolls
       };
       var T_LAND = CFG.T_WAVE; // the halt: no bounce, just a long soft deceleration
       var docH = inner.scrollHeight;
@@ -590,20 +590,30 @@
          strip under the page's fade edge melts into the page color) ->
          CLEANUP. Error/safety paths skip straight to cleanup(). */
       var dissolving = false, hurried = false;
+      var MELT_EASE = "cubic-bezier(.45,.05,.35,1)"; // gentle start, gentle end
+      function meltTarget() { return "0px " + Math.round(innerHeight * 0.15) + "px"; }
       function dissolve(ms) {
         if (done || dissolving) return;
         dissolving = true;
         clearTimeout(holdTimer);
-        // behind the fading balls must be exactly the page color
-        video.style.backgroundColor = getComputedStyle(win).backgroundColor;
-        video.style.transition = "opacity " + Math.round(ms / rate) + "ms ease-out";
-        healMask(ms); // fade band brightens to full in step with the melt
-        void video.offsetWidth; // flush so the transition takes
-        video.style.opacity = "0";
+        // the melt is a top-to-bottom wipe: a static mask (transparent above,
+        // solid below, soft edge) slides down across the video, so the balls
+        // recede from the top of the band to the bottom — behind them is the
+        // body background, which is the exact page colour in both themes
+        video.style.webkitMaskImage = video.style.maskImage =
+          "linear-gradient(to bottom, transparent 0%, transparent 46%, #000 54%, #000 100%)";
+        video.style.webkitMaskSize = video.style.maskSize = "100% 200%";
+        video.style.webkitMaskRepeat = video.style.maskRepeat = "no-repeat";
+        video.style.webkitMaskPosition = video.style.maskPosition = "0px -" + innerHeight + "px";
+        void video.offsetWidth; // flush the start state so the transition takes
+        var d = Math.round(ms / rate) + "ms " + MELT_EASE;
+        video.style.transition = "-webkit-mask-position " + d + ", mask-position " + d;
+        video.style.webkitMaskPosition = video.style.maskPosition = meltTarget();
+        healMask(ms); // the page's fade band heals downward in step with the wipe
         fadeTimer = setTimeout(cleanup, ms / rate + 80);
       }
       function healMask(ms) { // slide the fade band off the bottom, in step with the melt
-        var d = Math.round(ms / rate) + "ms ease-out";
+        var d = Math.round(ms / rate) + "ms " + MELT_EASE;
         win.style.transition = "-webkit-mask-position " + d + ", mask-position " + d;
         win.style.webkitMaskPosition = "0 0";
         win.style.maskPosition = "0 0";
@@ -614,14 +624,15 @@
         if (!dissolving) { dissolve(CFG.GESTURE_FADE_MS); return; }
         if (hurried || done) return;
         hurried = true;
-        // melt already running: snap the remainder so the page unlocks
-        // right under their scroll
-        var cur = getComputedStyle(video).opacity;
+        // melt already running: fast-forward the remaining wipe so the page
+        // unlocks right under their scroll
+        var cur = getComputedStyle(video).webkitMaskPosition || getComputedStyle(video).maskPosition;
         video.style.transition = "none";
-        video.style.opacity = cur;
+        video.style.webkitMaskPosition = video.style.maskPosition = cur;
         void video.offsetWidth;
-        video.style.transition = "opacity " + Math.round(CFG.GESTURE_FADE_MS / rate) + "ms ease-out";
-        video.style.opacity = "0";
+        var d = Math.round(CFG.GESTURE_FADE_MS / rate) + "ms " + MELT_EASE;
+        video.style.transition = "-webkit-mask-position " + d + ", mask-position " + d;
+        video.style.webkitMaskPosition = video.style.maskPosition = meltTarget();
         healMask(CFG.GESTURE_FADE_MS);
         clearTimeout(fadeTimer);
         fadeTimer = setTimeout(cleanup, CFG.GESTURE_FADE_MS / rate + 60);
