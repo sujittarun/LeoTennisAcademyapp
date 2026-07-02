@@ -469,7 +469,8 @@
        video.currentTime (rAF, never CSS keyframes).
        Tuning knobs: T_WAVE (wave front hits frame bottom = landing), BAND
        (ball band kept visible below the fade), STREAM_MAX (0 = pour the
-       full document; e.g. 2.5 = only the last 2.5 screens).
+       full document; e.g. 2.5 = only the last 2.5 screens), HOLD_MS (let
+       the settled balls breathe), FADE_MS (how slowly they melt away).
        Debug: ?bwlslow=0.25 plays the whole ride in slow motion. */
     (function () {
       var docEl = document.documentElement;
@@ -478,11 +479,14 @@
       var video = document.getElementById("bwlVideo");
       var done = false, started = false, driving = false, fallbackT0 = null, raf = 0;
       var tailBase = null, tailStart = 0; // wall-clock tail after the video ends
+      var epStarted = false, holdTimer = 0, fadeTimer = 0;
 
       function cleanup() {
         if (done) return;
         done = true;
         cancelAnimationFrame(raf);
+        clearTimeout(holdTimer);
+        clearTimeout(fadeTimer);
         docEl.classList.remove("bwl-loading"); // drops height clamp, overflow, mask
         win.style.transform = "";
         inner.style.transform = "";
@@ -505,6 +509,8 @@
         SETTLE: 0.45,   // s — bounce duration after landing
         BOUNCE_H: 22, DAMP: 5.0, FREQ: 9.0,
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
+        HOLD_MS: 400,   // epilogue: settled balls linger under the fade
+        FADE_MS: 800,   // epilogue: balls melt into the page bottom
       };
       var T_LAND = CFG.T_WAVE;
       var docH = inner.scrollHeight;
@@ -558,9 +564,27 @@
       function frame() {
         if (done) return;
         var t = now();
+        if (t >= T_LAND + CFG.SETTLE) { apply(T_LAND + CFG.SETTLE); epilogue(); return; }
         apply(t);
-        if (t >= T_LAND + CFG.SETTLE) { cleanup(); return; }
         raf = requestAnimationFrame(frame);
+      }
+
+      /* Staged epilogue: LAND (mask/clip/video kept, footage frozen on its
+         settled ball carpet) -> HOLD -> DISSOLVE (only the video fades; the
+         strip under the page's fade edge melts into the page color) ->
+         CLEANUP. Error/safety paths skip straight to cleanup(). */
+      function epilogue() {
+        if (done || epStarted) return;
+        epStarted = true;
+        holdTimer = setTimeout(function () {
+          if (done) return;
+          // behind the fading balls must be exactly the page color
+          video.style.backgroundColor = getComputedStyle(win).backgroundColor;
+          video.style.transition = "opacity " + Math.round(CFG.FADE_MS / rate) + "ms ease-out";
+          void video.offsetWidth; // flush so the transition takes
+          video.style.opacity = "0";
+          fadeTimer = setTimeout(cleanup, CFG.FADE_MS / rate + 80);
+        }, CFG.HOLD_MS / rate);
       }
       function start() { if (started || done) return; started = true; frame(); }
 
