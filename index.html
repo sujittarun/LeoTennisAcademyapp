@@ -60,7 +60,12 @@
     .bwl-page { position: relative; z-index: 1; background: var(--forest-950); }
     :root[data-theme="light"] .bwl-page { background: #dcead9; }
     html:not(.bwl-loading) .bwl-video { display: none; }
-    html.bwl-loading, html.bwl-loading body { overflow: hidden; height: 100%; }
+    /* scroll lock without layout shift: the clamped window is exactly
+       viewport-height so there is nothing to scroll, and overflow-y:scroll
+       keeps the scrollbar track (and its width) present throughout — the
+       page cannot shift left when scrolling unlocks */
+    html.bwl-loading { overflow-y: scroll; }
+    html.bwl-loading body { overflow: visible; }
     /* the mask's solid stop is a registered property so the fade band can
        heal smoothly during the melt instead of popping off at cleanup */
     @property --bwl-solid { syntax: "<percentage>"; inherits: false; initial-value: 78%; }
@@ -514,8 +519,8 @@
         BASE: 0.06,     // front starts at 6% of viewport height
         SPAN: 0.94,
         BAND: 0.14,     // ball band kept visible below the fade (fraction of vh)
-        SETTLE: 0.45,   // s — bounce duration after landing
-        BOUNCE_H: 22, DAMP: 5.0, FREQ: 9.0,
+        SETTLE: 0.6,    // s — bounce duration after landing
+        BOUNCE_H: 12, DAMP: 4.0, FREQ: 6.0, // soft landing: ~4px peak, one slow arc
         STREAM_MAX: 0,  // screens of content to pour; 0 = whole document
         HOLD_MS: 0,     // epilogue: melt starts as soon as the page lands
         FADE_MS: 1800,  // epilogue: slow melt of the balls into the page bottom
