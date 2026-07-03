@@ -32,7 +32,8 @@
     .gold-rule { height: 4px; width: 130px; border-radius: 99px; margin-top: var(--gap-3); background: var(--gold-grad); box-shadow: 0 4px 16px rgba(201,162,75,.4); }
 
     /* hero photo card */
-    .hero-art { position: relative; display: grid; place-items: center; padding: 20px 0; }
+    .hero > * { min-width: 0; } /* grid items must be allowed to shrink */
+    .hero-art { position: relative; display: grid; place-items: center; padding: 20px 0; max-width: 100%; }
     .hero-art .frame { position: relative; width: min(560px, 100%); border-radius: var(--r-xl); overflow: hidden;
       border: 1px solid var(--glass-border); box-shadow: 0 40px 90px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.3);
       transform: rotate(1.6deg); animation: floaty 8s ease-in-out infinite; }
@@ -215,6 +216,10 @@
       .gold-rule { margin-left: auto; margin-right: auto; }
       .hero-cta { justify-content: center; }
       .hero-art { order: -1; }
+      /* the 1.6deg tilt overflows the viewport edge-to-edge on phones —
+         keep the card straight there (float without rotation) */
+      .hero-art .frame { transform: none; animation-name: floaty-chip; }
+      .hero .pill { white-space: normal; line-height: 1.5; }
       .hero-art .c1 { left: 2%; } .hero-art .c2 { right: 2%; }
       .facts, .prog { grid-template-columns: repeat(2, 1fr); }
       .cb-grid { grid-template-columns: 1fr; }
