@@ -61,18 +61,18 @@
 
     // Court bookings (seed). Hour = slot start in 24h.
     bookings: [
-      { id: "B-1041", name: "Rohit Venkatesh", phone: "90000 87641", court: 1, date: daysFromNow(0), hour: 6,  amount: 500, status: "confirmed" },
-      { id: "B-1042", name: "Kabir Nair",      phone: "99490 55876", court: 1, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed" },
-      { id: "B-1048", name: "Meera Iyer",      phone: "98661 90035", court: 2, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed" },
-      { id: "B-1049", name: "Lakshmi Menon",   phone: "98123 40987", court: 3, date: daysFromNow(0), hour: 8,  amount: 500, status: "confirmed" },
-      { id: "B-1050", name: "Vikram Bhat",     phone: "98850 61147", court: 4, date: daysFromNow(0), hour: 10, amount: 500, status: "confirmed" },
-      { id: "B-1043", name: "Priyanka Joshi",  phone: "98220 45671", court: 1, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed" },
-      { id: "B-1051", name: "Ananya Deshpande", phone: "98481 33290", court: 2, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed" },
-      { id: "B-1044", name: "Cygnus Tech (corporate)", phone: "98450 22110", court: 4, date: daysFromNow(0), hour: 19, amount: 700, status: "pending" },
-      { id: "B-1045", name: "Farhan Sheikh",   phone: "90104 22983", court: 3, date: daysFromNow(0), hour: 20, amount: 700, status: "confirmed" },
-      { id: "B-1052", name: "Sanjay Reddy",    phone: "98490 11223", court: 1, date: daysFromNow(0), hour: 21, amount: 700, status: "confirmed" },
-      { id: "B-1046", name: "Lakshmi Menon",   phone: "98123 40987", court: 1, date: daysFromNow(1), hour: 6,  amount: 500, status: "confirmed" },
-      { id: "B-1047", name: "Dheeraj Kamath",  phone: "97411 88976", court: 2, date: daysFromNow(1), hour: 21, amount: 700, status: "pending" },
+      { id: "B-1041", name: "Rohit Venkatesh", phone: "90000 87641", court: 1, date: daysFromNow(0), hour: 6,  amount: 500, status: "confirmed", source: "Website" },
+      { id: "B-1042", name: "Kabir Nair",      phone: "99490 55876", court: 1, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed", source: "Website" },
+      { id: "B-1048", name: "Meera Iyer",      phone: "98661 90035", court: 2, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed", source: "Playo" },
+      { id: "B-1049", name: "Lakshmi Menon",   phone: "98123 40987", court: 3, date: daysFromNow(0), hour: 8,  amount: 500, status: "confirmed", source: "Hudle" },
+      { id: "B-1050", name: "Vikram Bhat",     phone: "98850 61147", court: 4, date: daysFromNow(0), hour: 10, amount: 500, status: "confirmed", source: "Walk-in" },
+      { id: "B-1043", name: "Priyanka Joshi",  phone: "98220 45671", court: 1, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed", source: "Playo" },
+      { id: "B-1051", name: "Ananya Deshpande", phone: "98481 33290", court: 2, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed", source: "Website" },
+      { id: "B-1044", name: "Cygnus Tech (corporate)", phone: "98450 22110", court: 4, date: daysFromNow(0), hour: 19, amount: 700, status: "pending", source: "Hudle" },
+      { id: "B-1045", name: "Farhan Sheikh",   phone: "90104 22983", court: 3, date: daysFromNow(0), hour: 20, amount: 700, status: "confirmed", source: "Website" },
+      { id: "B-1052", name: "Sanjay Reddy",    phone: "98490 11223", court: 1, date: daysFromNow(0), hour: 21, amount: 700, status: "confirmed", source: "Playo" },
+      { id: "B-1046", name: "Lakshmi Menon",   phone: "98123 40987", court: 1, date: daysFromNow(1), hour: 6,  amount: 500, status: "confirmed", source: "Website" },
+      { id: "B-1047", name: "Dheeraj Kamath",  phone: "97411 88976", court: 2, date: daysFromNow(1), hour: 21, amount: 700, status: "pending", source: "Playo" },
     ],
 
     payments: [
@@ -109,6 +109,58 @@
       { icon: "join",  text: "<strong>3 membership enquiries</strong> received from the website", time: "This week" },
     ],
   };
+
+  /* Booking channels: courts get booked directly on the website, via the
+     Playo and Hudle marketplaces, or as walk-ins added by staff. Marketplace
+     API integrations are pending — until then staff record them manually. */
+  window.LT_DATA.channels = [
+    { id: "Website", label: "Website", cls: "gold" },
+    { id: "Playo", label: "Playo", cls: "green" },
+    { id: "Hudle", label: "Hudle", cls: "optic" },
+    { id: "Walk-in", label: "Walk-in", cls: "" },
+  ];
+
+  /* One month of past court bookings across all channels (deterministic:
+     seeded per-date so the history is stable between reloads). */
+  (function backfill() {
+    function rng(seed) { // mulberry32
+      return function () {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    var names = ["Aditi Rao", "Karthik S", "Neha Bansal", "Cygnus Tech", "Praveen Y", "Ritu Sharma", "Mohit Jain", "Sneha K", "Imran Ali", "Deepa Nair", "Suresh Babu", "Anil Kumar", "Pooja M", "Ravi Chandra", "Harsha V"];
+    var srcPool = ["Website", "Website", "Website", "Playo", "Playo", "Hudle", "Walk-in", "Playo", "Hudle", "Website", "Walk-in", "Playo"];
+    var hist = [];
+    for (var d = 1; d <= 30; d++) {
+      var date = daysFromNow(-d);
+      var r = rng(parseInt(date.replace(/-/g, ""), 10));
+      var n = 3 + Math.floor(r() * 5); // 3–7 bookings a day
+      var usedSlots = {};
+      for (var k = 0; k < n; k++) {
+        var evening = r() < 0.62; // peak hours are busier
+        var hour = evening ? 16 + Math.floor(r() * 7) : 6 + Math.floor(r() * 10);
+        var court = 1 + Math.floor(r() * LT_DATA.courts);
+        var key = hour + ":" + court;
+        if (usedSlots[key]) continue;
+        usedSlots[key] = 1;
+        hist.push({
+          id: "B-H" + date.replace(/-/g, "").slice(4) + "-" + hour + court,
+          name: names[Math.floor(r() * names.length)],
+          phone: "",
+          court: court,
+          date: date,
+          hour: hour,
+          amount: hour >= LT_DATA.rates.peakFrom ? LT_DATA.rates.peak : LT_DATA.rates.offPeak,
+          status: "confirmed",
+          source: srcPool[Math.floor(r() * srcPool.length)],
+        });
+      }
+    }
+    window.LT_DATA.bookings = window.LT_DATA.bookings.concat(hist);
+  })();
 
   /* Slot helpers shared by booking pages */
   window.LT_SLOTS = {

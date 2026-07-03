@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=5" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=6" />
   <script>
     document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark";
     document.documentElement.classList.add("lt-js");
@@ -221,6 +221,7 @@
       .price, .coach, .quotes { grid-template-columns: 1fr; }
       .foot-grid { grid-template-columns: 1fr; gap: var(--gap-3); }
     }
+    @media (max-width: 640px) { .hero-art .chiplet { display: none; } }
     @media (max-width: 520px) { .nav-brand .t span { display: none; } .cb-ticks { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -540,7 +541,8 @@
         if (tint && tint.parentNode) tint.remove();
       }
 
-      if (!win || !inner || !video || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      var skip = new URLSearchParams(location.search).has("bwlskip");
+      if (skip || !win || !inner || !video || matchMedia("(prefers-reduced-motion: reduce)").matches) {
         docEl.classList.remove("bwl-loading");
         if (video && video.parentNode) video.remove();
         return;
@@ -561,9 +563,13 @@
       };
       var T_LAND = CFG.T_WAVE; // the halt: no bounce, just a long soft deceleration
       var docH = inner.scrollHeight;
+      // physics height = the clamped window's real height (100svh). On phones
+      // innerHeight includes/excludes the URL bar unpredictably; the window's
+      // own box is what the mask and landing geometry are tied to.
+      var VH = win.getBoundingClientRect().height || innerHeight;
       function streamSpan() {
-        var full = Math.max(docH - innerHeight, 0);
-        return CFG.STREAM_MAX > 0 ? Math.min(full, innerHeight * CFG.STREAM_MAX) : full;
+        var full = Math.max(docH - VH, 0);
+        return CFG.STREAM_MAX > 0 ? Math.min(full, VH * CFG.STREAM_MAX) : full;
       }
 
       function ease(x) { return x * x * (3 - 2 * x); } // smoothstep (matches the footage)
@@ -574,14 +580,14 @@
       }
       function frontAt(t) { // wave front position in px
         var x = Math.min(Math.max(t / CFG.T_WAVE, 0), 1);
-        return innerHeight * (CFG.BASE + CFG.SPAN * ease(x));
+        return VH * (CFG.BASE + CFG.SPAN * ease(x));
       }
       function edgeAt(t) { // window's bottom edge, screen px
-        return Math.min(Math.max(frontAt(t) - innerHeight * CFG.BAND, 6), innerHeight);
+        return Math.min(Math.max(frontAt(t) - VH * CFG.BAND, 6), VH);
       }
       function winYAt(t) { // window translateY; halts at exactly 0, no bounce
         if (t >= T_LAND) return 0;
-        return edgeAt(t) - innerHeight;
+        return edgeAt(t) - VH;
       }
       function innerYAt(t) { // stream translateY; footer first, hero locks at top
         // The content's position ON SCREEN is winY + innerY. The pour ends at
@@ -696,7 +702,7 @@
       }, 1200);
       setTimeout(cleanup, (8000 + CFG.HOLD_MS + CFG.MELT_MS + 1000) / rate); // absolute safety net (covers ride + hold + meltdown)
 
-      function remeasure() { docH = inner.scrollHeight; }
+      function remeasure() { docH = inner.scrollHeight; VH = win.getBoundingClientRect().height || innerHeight; }
       addEventListener("resize", remeasure);
       setTimeout(remeasure, 400); // page grows after first paint (fonts/images)
 
@@ -705,6 +711,6 @@
     })();
   </script>
 
-  <script src="assets/js/core.js?v=4"></script>
+  <script src="assets/js/core.js?v=6"></script>
 </body>
 </html>

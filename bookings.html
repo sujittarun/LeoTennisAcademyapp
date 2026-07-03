@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=5" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=6" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -18,6 +18,18 @@
     .req-row .rq-who { font-weight: 700; color: var(--ink-hi); font-size: 13.5px; }
     .req-row .rq-what { font-size: 12.5px; color: var(--ink-mid); }
     .req-row .rq-amt { font-weight: 700; color: var(--tx-gold); font-size: 13px; }
+
+    /* channels split */
+    .ch-bar { display: flex; height: 14px; border-radius: 99px; overflow: hidden; gap: 2px; }
+    .ch-bar i { display: block; height: 100%; transform-origin: left; animation: lt-fill-bar .8s var(--ease-spring) both; }
+    .ch-bar .c-Website { background: var(--gold-grad); }
+    .ch-bar .c-Playo { background: linear-gradient(115deg, #6ee7b7, #34d399); }
+    .ch-bar .c-Hudle { background: linear-gradient(115deg, #e7f97e, #d7ef4f); }
+    .ch-bar .c-Walk-in { background: rgba(255, 255, 255, 0.3); }
+    :root[data-theme="light"] .ch-bar .c-Walk-in { background: rgba(20, 50, 34, 0.3); }
+    .ch-legend { display: flex; gap: 8px 18px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--ink-mid); }
+    .ch-legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .ch-legend b { color: var(--ink-hi); }
   </style>
 </head>
 <body>
@@ -33,7 +45,18 @@
       <div class="flex wrap">
         <input type="date" id="bkDate" style="width:auto;" />
         <span class="pill gold" id="dayStats">—</span>
+        <button class="btn btn-primary btn-sm" id="addBkBtn">+ Add booking</button>
       </div>
+    </div>
+
+    <!-- booking channels, last 30 days -->
+    <div class="glass glass-card tight reveal">
+      <div class="card-head" style="margin-bottom: 10px;">
+        <div><div class="kicker">Channels</div><h2 style="font-size:16px;">Bookings by source · last 30 days</h2></div>
+        <span class="faint" style="font-size:11.5px;">Playo &amp; Hudle sync pending — staff add those manually</span>
+      </div>
+      <div class="ch-bar" id="chBar"></div>
+      <div class="ch-legend" id="chLegend"></div>
     </div>
 
     <!-- unassigned web requests -->
@@ -55,6 +78,30 @@
     </div>
   </main>
 
+  <!-- add booking modal (manual entry, incl. Playo/Hudle until APIs land) -->
+  <div class="lt-modal-backdrop" id="abBackdrop">
+    <div class="glass lt-modal">
+      <div class="modal-head">
+        <div><div class="kicker">Add booking</div><h2 style="font-size:20px;">Record a court booking</h2></div>
+        <button class="btn btn-icon btn-ghost" id="abClose">✕</button>
+      </div>
+      <form id="abForm" class="lt-grid" style="gap: var(--gap-3);">
+        <label class="field"><span>Booked by</span><input type="text" name="name" placeholder="Name / company" required /></label>
+        <div class="lt-grid cols-2" style="gap: var(--gap-2);">
+          <label class="field"><span>Phone <span class="opt">(optional)</span></span><input type="tel" name="phone" placeholder="98xxxxxxxx" /></label>
+          <label class="field"><span>Source</span><select name="source" id="abSource"></select></label>
+        </div>
+        <div class="lt-grid cols-2" style="gap: var(--gap-2);">
+          <label class="field"><span>Date</span><input type="date" name="date" id="abDate" /></label>
+          <label class="field"><span>Hour slot</span><select name="hour" id="abHour"></select></label>
+        </div>
+        <label class="field"><span>Court</span><select name="court" id="abCourt"><option value="">Auto-assign free court</option></select></label>
+        <div class="form-msg" id="abMsg" style="min-height:0;"></div>
+        <button class="btn btn-primary btn-block" type="submit">Save booking</button>
+      </form>
+    </div>
+  </div>
+
   <!-- court schedule modal -->
   <div class="lt-modal-backdrop" id="cmBackdrop">
     <div class="glass lt-modal court-modal" id="cmModal">
@@ -73,8 +120,8 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=4"></script>
-  <script src="assets/js/data.js?v=4"></script>
+  <script src="assets/js/core.js?v=6"></script>
+  <script src="assets/js/data.js?v=6"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -107,6 +154,32 @@
         return { cls: "green", label: "Free all day" };
       }
 
+      function srcPill(src, small) {
+        if (!src) return "";
+        var ch = LT_DATA.channels.find(function (c) { return c.id === src; });
+        var cls = ch && ch.cls ? " " + ch.cls : "";
+        return '<span class="pill' + cls + '"' + (small ? ' style="font-size:10px;padding:2px 9px;"' : "") + ">" + src + "</span>";
+      }
+
+      function paintChannels() {
+        var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+        var iso = cutoff.toISOString().slice(0, 10);
+        var counts = {};
+        LT_DATA.channels.forEach(function (c) { counts[c.id] = 0; });
+        allBookings().forEach(function (b) {
+          if (b.date >= iso && b.date <= LT.today() && counts[b.source || "Website"] !== undefined) counts[b.source || "Website"]++;
+        });
+        var total = Object.keys(counts).reduce(function (s, k) { return s + counts[k]; }, 0) || 1;
+        document.getElementById("chBar").innerHTML = LT_DATA.channels.map(function (c, i) {
+          var pct = (counts[c.id] / total) * 100;
+          return '<i class="c-' + c.id + '" style="width:' + pct + '%;animation-delay:' + (i * 90) + 'ms;" title="' + c.label + ": " + counts[c.id] + '"></i>';
+        }).join("");
+        var sw = { "Website": "linear-gradient(115deg,#f0d795,#c9a24b)", "Playo": "linear-gradient(115deg,#6ee7b7,#34d399)", "Hudle": "linear-gradient(115deg,#e7f97e,#d7ef4f)", "Walk-in": "rgba(255,255,255,.3)" };
+        document.getElementById("chLegend").innerHTML = LT_DATA.channels.map(function (c) {
+          return '<span><span class="sw" style="background:' + sw[c.id] + ';"></span>' + c.label + " <b>" + counts[c.id] + "</b></span>";
+        }).join("");
+      }
+
       function render() {
         var day = dayBookings();
         var isToday = dateInput.value === LT.today();
@@ -127,6 +200,7 @@
         document.getElementById("reqTray").innerHTML = waiting.map(function (b) {
           return '<div class="req-row"><span class="rq-who">' + b.name + "</span>" +
             '<span class="rq-what">' + LT_SLOTS.label(b.hour) + (b.phone ? " · " + b.phone : "") + "</span>" +
+            srcPill(b.source, true) +
             '<span class="grow"></span><span class="rq-amt">' + LT.fmtINR(b.amount) + "</span>" +
             '<button class="btn btn-primary btn-sm" data-confirm="' + b.id + '">Confirm &amp; assign</button></div>';
         }).join("");
@@ -188,7 +262,7 @@
           if (isToday && h < nowH) cls += " past";
           if (isToday && h === nowH) cls += " now";
           var who = b
-            ? '<span class="sr-who">' + b.name + "<small>" + LT.fmtINR(b.amount) + (b.status === "pending" ? " · pending" : "") + "</small></span>"
+            ? '<span class="sr-who">' + b.name + "<small>" + LT.fmtINR(b.amount) + " · " + (b.source || "Website") + (b.status === "pending" ? " · pending" : "") + "</small></span>"
             : '<span class="sr-who">Free · ' + LT.fmtINR(LT_SLOTS.rate(h)) + "</span>";
           var act = b && b.status === "pending"
             ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>' : "";
@@ -228,8 +302,56 @@
         render();
       });
 
+      /* ---------- manual add booking ---------- */
+      var abBackdrop = document.getElementById("abBackdrop");
+      document.getElementById("abSource").innerHTML = LT_DATA.channels
+        .map(function (c) { return "<option" + (c.id === "Walk-in" ? " selected" : "") + ">" + c.id + "</option>"; }).join("");
+      document.getElementById("abHour").innerHTML = LT_SLOTS.hours
+        .map(function (h) { return '<option value="' + h + '">' + LT_SLOTS.label(h) + " · ₹" + LT_SLOTS.rate(h) + "</option>"; }).join("");
+      var courtSel = document.getElementById("abCourt");
+      LT_DATA.courtsMeta.forEach(function (c) {
+        courtSel.innerHTML += '<option value="' + c.n + '">Court ' + c.n + " · " + c.surface + "</option>";
+      });
+      document.getElementById("addBkBtn").addEventListener("click", function () {
+        document.getElementById("abDate").value = dateInput.value;
+        abBackdrop.classList.add("open");
+      });
+      document.getElementById("abClose").addEventListener("click", function () { abBackdrop.classList.remove("open"); });
+      abBackdrop.addEventListener("click", function (e) { if (e.target === abBackdrop) abBackdrop.classList.remove("open"); });
+
+      document.getElementById("abForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var d = new FormData(this);
+        var msg = document.getElementById("abMsg");
+        if (!String(d.get("name") || "").trim()) { msg.textContent = "Please enter who booked."; msg.className = "form-msg error"; return; }
+        var hour = +d.get("hour"), date = d.get("date") || dateInput.value;
+        var court = d.get("court") ? +d.get("court") : null;
+        if (!court) { // auto-assign first free court for that hour
+          var used = allBookings().filter(function (x) { return x.date === date && x.hour === hour && x.court; })
+            .map(function (x) { return x.court; });
+          for (var c = 1; c <= LT_DATA.courts; c++) if (used.indexOf(c) === -1) { court = c; break; }
+          if (!court) { msg.textContent = "All courts are taken for that hour."; msg.className = "form-msg error"; return; }
+        }
+        var list = LT.store.read("bookings", []);
+        list.unshift({
+          id: "B-M" + Date.now().toString().slice(-6),
+          name: d.get("name"), phone: d.get("phone") || "",
+          court: court, date: date, hour: hour,
+          amount: LT_SLOTS.rate(hour), status: "confirmed",
+          source: d.get("source"),
+        });
+        LT.store.write("bookings", list);
+        abBackdrop.classList.remove("open");
+        this.reset();
+        LT.toast("Booking saved · Court " + court + " ✓");
+        dateInput.value = date;
+        render();
+        paintChannels();
+      });
+
       dateInput.addEventListener("change", render);
       render();
+      paintChannels();
     })();
   </script>
 </body>
