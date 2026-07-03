@@ -119,7 +119,7 @@
     nav.className = "lt-nav glass";
     nav.innerHTML =
       '<a class="nav-brand" href="index.html"><span class="mark">' + LT.logoSVG(30) + "</span>" +
-      '<span class="t"><strong>Leo Tennis Academy</strong><span>Manager Console</span></span></a>' +
+      '<span class="t"><strong>Leo Academy</strong><span>Manager Console</span></span></a>' +
       '<div class="nav-tabs">' + tabsHtml + "</div>" +
       '<div class="nav-actions">' +
       '<button type="button" class="theme-toggle"></button>' +

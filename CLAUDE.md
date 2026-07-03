@@ -5,6 +5,8 @@ Multi-page vanilla web app (no build step) for Leo Tennis Academy Hyderabad
 Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricket, light-first).
 
 ## Product rules (IMPORTANT — do not regress)
+- UI brand name is "Leo Academy" (user's choice); the real business is Leo
+  Tennis Academy (@leotennishyd) — keep the short name in all UI copy/titles.
 - ADULTS ONLY as a business rule, but NEVER write the word "adult" in UI copy
   (user removed it deliberately). No kids programs, no parent/guardian fields,
   no age-group batches. People are "members" (never "students"/"kids"; "player"
