@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=6" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=9" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .bk-wrap { max-width: 1080px; margin: 0 auto; width: 100%; }
@@ -68,7 +68,7 @@
     .bk-mobilebar .mb-hours { font-size: 11.5px; color: var(--ink-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bk-mobilebar .mb-amt { font-family: var(--font-display); font-weight: 800; font-size: 19px; color: var(--tx-gold); line-height: 1.1; }
 
-    @media (max-width: 899px) {
+    @media (max-width: 719px) {
       .bk-layout { grid-template-columns: 1fr; }
       .bk-side { position: static; }
       body.has-selection .bk-mobilebar { display: flex; }
@@ -100,7 +100,7 @@
   <main class="lt-page">
     <div class="bk-wrap">
       <div class="bk-hero reveal">
-        <span class="pill gold">4 floodlit courts · Open 6 AM – 11 PM daily</span>
+        <span class="pill gold">5 tennis + 4 pickleball courts · Open 6 AM – 11 PM daily</span>
         <h1 class="mt-2">Book a court by the hour</h1>
         <p>Pick your hours — the quote builds itself as you tap. We confirm your court on WhatsApp.</p>
       </div>
@@ -111,16 +111,17 @@
           <div class="glass glass-card tight">
             <div class="bk-controls">
               <label class="field"><span>Date</span><input type="date" id="bkDate" style="width:auto;" /></label>
+              <div class="chip-row" id="sportChips">
+                <button class="chip active" data-s="tennis">Tennis</button>
+                <button class="chip" data-s="pickleball">Pickleball</button>
+              </div>
               <span class="grow"></span>
               <span class="pill" id="selCount">No hours selected</span>
             </div>
           </div>
 
           <div class="glass glass-card">
-            <div class="bk-legend">
-              <span><span class="sw" style="background:var(--tile-border);"></span>Off-peak ₹500/hr · 6 AM – 4 PM</span>
-              <span><span class="sw" style="background:var(--gold-400);"></span>Peak ₹700/hr · 4 – 10 PM, floodlights</span>
-            </div>
+            <div class="bk-legend" id="bkLegend"></div>
             <div class="slot-grid" id="slotGrid"></div>
           </div>
         </div>
@@ -182,32 +183,60 @@
     <button type="button" class="btn btn-primary btn-sm" id="mbGo">Complete booking</button>
   </div>
 
-  <script src="assets/js/core.js?v=8"></script>
-  <script src="assets/js/data.js?v=7"></script>
+  <script src="assets/js/core.js?v=9"></script>
+  <script src="assets/js/data.js?v=9"></script>
   <script>
     (function () {
       var dateInput = document.getElementById("bkDate");
       dateInput.value = LT.today();
       dateInput.min = LT.today();
       var selected = [];
+      var sport = "tennis";
+
+      // live availability: every booking — website, Playo, Hudle or walk-in —
+      // counts against the sport's courts, so a slot booked on any channel
+      // shows as Full here the moment staff record it
+      function bookedCount(date, h, sp) {
+        return LT.store.read("bookings", []).concat(LT_DATA.bookings).filter(function (b) {
+          var cid = LT_SLOTS.courtId(b.court);
+          var bs = b.sport || (cid && cid[0] === "P" ? "pickleball" : "tennis");
+          return b.date === date && b.hour === h && bs === sp && b.status !== "cancelled";
+        }).length;
+      }
+
+      function paintLegend() {
+        var r = LT_DATA.sports[sport].rates;
+        document.getElementById("bkLegend").innerHTML =
+          '<span><span class="sw" style="background:var(--tile-border);"></span>Off-peak ₹' + r.offPeak + "/hr · 6 AM – 4 PM</span>" +
+          '<span><span class="sw" style="background:var(--gold-400);"></span>Peak ₹' + r.peak + "/hr · 4 – 11 PM, floodlights</span>" +
+          '<span><span class="sw" style="background:rgba(255,107,107,.5);"></span>Full · all ' + LT_SLOTS.courtsOf(sport).length + " courts taken</span>";
+      }
 
       function renderSlots() {
         var now = new Date();
         var isToday = dateInput.value === LT.today();
+        var total = LT_SLOTS.courtsOf(sport).length;
         document.getElementById("slotGrid").innerHTML = LT_SLOTS.hours.map(function (h) {
           var past = isToday && h <= now.getHours();
           var peak = h >= LT_DATA.rates.peakFrom;
-          var cls = "slot" + (selected.indexOf(h) !== -1 ? " sel" : "") + (past ? " taken" : "");
-          return '<button type="button" class="' + cls + '" data-h="' + h + '"' + (past ? " disabled" : "") + ">" +
+          var left = total - bookedCount(dateInput.value, h, sport);
+          var full = left <= 0;
+          var cls = "slot" + (selected.indexOf(h) !== -1 ? " sel" : "") + (past || full ? " taken" : "");
+          var rate = LT_SLOTS.rate(h, sport);
+          var sub = full ? '<span style="color:var(--tx-red);font-weight:700;">Full</span>'
+            : (peak ? '<span class="peak">₹' + rate + " · lights</span>" : "₹" + rate) +
+              (left <= 2 ? ' · <span style="color:var(--tx-optic);">' + left + " left</span>" : "");
+          return '<button type="button" class="' + cls + '" data-h="' + h + '"' + (past || full ? " disabled" : "") + ">" +
             '<span class="sl-time">' + LT_SLOTS.label(h) + "</span>" +
-            '<span class="sl-rate">' + (peak ? '<span class="peak">₹700 · lights</span>' : "₹500") + "</span></button>";
+            '<span class="sl-rate">' + sub + "</span></button>";
         }).join("");
+        paintLegend();
         renderQuote();
       }
 
       function renderQuote() {
         var hours = selected.slice().sort(function (a, b) { return a - b; });
-        var total = hours.reduce(function (s, h) { return s + LT_SLOTS.rate(h); }, 0);
+        var total = hours.reduce(function (s, h) { return s + LT_SLOTS.rate(h, sport); }, 0);
         var d = new Date(dateInput.value);
         document.getElementById("qpDate").textContent = d.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
@@ -219,7 +248,7 @@
         document.getElementById("qpTotal").classList.toggle("hide", hours.length === 0);
         document.getElementById("qpRows").innerHTML = hours.map(function (h) {
           return '<div class="qp-row"><span class="t">' + LT_SLOTS.label(h) + "</span>" +
-            '<span class="r">' + LT.fmtINR(LT_SLOTS.rate(h)) + "</span>" +
+            '<span class="r">' + LT.fmtINR(LT_SLOTS.rate(h, sport)) + "</span>" +
             '<button type="button" class="x" data-remove="' + h + '" aria-label="Remove hour">✕</button></div>';
         }).join("");
         document.getElementById("qpAmt").textContent = LT.fmtINR(total);
@@ -227,8 +256,11 @@
         document.getElementById("bkSubmit").textContent = hours.length
           ? "Request booking · " + LT.fmtINR(total) : "Request booking";
 
-        // day/night preview — floodlights come on when an evening hour is picked
-        var night = hours.some(function (h) { return h >= LT_DATA.rates.peakFrom; });
+        // day/night preview — floodlights come on when an evening hour is picked;
+        // pickleball shows the Den court photo
+        var dayImg = document.querySelector("#qpPhoto img:not(.night)");
+        dayImg.src = sport === "pickleball" ? "assets/img/courts/pickle-1.jpg" : "assets/img/courts/court-1.jpg";
+        var night = sport === "tennis" && hours.some(function (h) { return h >= LT_DATA.rates.peakFrom; });
         document.getElementById("qpPhoto").classList.toggle("is-night", night);
         document.getElementById("qpCap").innerHTML = night
           ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v3m5.5 0.5-2 2M21 12h-3M6.5 6.5l2 2M3 12h3m1 8h10M9 20a6 6 0 1 1 6 0"/></svg>Under floodlights'
@@ -261,6 +293,15 @@
         setTimeout(function () { document.querySelector('#bkForm input[name="name"]').focus(); }, 450);
       });
 
+      document.getElementById("sportChips").addEventListener("click", function (e) {
+        var btn = e.target.closest(".chip");
+        if (!btn) return;
+        sport = btn.dataset.s;
+        selected = [];
+        this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+        renderSlots();
+      });
+
       dateInput.addEventListener("change", function () { selected = []; renderSlots(); });
 
       document.getElementById("bkForm").addEventListener("submit", function (e) {
@@ -272,14 +313,14 @@
         if (String(d.get("phone") || "").replace(/\D/g, "").length < 10) { msg.textContent = "Please enter a valid 10-digit number."; msg.className = "form-msg error"; return; }
         msg.textContent = "";
 
-        var total = selected.reduce(function (s, h) { return s + LT_SLOTS.rate(h); }, 0);
+        var total = selected.reduce(function (s, h) { return s + LT_SLOTS.rate(h, sport); }, 0);
         var reqs = LT.store.read("bookings", []);
         selected.slice().sort(function (a, b) { return a - b; }).forEach(function (h) {
           reqs.unshift({
             id: "B-" + Date.now().toString().slice(-6) + "-" + h,
             name: d.get("name"), phone: d.get("phone"),
-            court: null, date: dateInput.value, hour: h,
-            amount: LT_SLOTS.rate(h), status: "pending",
+            court: null, sport: sport, date: dateInput.value, hour: h,
+            amount: LT_SLOTS.rate(h, sport), status: "pending",
             source: "Website",
           });
         });

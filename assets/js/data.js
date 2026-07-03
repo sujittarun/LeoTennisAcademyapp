@@ -1,11 +1,13 @@
 /* ============================================================
-   LEO TENNIS ACADEMY — application dataset (window.LT_DATA)
+   LEO ACADEMY — application dataset (window.LT_DATA)
    Backed by sample records until the production API is wired in;
    court-booking requests and payments recorded in the app are
    persisted via LT.store and merged with these seeds.
    ============================================================ */
 (function () {
-  function iso(d) { return d.toISOString().slice(0, 10); }
+  function iso(d) { // local date, not UTC
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
   function daysFromNow(n) { var d = new Date(); d.setDate(d.getDate() + n); return iso(d); }
 
   window.LT_DATA = {
@@ -22,17 +24,26 @@
       { id: "h", label: "Half-yearly", amount: 24300, months: 6, note: "10% off" },
     ],
 
-    // Court rental — one-hour slots, 4 bookable courts, 6 AM – 11 PM daily
-    courts: 4,
+    // Court rental — one-hour slots, 6 AM – 11 PM daily.
+    // 5 tennis courts + 4 pickleball courts ("Leo Pickleball Den").
+    sports: {
+      tennis: { label: "Tennis", rates: { offPeak: 500, peak: 700 } },
+      pickleball: { label: "Pickleball", rates: { offPeak: 400, peak: 600 } },
+    },
     courtsMeta: [
-      { n: 1, surface: "Synthetic hard", note: "Centre court · floodlit", img: "assets/img/courts/court-1.jpg" },
-      { n: 2, surface: "Synthetic hard", note: "Match court · floodlit", img: "assets/img/courts/court-2.jpg" },
-      { n: 3, surface: "Synthetic hard", note: "Training court · floodlit", img: "assets/img/courts/court-3.jpg" },
-      { n: 4, surface: "Synthetic hard", note: "Rally court · floodlit", img: "assets/img/courts/court-4.jpg" },
+      { id: "T1", sport: "tennis", name: "Tennis 1", note: "Centre court · floodlit", img: "assets/img/courts/court-1.jpg" },
+      { id: "T2", sport: "tennis", name: "Tennis 2", note: "Match court · floodlit", img: "assets/img/courts/court-2.jpg" },
+      { id: "T3", sport: "tennis", name: "Tennis 3", note: "Training court · floodlit", img: "assets/img/courts/court-3.jpg" },
+      { id: "T4", sport: "tennis", name: "Tennis 4", note: "Rally court · floodlit", img: "assets/img/courts/court-4.jpg" },
+      { id: "T5", sport: "tennis", name: "Tennis 5", note: "Night court · floodlit", img: "assets/img/courts/court-night.jpg" },
+      { id: "P1", sport: "pickleball", name: "Pickleball 1", note: "Den court · floodlit", img: "assets/img/courts/pickle-1.jpg" },
+      { id: "P2", sport: "pickleball", name: "Pickleball 2", note: "Den court · floodlit", img: "assets/img/courts/pickle-1.jpg" },
+      { id: "P3", sport: "pickleball", name: "Pickleball 3", note: "Den court · floodlit", img: "assets/img/courts/pickle-1.jpg" },
+      { id: "P4", sport: "pickleball", name: "Pickleball 4", note: "Den court · floodlit", img: "assets/img/courts/pickle-1.jpg" },
     ],
     courtNightImg: "assets/img/courts/court-night.jpg",
     slotHours: { open: 6, close: 23 },          // last slot starts 22:00 (10–11 PM)
-    rates: { offPeak: 500, peak: 700, peakFrom: 16 }, // peak = 4 PM onward (floodlights)
+    rates: { offPeak: 500, peak: 700, peakFrom: 16 }, // peakFrom shared by both sports
 
     contact: {
       address: "Opp. Lingampally MMTS Station, Venkat Reddy Colony, Serilingampally, Hyderabad",
@@ -59,37 +70,47 @@
       { id: 14, name: "Tarun Agarwal",    program: "perf",    age: 30, phone: "97654 12309", joined: "2026-06-15", validTill: daysFromNow(74),  status: "active" },
     ],
 
-    // Court bookings (seed). Hour = slot start in 24h.
+    // Coaching & operations staff (attendance is tracked for them too)
+    staff: [
+      { id: "s1", name: "Rahul Sharma",   role: "Head Coach" },
+      { id: "s2", name: "Priya Krishnan", role: "Performance Coach" },
+      { id: "s3", name: "David Manuel",   role: "Fitness & Conditioning" },
+      { id: "s4", name: "Kavya Reddy",    role: "Front Desk & Bookings" },
+      { id: "s5", name: "Mahesh Yadav",   role: "Courts & Maintenance" },
+    ],
+
+    // Court bookings (seed). Hour = slot start in 24h; court = courtsMeta id.
     bookings: [
-      { id: "B-1041", name: "Rohit Venkatesh", phone: "90000 87641", court: 1, date: daysFromNow(0), hour: 6,  amount: 500, status: "confirmed", source: "Website" },
-      { id: "B-1042", name: "Kabir Nair",      phone: "99490 55876", court: 1, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed", source: "Website" },
-      { id: "B-1048", name: "Meera Iyer",      phone: "98661 90035", court: 2, date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed", source: "Playo" },
-      { id: "B-1049", name: "Lakshmi Menon",   phone: "98123 40987", court: 3, date: daysFromNow(0), hour: 8,  amount: 500, status: "confirmed", source: "Hudle" },
-      { id: "B-1050", name: "Vikram Bhat",     phone: "98850 61147", court: 4, date: daysFromNow(0), hour: 10, amount: 500, status: "confirmed", source: "Walk-in" },
-      { id: "B-1043", name: "Priyanka Joshi",  phone: "98220 45671", court: 1, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed", source: "Playo" },
-      { id: "B-1051", name: "Ananya Deshpande", phone: "98481 33290", court: 2, date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed", source: "Website" },
-      { id: "B-1044", name: "Cygnus Tech (corporate)", phone: "98450 22110", court: 4, date: daysFromNow(0), hour: 19, amount: 700, status: "pending", source: "Hudle" },
-      { id: "B-1045", name: "Farhan Sheikh",   phone: "90104 22983", court: 3, date: daysFromNow(0), hour: 20, amount: 700, status: "confirmed", source: "Website" },
-      { id: "B-1052", name: "Sanjay Reddy",    phone: "98490 11223", court: 1, date: daysFromNow(0), hour: 21, amount: 700, status: "confirmed", source: "Playo" },
-      { id: "B-1046", name: "Lakshmi Menon",   phone: "98123 40987", court: 1, date: daysFromNow(1), hour: 6,  amount: 500, status: "confirmed", source: "Website" },
-      { id: "B-1047", name: "Dheeraj Kamath",  phone: "97411 88976", court: 2, date: daysFromNow(1), hour: 21, amount: 700, status: "pending", source: "Playo" },
+      { id: "B-1041", name: "Rohit Venkatesh", phone: "90000 87641", court: "T1", sport: "tennis", date: daysFromNow(0), hour: 6,  amount: 500, status: "confirmed", source: "Website" },
+      { id: "B-1042", name: "Kabir Nair",      phone: "99490 55876", court: "T1", sport: "tennis", date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed", source: "Website" },
+      { id: "B-1048", name: "Meera Iyer",      phone: "98661 90035", court: "T2", sport: "tennis", date: daysFromNow(0), hour: 7,  amount: 500, status: "confirmed", source: "Playo" },
+      { id: "B-1049", name: "Lakshmi Menon",   phone: "98123 40987", court: "T3", sport: "tennis", date: daysFromNow(0), hour: 8,  amount: 500, status: "confirmed", source: "Hudle" },
+      { id: "B-1053", name: "Pickle Pros (group)", phone: "98111 22334", court: "P1", sport: "pickleball", date: daysFromNow(0), hour: 7,  amount: 400, status: "confirmed", source: "Playo" },
+      { id: "B-1054", name: "Ritu & Friends",  phone: "97888 44556", court: "P2", sport: "pickleball", date: daysFromNow(0), hour: 8,  amount: 400, status: "confirmed", source: "Hudle" },
+      { id: "B-1050", name: "Vikram Bhat",     phone: "98850 61147", court: "T4", sport: "tennis", date: daysFromNow(0), hour: 10, amount: 500, status: "confirmed", source: "Walk-in" },
+      { id: "B-1043", name: "Priyanka Joshi",  phone: "98220 45671", court: "T1", sport: "tennis", date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed", source: "Playo" },
+      { id: "B-1051", name: "Ananya Deshpande", phone: "98481 33290", court: "T2", sport: "tennis", date: daysFromNow(0), hour: 18, amount: 700, status: "confirmed", source: "Website" },
+      { id: "B-1055", name: "Smash Club",      phone: "96555 77889", court: "P3", sport: "pickleball", date: daysFromNow(0), hour: 19, amount: 600, status: "confirmed", source: "Playo" },
+      { id: "B-1044", name: "Cygnus Tech (corporate)", phone: "98450 22110", court: "T4", sport: "tennis", date: daysFromNow(0), hour: 19, amount: 700, status: "pending", source: "Hudle" },
+      { id: "B-1045", name: "Farhan Sheikh",   phone: "90104 22983", court: "T3", sport: "tennis", date: daysFromNow(0), hour: 20, amount: 700, status: "confirmed", source: "Website" },
+      { id: "B-1052", name: "Sanjay Reddy",    phone: "98490 11223", court: "T1", sport: "tennis", date: daysFromNow(0), hour: 21, amount: 700, status: "confirmed", source: "Playo" },
+      { id: "B-1046", name: "Lakshmi Menon",   phone: "98123 40987", court: "T1", sport: "tennis", date: daysFromNow(1), hour: 6,  amount: 500, status: "confirmed", source: "Website" },
+      { id: "B-1047", name: "Dheeraj Kamath",  phone: "97411 88976", court: "T2", sport: "tennis", date: daysFromNow(1), hour: 21, amount: 700, status: "pending", source: "Playo" },
     ],
 
     payments: [
       { id: 101, name: "Tarun Agarwal",    type: "Membership", detail: "Monthly · Performance",  amount: 4500,  on: daysFromNow(-1),  mode: "UPI" },
-      { id: 102, name: "Priyanka Joshi",   type: "Court",      detail: "Court 4 · 6–7 PM",       amount: 700,   on: daysFromNow(-1),  mode: "UPI" },
+      { id: 102, name: "Priyanka Joshi",   type: "Court",      detail: "Tennis 4 · 6–7 PM",      amount: 700,   on: daysFromNow(-1),  mode: "UPI" },
       { id: 103, name: "Kabir Nair",       type: "Membership", detail: "Quarterly · Performance", amount: 12825, on: daysFromNow(-4),  mode: "UPI" },
       { id: 104, name: "Vikram Bhat",      type: "Membership", detail: "Monthly · Foundations",  amount: 4500,  on: daysFromNow(-5),  mode: "Cash" },
-      { id: 105, name: "Cygnus Tech",      type: "Court",      detail: "Courts 3–4 · 7–9 PM",    amount: 2800,  on: daysFromNow(-6),  mode: "Bank" },
+      { id: 105, name: "Cygnus Tech",      type: "Court",      detail: "Tennis 3–4 · 7–9 PM",    amount: 2800,  on: daysFromNow(-6),  mode: "Bank" },
       { id: 106, name: "Lakshmi Menon",    type: "Membership", detail: "Half-yearly · Private",  amount: 24300, on: daysFromNow(-12), mode: "Bank" },
       { id: 107, name: "Ananya Deshpande", type: "Membership", detail: "Monthly · Performance",  amount: 4500,  on: daysFromNow(-15), mode: "UPI" },
       { id: 108, name: "Sanjay Reddy",     type: "Membership", detail: "Quarterly · Cardio",     amount: 12825, on: daysFromNow(-19), mode: "UPI" },
-      { id: 109, name: "Walk-in",          type: "Court",      detail: "Court 3 · 8–10 PM",      amount: 1400,  on: daysFromNow(-20), mode: "Cash" },
+      { id: 109, name: "Pickle Pros",      type: "Court",      detail: "Pickleball 1–2 · 7–9 PM", amount: 1600, on: daysFromNow(-20), mode: "Cash" },
     ],
 
     // Trailing six months for the finance charts (₹ thousands).
-    // rev splits into memberships + court rental; exp = coach salaries,
-    // maintenance, lights/power, balls & stringing.
     finance: [
       { m: "Feb", rev: 132, exp: 84,  memberships: 106, courts: 26, salaries: 52, maintenance: 14, power: 11, gear: 7 },
       { m: "Mar", rev: 141, exp: 88,  memberships: 110, courts: 31, salaries: 52, maintenance: 16, power: 12, gear: 8 },
@@ -98,12 +119,11 @@
       { m: "Jun", rev: 171, exp: 95,  memberships: 126, courts: 45, salaries: 58, maintenance: 16, power: 14, gear: 7 },
       { m: "Jul", rev: 84,  exp: 46,  memberships: 62,  courts: 22, salaries: 29, maintenance: 8,  power: 6,  gear: 3 },
     ],
-    // kept for the dashboard revenue chart
     get revenue() { return this.finance.map(function (f) { return { m: f.m, v: f.rev }; }); },
 
     activity: [
       { icon: "join",  text: "<strong>Tarun Agarwal</strong> joined Performance · Monthly plan", time: "Yesterday" },
-      { icon: "court", text: "<strong>Cygnus Tech</strong> requested Courts 5–6, 7–9 PM (corporate)", time: "Yesterday" },
+      { icon: "court", text: "<strong>Cygnus Tech</strong> requested Tennis 4, 7–8 PM (corporate)", time: "Yesterday" },
       { icon: "pay",   text: "<strong>Kabir Nair</strong> renewed Quarterly · ₹12,825", time: "4 days ago" },
       { icon: "trophy", text: "<strong>Performance squad</strong> won the HCL Corporate League tie", time: "5 days ago" },
       { icon: "join",  text: "<strong>3 membership enquiries</strong> received from the website", time: "This week" },
@@ -120,8 +140,8 @@
     { id: "Walk-in", label: "Walk-in", cls: "" },
   ];
 
-  /* One month of past court bookings across all channels (deterministic:
-     seeded per-date so the history is stable between reloads). */
+  /* One month of past court bookings across all channels and both sports
+     (deterministic: seeded per-date so history is stable between reloads). */
   (function backfill() {
     function rng(seed) { // mulberry32
       return function () {
@@ -133,27 +153,30 @@
     }
     var names = ["Aditi Rao", "Karthik S", "Neha Bansal", "Cygnus Tech", "Praveen Y", "Ritu Sharma", "Mohit Jain", "Sneha K", "Imran Ali", "Deepa Nair", "Suresh Babu", "Anil Kumar", "Pooja M", "Ravi Chandra", "Harsha V"];
     var srcPool = ["Website", "Website", "Website", "Playo", "Playo", "Hudle", "Walk-in", "Playo", "Hudle", "Website", "Walk-in", "Playo"];
+    var courts = window.LT_DATA.courtsMeta;
     var hist = [];
     for (var d = 1; d <= 30; d++) {
       var date = daysFromNow(-d);
       var r = rng(parseInt(date.replace(/-/g, ""), 10));
-      var n = 3 + Math.floor(r() * 5); // 3–7 bookings a day
+      var n = 4 + Math.floor(r() * 6); // 4–9 bookings a day across 9 courts
       var usedSlots = {};
       for (var k = 0; k < n; k++) {
         var evening = r() < 0.62; // peak hours are busier
         var hour = evening ? 16 + Math.floor(r() * 7) : 6 + Math.floor(r() * 10);
-        var court = 1 + Math.floor(r() * LT_DATA.courts);
-        var key = hour + ":" + court;
+        var court = courts[Math.floor(r() * courts.length)];
+        var key = hour + ":" + court.id;
         if (usedSlots[key]) continue;
         usedSlots[key] = 1;
+        var rates = window.LT_DATA.sports[court.sport].rates;
         hist.push({
-          id: "B-H" + date.replace(/-/g, "").slice(4) + "-" + hour + court,
+          id: "B-H" + date.replace(/-/g, "").slice(4) + "-" + hour + court.id,
           name: names[Math.floor(r() * names.length)],
           phone: "",
-          court: court,
+          court: court.id,
+          sport: court.sport,
           date: date,
           hour: hour,
-          amount: hour >= LT_DATA.rates.peakFrom ? LT_DATA.rates.peak : LT_DATA.rates.offPeak,
+          amount: hour >= window.LT_DATA.rates.peakFrom ? rates.peak : rates.offPeak,
           status: "confirmed",
           source: srcPool[Math.floor(r() * srcPool.length)],
         });
@@ -165,10 +188,18 @@
   /* Slot helpers shared by booking pages */
   window.LT_SLOTS = {
     hours: (function () { var a = []; for (var h = LT_DATA.slotHours.open; h < LT_DATA.slotHours.close; h++) a.push(h); return a; })(),
-    rate: function (h) { return h >= LT_DATA.rates.peakFrom ? LT_DATA.rates.peak : LT_DATA.rates.offPeak; },
+    rate: function (h, sport) {
+      var r = LT_DATA.sports[sport || "tennis"].rates;
+      return h >= LT_DATA.rates.peakFrom ? r.peak : r.offPeak;
+    },
     label: function (h) {
       function f(x) { var ap = x >= 12 ? "PM" : "AM"; var v = x % 12 || 12; return v + " " + ap; }
       return f(h) + " – " + f(h + 1);
+    },
+    // legacy stored bookings used numeric tennis court numbers
+    courtId: function (c) { return typeof c === "number" ? "T" + c : c; },
+    courtsOf: function (sport) {
+      return LT_DATA.courtsMeta.filter(function (c) { return c.sport === sport; });
     },
   };
 })();

@@ -15,12 +15,16 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
   and the ball-wave page-load animation (assets/video/hero2.mp4 + inline
   script in index.html; page rides the wave, JS-driven from video.currentTime,
   never CSS keyframes; debug with ?bwlslow=0.25).
-- Two revenue lines: coaching memberships AND hourly court booking (4 courts —
-  synthetic hard, one-hour slots 06:00–23:00, ₹500 off-peak /
-  ₹700 peak from 4 PM).
-- Court booking flow: public requests a date + hour slots (instant quote) →
-  status `pending` → staff confirms in bookings.html, which auto-assigns the
-  first free court for that hour (override stored under `lt-booking-status`).
+- Two revenue lines: coaching memberships AND hourly court booking.
+  9 courts: 5 tennis (T1–T5, ₹500/₹700 peak) + 4 pickleball (P1–P4,
+  ₹400/₹600 peak); one-hour slots 06:00–23:00, peak from 4 PM. Court ids
+  are strings ("T1"…"P4"); LT_SLOTS.courtId() maps legacy numeric ids.
+- Court booking flow: public picks sport + date + hour slots (instant quote,
+  slots show "Full" when every court of that sport is taken — bookings from
+  ANY channel block availability) → status `pending` → staff confirms in
+  bookings.html, which auto-assigns the first free court of that sport
+  (override stored under `lt-booking-status`). Staff add Playo/Hudle/walk-in
+  bookings manually until marketplace APIs are integrated.
 - Do NOT present the app as a "demo" anywhere in the UI (no "demo build",
   "sample data", "any credentials work" copy). It must read like production;
   the seeded records are just unlaunched data.
@@ -44,11 +48,15 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
 Public: index.html · booking.html (slot quote + request) · admission.html
 (membership wizard — no parent fields) · login.html.
 Staff (behind LT.auth.require): dashboard.html · players.html (Members roster) ·
-bookings.html (graphical court cards + schedule modal) · fees.html (Finance).
+bookings.html (graphical court cards + schedule modal, sport filter, channels
+split, manual add-booking) · attendance.html (members AND staff/coach modes) ·
+fees.html (Finance). LT_DATA.staff holds the coach/ops roster.
 
 ## Conventions
 - Prefix classes/keys `lt-`. Only use tokens from glass.css, never hardcoded colors.
 - Both themes must stay consistent; test dark (default) and light.
+- Mobile breakpoint is 699px (not 767) so fold-phone inner screens (~717px)
+  get the desktop chrome; dates use LOCAL time, never toISOString (IST).
 - Staff pages get nav via `LT.managerShell(activeHref)`; public pages have inline nav.
 - Bump `?v=N` on css/js references in ALL html files when changing assets.
 - Deploy = push to main (GitHub Pages; repo must be public to enable Pages).

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=6" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=9" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -67,6 +67,13 @@
       <div class="req-tray" id="reqTray"></div>
     </div>
 
+    <!-- sport filter -->
+    <div class="chip-row" id="sportChips" style="justify-content:center;">
+      <button class="chip active" data-s="all">All courts · 9</button>
+      <button class="chip" data-s="tennis">Tennis · 5</button>
+      <button class="chip" data-s="pickleball">Pickleball · 4</button>
+    </div>
+
     <!-- court photo grid -->
     <div class="court-grid" id="courtGrid"></div>
 
@@ -95,7 +102,10 @@
           <label class="field"><span>Date</span><input type="date" name="date" id="abDate" /></label>
           <label class="field"><span>Hour slot</span><select name="hour" id="abHour"></select></label>
         </div>
-        <label class="field"><span>Court</span><select name="court" id="abCourt"><option value="">Auto-assign free court</option></select></label>
+        <div class="lt-grid cols-2" style="gap: var(--gap-2);">
+          <label class="field"><span>Sport</span><select name="sport" id="abSport2"><option value="tennis">Tennis</option><option value="pickleball">Pickleball</option></select></label>
+          <label class="field"><span>Court</span><select name="court" id="abCourt"><option value="">Auto-assign</option></select></label>
+        </div>
         <div class="form-msg" id="abMsg" style="min-height:0;"></div>
         <button class="btn btn-primary btn-block" type="submit">Save booking</button>
       </form>
@@ -120,8 +130,8 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=8"></script>
-  <script src="assets/js/data.js?v=7"></script>
+  <script src="assets/js/core.js?v=9"></script>
+  <script src="assets/js/data.js?v=9"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -133,10 +143,15 @@
 
       function overrides() { return LT.store.read("booking-status", {}); }
 
+      var sportFilter = "all";
+
       function allBookings() {
         var ov = overrides();
         return LT.store.read("bookings", []).concat(LT_DATA.bookings).map(function (b) {
-          return Object.assign({}, b, ov[b.id] ? { status: ov[b.id], court: ov[b.id + ":court"] || b.court } : {});
+          var o = Object.assign({}, b, ov[b.id] ? { status: ov[b.id], court: ov[b.id + ":court"] || b.court } : {});
+          o.court = LT_SLOTS.courtId(o.court);
+          if (!o.sport) o.sport = o.court && o.court[0] === "P" ? "pickleball" : "tennis";
+          return o;
         });
       }
 
@@ -206,8 +221,9 @@
         }).join("");
 
         // court cards
-        document.getElementById("courtGrid").innerHTML = LT_DATA.courtsMeta.map(function (c, ci) {
-          var list = day.filter(function (b) { return b.court === c.n; });
+        var courts = LT_DATA.courtsMeta.filter(function (c) { return sportFilter === "all" || c.sport === sportFilter; });
+        document.getElementById("courtGrid").innerHTML = courts.map(function (c, ci) {
+          var list = day.filter(function (b) { return b.court === c.id; });
           var booked = list.filter(function (b) { return b.status === "confirmed"; }).length;
           var earn = list.reduce(function (s, b) { return s + (b.status === "confirmed" ? b.amount : 0); }, 0);
           var st = statusOfCourt(list, nowH, isToday);
@@ -221,12 +237,12 @@
             return '<span class="' + cls + '" style="animation-delay:' + (ci * 90 + i * 22) + 'ms;"></span>';
           }).join("");
 
-          return '<div class="court-card" data-court="' + c.n + '">' +
-            '<img class="cc-photo" src="' + c.img + '" alt="Court ' + c.n + ' — ' + c.surface + '" loading="lazy" />' +
+          return '<div class="court-card" data-court="' + c.id + '">' +
+            '<img class="cc-photo" src="' + c.img + '" alt="' + c.name + '" loading="lazy" />' +
             '<div class="cc-shade"></div>' +
             '<span class="cc-status"><span class="pill ' + st.cls + '">' + st.label + "</span></span>" +
             '<div class="cc-body">' +
-            '<div class="cc-name">Court ' + c.n + "<small>" + c.surface + " · " + c.note + "</small></div>" +
+            '<div class="cc-name">' + c.name + "<small>" + LT_DATA.sports[c.sport].label + " · " + c.note + "</small></div>" +
             '<div class="tl">' + segs + "</div>" +
             '<div class="tl-hours"><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11 PM</span></div>' +
             '<div class="cc-meta"><span><b>' + booked + "</b> of " + hours.length + " hours booked</span><span><b>" + LT.fmtINR(earn) + "</b> confirmed</span></div>" +
@@ -240,14 +256,14 @@
       var backdrop = document.getElementById("cmBackdrop");
 
       function paintModal() {
-        var c = LT_DATA.courtsMeta.find(function (x) { return x.n === openCourt; });
-        var day = dayBookings().filter(function (b) { return b.court === c.n; });
+        var c = LT_DATA.courtsMeta.find(function (x) { return x.id === openCourt; });
+        var day = dayBookings().filter(function (b) { return b.court === c.id; });
         var isToday = dateInput.value === LT.today();
         var nowH = new Date().getHours();
 
         document.getElementById("cmPhoto").src = c.img;
-        document.getElementById("cmName").textContent = "Court " + c.n;
-        document.getElementById("cmSub").textContent = c.surface + " · " + c.note;
+        document.getElementById("cmName").textContent = c.name;
+        document.getElementById("cmSub").textContent = LT_DATA.sports[c.sport].label + " · " + c.note;
         document.getElementById("cmDate").textContent =
           new Date(dateInput.value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
         var booked = day.filter(function (b) { return b.status === "confirmed"; });
@@ -263,7 +279,7 @@
           if (isToday && h === nowH) cls += " now";
           var who = b
             ? '<span class="sr-who">' + b.name + "<small>" + LT.fmtINR(b.amount) + " · " + (b.source || "Website") + (b.status === "pending" ? " · pending" : "") + "</small></span>"
-            : '<span class="sr-who">Free · ' + LT.fmtINR(LT_SLOTS.rate(h)) + "</span>";
+            : '<span class="sr-who">Free · ' + LT.fmtINR(LT_SLOTS.rate(h, c.sport)) + "</span>";
           var act = b && b.status === "pending"
             ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>' : "";
           rows.push('<div class="' + cls + '" style="animation-delay:' + i * 28 + 'ms;">' +
@@ -274,10 +290,18 @@
         document.getElementById("cmSched").innerHTML = rows.join("");
       }
 
+      document.getElementById("sportChips").addEventListener("click", function (e) {
+        var btn = e.target.closest(".chip");
+        if (!btn) return;
+        sportFilter = btn.dataset.s;
+        this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+        render();
+      });
+
       document.getElementById("courtGrid").addEventListener("click", function (e) {
         var card = e.target.closest(".court-card");
         if (!card) return;
-        openCourt = +card.dataset.court;
+        openCourt = card.dataset.court;
         paintModal();
         backdrop.classList.add("open");
       });
@@ -295,7 +319,10 @@
         if (b && !b.court) {
           var used = allBookings().filter(function (x) { return x.date === b.date && x.hour === b.hour && x.court; })
             .map(function (x) { return x.court; });
-          for (var c = 1; c <= LT_DATA.courts; c++) if (used.indexOf(c) === -1) { ov[id + ":court"] = c; break; }
+          var pool = LT_SLOTS.courtsOf(b.sport || "tennis");
+          for (var ci = 0; ci < pool.length; ci++) {
+            if (used.indexOf(pool[ci].id) === -1) { ov[id + ":court"] = pool[ci].id; break; }
+          }
         }
         LT.store.write("booking-status", ov);
         LT.toast("Booking confirmed ✓");
@@ -307,11 +334,17 @@
       document.getElementById("abSource").innerHTML = LT_DATA.channels
         .map(function (c) { return "<option" + (c.id === "Walk-in" ? " selected" : "") + ">" + c.id + "</option>"; }).join("");
       document.getElementById("abHour").innerHTML = LT_SLOTS.hours
-        .map(function (h) { return '<option value="' + h + '">' + LT_SLOTS.label(h) + " · ₹" + LT_SLOTS.rate(h) + "</option>"; }).join("");
+        .map(function (h) { return '<option value="' + h + '">' + LT_SLOTS.label(h) + (h >= LT_DATA.rates.peakFrom ? " · peak" : "") + "</option>"; }).join("");
       var courtSel = document.getElementById("abCourt");
-      LT_DATA.courtsMeta.forEach(function (c) {
-        courtSel.innerHTML += '<option value="' + c.n + '">Court ' + c.n + " · " + c.surface + "</option>";
-      });
+      var abSport2 = document.getElementById("abSport2");
+      function fillCourtSel() {
+        courtSel.innerHTML = '<option value="">Auto-assign</option>' +
+          LT_SLOTS.courtsOf(abSport2.value).map(function (c) {
+            return '<option value="' + c.id + '">' + c.name + "</option>";
+          }).join("");
+      }
+      abSport2.addEventListener("change", fillCourtSel);
+      fillCourtSel();
       document.getElementById("addBkBtn").addEventListener("click", function () {
         document.getElementById("abDate").value = dateInput.value;
         abBackdrop.classList.add("open");
@@ -325,25 +358,30 @@
         var msg = document.getElementById("abMsg");
         if (!String(d.get("name") || "").trim()) { msg.textContent = "Please enter who booked."; msg.className = "form-msg error"; return; }
         var hour = +d.get("hour"), date = d.get("date") || dateInput.value;
-        var court = d.get("court") ? +d.get("court") : null;
-        if (!court) { // auto-assign first free court for that hour
+        var sport = d.get("sport") || "tennis";
+        var court = d.get("court") || null;
+        if (!court) { // auto-assign first free court of that sport for that hour
           var used = allBookings().filter(function (x) { return x.date === date && x.hour === hour && x.court; })
             .map(function (x) { return x.court; });
-          for (var c = 1; c <= LT_DATA.courts; c++) if (used.indexOf(c) === -1) { court = c; break; }
-          if (!court) { msg.textContent = "All courts are taken for that hour."; msg.className = "form-msg error"; return; }
+          var pool = LT_SLOTS.courtsOf(sport);
+          for (var ci = 0; ci < pool.length; ci++) {
+            if (used.indexOf(pool[ci].id) === -1) { court = pool[ci].id; break; }
+          }
+          if (!court) { msg.textContent = "All " + sport + " courts are taken for that hour."; msg.className = "form-msg error"; return; }
         }
         var list = LT.store.read("bookings", []);
         list.unshift({
           id: "B-M" + Date.now().toString().slice(-6),
           name: d.get("name"), phone: d.get("phone") || "",
-          court: court, date: date, hour: hour,
-          amount: LT_SLOTS.rate(hour), status: "confirmed",
+          court: court, sport: sport, date: date, hour: hour,
+          amount: LT_SLOTS.rate(hour, sport), status: "confirmed",
           source: d.get("source"),
         });
         LT.store.write("bookings", list);
         abBackdrop.classList.remove("open");
         this.reset();
-        LT.toast("Booking saved · Court " + court + " ✓");
+        var cn = LT_DATA.courtsMeta.find(function (x) { return x.id === court; });
+        LT.toast("Booking saved · " + (cn ? cn.name : court) + " ✓");
         dateInput.value = date;
         render();
         paintChannels();

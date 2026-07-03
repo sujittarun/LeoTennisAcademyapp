@@ -20,7 +20,8 @@ Liquid-glass design system: dark-first forest green + metallic gold (from the Le
 | `login.html` | Staff console login |
 | `dashboard.html` | KPIs, revenue chart, renewal donut, activity feed |
 | `players.html` | Members roster with search + program filter |
-| `bookings.html` | Photo cards per court with animated hour timelines; click for day schedule, confirm requests |
+| `bookings.html` | 9 court photo cards (5 tennis + 4 pickleball) with animated timelines, channel split, manual add-booking |
+| `attendance.html` | Tap-to-mark attendance — members and staff/coaches |
 | `fees.html` | Finance — membership & court revenue, ledger, record payment |
 
 ## Data layer
@@ -36,8 +37,8 @@ real backend without touching page controllers.
 - Real venue: Opp. Lingampally MMTS Station, Serilingampally, Hyderabad ·
   +91 96768 29060 / +91 72081 95649 · court photos in assets/img/courts/
   (sourced from the academy's Google Business listing).
-- Courts rent in one-hour slots, 6:00–23:00 (open daily 6 AM – 11 PM). Off-peak (before 4 PM) ₹500/hr,
-  peak/floodlit ₹700/hr. Public requests start `pending`; staff confirm and the
+- Courts rent in one-hour slots, 6:00–23:00 (open daily 6 AM – 11 PM). Tennis ₹500/₹700 peak,
+  pickleball ₹400/₹600 peak (peak from 4 PM). Public requests start `pending`; staff confirm and the
   app assigns the first free court for that hour.
 - Membership plans: Monthly ₹4,500 · Quarterly ₹12,825 · Half-yearly ₹24,300;
   joining fee ₹1,000.
