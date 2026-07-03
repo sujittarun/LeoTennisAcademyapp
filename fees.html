@@ -14,6 +14,13 @@
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
     @media (max-width: 1099px) { .fin-main { grid-template-columns: 1fr; } }
+    /* keep the three headline stats side by side on phones — less scrolling */
+    @media (max-width: 767px) {
+      .lt-grid.cols-3.fin-kpis { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .fin-kpis .stat-card { padding: 12px 10px; }
+      .fin-kpis .stat-value { font-size: 17px; }
+      .fin-kpis .stat-copy { font-size: 10px; }
+    }
 
     /* revenue vs expenses chart */
     .rv-legend { display: flex; gap: var(--gap-3); flex-wrap: wrap; font-size: 12px; color: var(--ink-mid); align-items: center; }
@@ -87,7 +94,7 @@
       <button class="btn btn-primary btn-sm" id="recBtn">+ Record payment</button>
     </div>
 
-    <div class="lt-grid cols-3">
+    <div class="lt-grid cols-3 fin-kpis">
       <div class="glass glass-hover stat-card reveal">
         <span class="stat-copy">Collected · last 30 days</span>
         <span class="stat-value" id="kpiTotal">—</span>

@@ -111,7 +111,7 @@
     html.bwl-loading .lt-bg { position: absolute; inset: 0; }
 
     /* fact strip (in hero flow) */
-    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); margin-top: calc(var(--gap-5) * -0.2); }
+    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-3); margin-top: var(--gap-3); }
     .fact { text-align: center; padding: var(--gap-3); }
     .fact .v { font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 3vw, 34px);
       background: var(--stat-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
@@ -210,7 +210,7 @@
     .foot-base .staff:hover { color: var(--tx-gold); }
 
     @media (max-width: 900px) {
-      .hero { grid-template-columns: 1fr; min-height: auto; text-align: center; gap: var(--gap-3); }
+      .hero { grid-template-columns: 1fr; min-height: auto; text-align: center; gap: var(--gap-3); padding-bottom: var(--gap-3); }
       .hero .lede { margin-left: auto; margin-right: auto; }
       .gold-rule { margin-left: auto; margin-right: auto; }
       .hero-cta { justify-content: center; }
@@ -238,6 +238,9 @@
     </a>
     <div class="nav-actions">
       <button type="button" class="theme-toggle"></button>
+      <a class="btn btn-icon btn-glass only-mobile" href="login.html" aria-label="Staff login" title="Staff login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+      </a>
       <a class="btn btn-ghost btn-sm hide-mobile" href="login.html">Staff login</a>
       <a class="btn btn-ghost btn-sm hide-mobile" href="admission.html">Join coaching</a>
       <a class="btn btn-primary btn-sm" href="booking.html">Book a court</a>

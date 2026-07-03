@@ -11,6 +11,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/glass.css?v=6" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    /* 2x2 KPIs on phones — less scrolling to reach the charts */
+    @media (max-width: 767px) {
+      .lt-grid.cols-4.dash-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .dash-kpis .kpi { padding: 12px 14px; }
+      .dash-kpis .stat-value { font-size: 22px; }
+      .dash-kpis .stat-copy { font-size: 11px; }
+      .dash-kpis .delta { font-size: 10.5px; }
+    }
+  </style>
 </head>
 <body>
   <div class="lt-bg" aria-hidden="true"></div>
@@ -26,7 +36,7 @@
     </div>
 
     <!-- KPIs -->
-    <div class="lt-grid cols-4">
+    <div class="lt-grid cols-4 dash-kpis">
       <div class="glass glass-hover kpi reveal">
         <span class="stat-copy">Active members</span>
         <span class="stat-value" id="kpiMembers">—</span>
