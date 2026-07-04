@@ -667,3 +667,26 @@ begin
   ) x;
   return result;
 end $$;
+-- ============================================================
+-- Migration 11 — booking-channel MASTER LIST (single source of truth)
+-- Channels were hardcoded separately in every app (drifted: District
+-- was in the console + CourtSync but missing from the Leo app). Now
+-- one list in the DB, read by all apps via get_channels(). Add a
+-- channel here once → it appears in every booking form, channel chart,
+-- and the operator breakdown.
+-- ============================================================
+insert into platform_settings (key, value) values
+  ('channels', '[
+    {"id":"Website","label":"Website","color":"#e8c268"},
+    {"id":"Playo","label":"Playo","color":"#34d399"},
+    {"id":"Hudle","label":"Hudle","color":"#cbe34f"},
+    {"id":"District","label":"District","color":"#60a5fa"},
+    {"id":"Walk-in","label":"Walk-in","color":"#9aa3b2"}
+  ]')
+on conflict (key) do update set value = excluded.value;
+
+-- readable by the public apps (the list itself is not sensitive)
+create or replace function get_channels()
+returns jsonb language sql stable security definer set search_path = public as
+$$ select coalesce((select value::jsonb from platform_settings where key = 'channels'), '[]'::jsonb) $$;
+grant execute on function get_channels to anon, authenticated;

@@ -141,6 +141,8 @@
         slot: a.slot || null, trial_date: a.date || null,
       }).catch(soft);
     },
+    // booking-channel master list (single source of truth in the DB)
+    fetchChannels: function () { return rpc("get_channels", {}).catch(soft); },
     // court regulars (derived contacts view) — staff-scoped by RLS to own tenant
     fetchContacts: function () {
       return req("GET", "/contacts?order=bookings.desc&limit=100&select=phone,name,bookings,spent,last_seen").catch(soft);
