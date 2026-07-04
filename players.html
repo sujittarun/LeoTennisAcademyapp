@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=18" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=19" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -61,11 +61,26 @@
         </table>
       </div>
     </div>
+
+    <!-- court regulars — people who book courts but aren't coaching members;
+         a passive contact list derived from bookings (NOT the roster) -->
+    <div class="glass glass-card tight hide" id="regCard" style="margin-top: var(--gap-3);">
+      <div class="card-head" style="margin-bottom: 10px;">
+        <div><div class="kicker">Court regulars</div><h2 style="font-size:16px;">People who book, not yet members</h2></div>
+        <span class="faint" style="font-size:11.5px;" id="regHint"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="lt-table">
+          <thead><tr><th>Contact</th><th>Bookings</th><th>Spent</th><th>Last played</th><th></th></tr></thead>
+          <tbody id="regRows"></tbody>
+        </table>
+      </div>
+    </div>
   </main>
 
-  <script src="assets/js/core.js?v=18"></script>
-  <script src="assets/js/data.js?v=18"></script>
-  <script src="assets/js/cloud.js?v=18"></script>
+  <script src="assets/js/core.js?v=19"></script>
+  <script src="assets/js/data.js?v=19"></script>
+  <script src="assets/js/cloud.js?v=19"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -101,13 +116,35 @@
             return p ? p.name : (id || "Any program");
           };
           document.getElementById("appTray").innerHTML = rows.map(function (a) {
-            return '<div class="app-row"><span class="aq-who">' + a.name + "</span>" +
-              '<span class="aq-what">' + progName(a.program) + (a.slot ? " · " + a.slot : "") +
+            return '<div class="app-row"><span class="aq-who">' + LT.esc(a.name) + "</span>" +
+              '<span class="aq-what">' + LT.esc(progName(a.program)) + (a.slot ? " · " + LT.esc(a.slot) : "") +
               (a.trial_date ? " · trial " + fmtD(a.trial_date) : "") + "</span>" +
               (a.phone ? '<a class="aq-call" href="https://wa.me/91' + String(a.phone).replace(/\D/g, "").slice(-10) + '">WhatsApp →</a>' : "") +
               '<span class="aq-when">' + fmtD(a.created_at) + "</span></div>";
           }).join("");
           document.getElementById("appCard").classList.remove("hide");
+        });
+
+        // court regulars — the academy's own booker CRM, derived from bookings
+        LT_CLOUD.fetchContacts && LT_CLOUD.fetchContacts().then(function (rows) {
+          if (!rows || !rows.length) return;
+          var memberPhones = {};
+          LT_DATA.members.forEach(function (m) { memberPhones[String(m.phone).replace(/\D/g, "").slice(-10)] = 1; });
+          // show bookers who aren't already coaching members — the upsell list
+          var regs = rows.filter(function (c) { return !memberPhones[c.phone]; });
+          if (!regs.length) return;
+          document.getElementById("regHint").textContent = regs.length + " contacts · your upsell list";
+          document.getElementById("regRows").innerHTML = regs.map(function (c) {
+            var wa = "https://wa.me/91" + String(c.phone).replace(/\D/g, "").slice(-10);
+            var regular = c.bookings >= 3 ? ' <span class="pill green" style="font-size:10px;padding:2px 8px;">regular</span>' : "";
+            return "<tr><td class='t-name'>" + LT.esc(c.name) + regular +
+              "<br /><span class='faint' style='font-size:11.5px;'>" + LT.esc(c.phone) + "</span></td>" +
+              "<td class='num'>" + c.bookings + "</td>" +
+              "<td class='num gold'>" + LT.fmtINR(c.spent) + "</td>" +
+              "<td class='faint'>" + fmtD(c.last_seen) + "</td>" +
+              '<td><a class="btn btn-glass btn-sm" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a></td></tr>';
+          }).join("");
+          document.getElementById("regCard").classList.remove("hide");
         });
       }
 

@@ -598,3 +598,72 @@ begin
   ) x;
   return result;
 end $$;
+-- ============================================================
+-- Migration 10 — contacts (derived CRM), one-way from bookings.
+-- A READ-ONLY view: the booking write path never touches it, so a
+-- bug here can never fail a booking. security_invoker=on means staff
+-- see only THEIR tenant's contacts (RLS on bookings applies).
+-- Bookers are NOT members: this is a passive contact list, separate
+-- from the managed roster and from tier billing.
+-- ============================================================
+create or replace view contacts
+with (security_invoker = on) as
+select
+  b.tenant_id,
+  regexp_replace(b.phone, '\D', '', 'g') as phone,
+  (array_agg(b.name order by b.created_at desc))[1] as name,
+  count(*) as bookings,
+  sum(case when b.status = 'confirmed' then b.amount else 0 end) as spent,
+  min(b.date) as first_seen,
+  max(b.date) as last_seen
+from bookings b
+where b.phone is not null
+  and length(regexp_replace(b.phone, '\D', '', 'g')) >= 10
+  and b.status <> 'cancelled'
+group by b.tenant_id, regexp_replace(b.phone, '\D', '', 'g');
+grant select on contacts to authenticated;
+
+-- operator sees only the COUNT (aggregate, no phone numbers leave the tenant)
+create or replace function operator_portfolio()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare result jsonb;
+begin
+  if auth_role() <> 'operator' then raise exception 'operator only'; end if;
+  select coalesce(jsonb_agg(obj order by ord), '[]'::jsonb) into result from (
+    select t.created_at as ord, jsonb_build_object(
+      'tenant_id', t.id, 'name', t.name, 'config', t.config,
+      'plan', s.plan, 'mrr', coalesce(s.mrr,0), 'sub_status', s.status, 'renews_on', s.renews_on,
+      'tier', s.tier, 'player_cap', s.player_cap, 'msg_rate', coalesce(s.msg_rate,0.35),
+      'active_players', (select count(*) from members m where m.tenant_id=t.id and m.status in ('active','due')),
+      'contacts_count', (select count(distinct regexp_replace(phone,'\D','','g')) from bookings b
+                         where b.tenant_id=t.id and b.phone is not null
+                           and length(regexp_replace(b.phone,'\D','','g'))>=10 and b.status<>'cancelled'),
+      'msgs_30d', (select count(*) from reminders_log r where r.tenant_id=t.id and r.sent_at >= current_date-30),
+      'msg_cost_30d', round((select count(*) from reminders_log r where r.tenant_id=t.id and r.sent_at >= current_date-30) * coalesce(s.msg_rate,0.35), 2),
+      'bookings_30d', (select count(*) from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status<>'cancelled'),
+      'bookings_prev', (select count(*) from bookings b where b.tenant_id=t.id and b.date >= current_date-60 and b.date < current_date-30 and b.status<>'cancelled'),
+      'gmv_30d', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status='confirmed')
+               + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-30),
+      'gmv_prev', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.date >= current_date-60 and b.date < current_date-30 and b.status='confirmed')
+                + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-60 and p.on_date < current_date-30),
+      'apps_30d', (select count(*) from applications a where a.tenant_id=t.id and a.created_at >= current_date-30),
+      'events_30d', (select count(*) from events e where e.tenant_id=t.id and e.at >= current_date-30),
+      'sessions_30d', (select count(distinct session_id) from events e where e.tenant_id=t.id and e.at >= current_date-30 and e.session_id is not null),
+      'active_days_30d', (select count(distinct e.at::date) from events e where e.tenant_id=t.id and e.at >= current_date-30),
+      'last_event_at', (select max(at) from events e where e.tenant_id=t.id),
+      'errors_30d', (select count(*) from events e where e.tenant_id=t.id and e.name='client_error' and e.at >= current_date-30),
+      'app_ver', (select props->>'ver' from events e where e.tenant_id=t.id and e.name='page_view' and e.props ? 'ver' order by e.at desc limit 1),
+      'channel_mix', (select coalesce(jsonb_object_agg(src, cnt), '{}'::jsonb) from
+        (select coalesce(source,'Website') src, count(*) cnt from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status<>'cancelled' group by 1) m),
+      'weekly_gmv', (select coalesce(jsonb_agg(wk order by wknum desc), '[]'::jsonb) from
+        (select g.n as wknum,
+          (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.status='confirmed' and b.date >= current_date-(g.n*7+6) and b.date <= current_date-(g.n*7))
+          + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-(g.n*7+6) and p.on_date <= current_date-(g.n*7)) as wk
+         from generate_series(0,7) g(n)) w),
+      'usage_daily', (select coalesce(jsonb_object_agg(d::text, cnt), '{}'::jsonb) from
+        (select e.at::date d, count(*) cnt from events e where e.tenant_id=t.id and e.at >= current_date-13 group by 1) u)
+    ) as obj
+    from tenants t left join subscriptions s on s.tenant_id = t.id
+  ) x;
+  return result;
+end $$;

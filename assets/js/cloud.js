@@ -141,6 +141,10 @@
         slot: a.slot || null, trial_date: a.date || null,
       }).catch(soft);
     },
+    // court regulars (derived contacts view) — staff-scoped by RLS to own tenant
+    fetchContacts: function () {
+      return req("GET", "/contacts?order=bookings.desc&limit=100&select=phone,name,bookings,spent,last_seen").catch(soft);
+    },
     fetchApplications: function (limit) {
       return req("GET", "/applications?tenant_id=eq." + TENANT +
         "&order=created_at.desc&limit=" + (limit || 12) +

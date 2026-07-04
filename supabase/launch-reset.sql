@@ -23,3 +23,6 @@ union all select 'applications', count(*) from applications;
 -- demo roster + demo reminder log seeded for tier/cost display (migration 9)
 delete from members where tenant_id = 'leo';
 delete from reminders_log where tenant_id = 'leo';
+
+-- demo court-booker contacts seeded for the CRM panel (migration 10)
+delete from bookings where id like 'B-CRM%';
