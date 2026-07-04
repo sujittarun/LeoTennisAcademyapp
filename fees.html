@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=17" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=18" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
@@ -179,9 +179,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=17"></script>
-  <script src="assets/js/data.js?v=17"></script>
-  <script src="assets/js/cloud.js?v=17"></script>
+  <script src="assets/js/core.js?v=18"></script>
+  <script src="assets/js/data.js?v=18"></script>
+  <script src="assets/js/cloud.js?v=18"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -424,7 +424,7 @@
             : '<span class="late">' + (daysTo === 0 ? "due today" : -daysTo + (daysTo === -1 ? " day" : " days") + " overdue") + "</span>";
           return '<div class="rem-item' + (daysTo > 0 ? " upcoming" : "") + (when ? " done" : "") + '">' +
             '<span class="av">' + LT.initials(m.name) + "</span>" +
-            '<span class="rm-body"><span class="rm-name">' + m.name + "</span><br />" +
+            '<span class="rm-body"><span class="rm-name">' + LT.esc(m.name) + "</span><br />" +
             '<span class="rm-sub">' + p.name + " · " + stateHtml + (today ? ' · <span style="color:var(--tx-green);">reminded today</span>' : "") + "</span></span>" +
             '<span class="acts">' +
             '<button class="btn btn-icon btn-glass" data-doc="' + m.id + '" aria-label="Download notice document" title="Download notice (.doc)">' +
@@ -463,8 +463,8 @@
           var typePill = p.type === "Court"
             ? '<span class="pill optic">Court</span>'
             : '<span class="pill gold">Membership</span>';
-          return "<tr><td class='t-name'>" + p.name + "</td><td>" + typePill + "</td>" +
-            "<td class='faint'>" + (p.detail || "—") + "</td>" +
+          return "<tr><td class='t-name'>" + LT.esc(p.name) + "</td><td>" + typePill + "</td>" +
+            "<td class='faint'>" + LT.esc(p.detail || "—") + "</td>" +
             "<td class='num gold' style='font-weight:700;'>" + LT.fmtINR(p.amount) + "</td>" +
             "<td><span class='pill'>" + p.mode + "</span></td><td>" + fmtD(p.on) + "</td></tr>";
         }).join("") || '<tr><td colspan="6"><div class="empty-state">No payments recorded yet.</div></td></tr>';

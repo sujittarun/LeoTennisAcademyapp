@@ -90,6 +90,13 @@
 
   /* ---------- Formatters ---------- */
   LT.fmtINR = function (n) { return "₹" + Number(n || 0).toLocaleString("en-IN"); };
+  // escape user-supplied text before it goes into innerHTML — booking/
+  // applicant names come from the public and could carry <script>/onerror
+  LT.esc = function (s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
   LT.initials = function (name) {
     return String(name || "").split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase();
   };

@@ -19,3 +19,7 @@ select 'bookings' as tbl, count(*) from bookings
 union all select 'payments', count(*) from payments
 union all select 'members', count(*) from members
 union all select 'applications', count(*) from applications;
+
+-- demo roster + demo reminder log seeded for tier/cost display (migration 9)
+delete from members where tenant_id = 'leo';
+delete from reminders_log where tenant_id = 'leo';

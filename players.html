@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=17" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=18" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -63,9 +63,9 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=17"></script>
-  <script src="assets/js/data.js?v=17"></script>
-  <script src="assets/js/cloud.js?v=17"></script>
+  <script src="assets/js/core.js?v=18"></script>
+  <script src="assets/js/data.js?v=18"></script>
+  <script src="assets/js/cloud.js?v=18"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -122,8 +122,8 @@
           var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
           var pill = m.status === "due" ? '<span class="pill red">Renewal due</span>' : '<span class="pill green">Active</span>';
           return "<tr>" +
-            '<td><div class="pl-name"><span class="av">' + LT.initials(m.name) + '</span><span class="t-name">' + m.name + "</span></div></td>" +
-            "<td>" + p.name + '</td><td class="num">' + m.phone + "</td>" +
+            '<td><div class="pl-name"><span class="av">' + LT.initials(m.name) + '</span><span class="t-name">' + LT.esc(m.name) + "</span></div></td>" +
+            "<td>" + p.name + '</td><td class="num">' + LT.esc(m.phone) + "</td>" +
             "<td>" + fmtD(m.joined) + "</td><td>" + fmtD(m.validTill) + "</td><td>" + pill + "</td></tr>";
         }).join("") || '<tr><td colspan="6"><div class="empty-state">No members match your search.</div></td></tr>';
       }
