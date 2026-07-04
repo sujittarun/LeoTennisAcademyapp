@@ -41,9 +41,8 @@
       { id: "P3", sport: "pickleball", name: "Pickleball 3", note: "Den court · floodlit", img: "assets/img/courts/pickle-1.jpg" },
       { id: "P4", sport: "pickleball", name: "Pickleball 4", note: "Den court · floodlit", img: "assets/img/courts/pickle-1.jpg" },
     ],
-    courtNightImg: "assets/img/courts/court-night.jpg",
     slotHours: { open: 6, close: 23 },          // last slot starts 22:00 (10–11 PM)
-    rates: { offPeak: 500, peak: 700, peakFrom: 16 }, // peakFrom shared by both sports
+    rates: { peakFrom: 16 },                    // peak hour shared by both sports; amounts live in sports.*.rates
 
     contact: {
       address: "Opp. Lingampally MMTS Station, Venkat Reddy Colony, Serilingampally, Hyderabad",

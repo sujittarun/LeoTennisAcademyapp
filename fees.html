@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=9" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=10" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
@@ -171,8 +171,8 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=9"></script>
-  <script src="assets/js/data.js?v=9"></script>
+  <script src="assets/js/core.js?v=10"></script>
+  <script src="assets/js/data.js?v=10"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -307,7 +307,7 @@
           var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
           var daysLate = Math.max(0, Math.round((Date.now() - new Date(m.validTill)) / 864e5));
           var when = rem[m.id];
-          var today = when && when.slice(0, 10) === LT.today();
+          var today = when && LT.isoDate(new Date(when)) === LT.today();
           return '<div class="rem-item' + (when ? " done" : "") + '">' +
             '<span class="av">' + LT.initials(m.name) + "</span>" +
             '<span class="rm-body"><span class="rm-name">' + m.name + "</span><br />" +

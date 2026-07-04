@@ -54,7 +54,7 @@
     toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, ms || 2600);
   };
 
-  /* ---------- Demo store (localStorage-backed) ---------- */
+  /* ---------- Store (localStorage-backed persistence seam) ---------- */
   LT.store = {
     read: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem("lt-" + key)) || fallback; }
@@ -80,10 +80,11 @@
   LT.initials = function (name) {
     return String(name || "").split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase();
   };
-  LT.today = function () { // local date, not UTC — IST is +5:30 and
-    var d = new Date();     // toISOString() shifts early-morning dates back a day
+  LT.isoDate = function (d) { // local date, not UTC — IST is +5:30 and
+    // toISOString() shifts early-morning dates back a day
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   };
+  LT.today = function () { return LT.isoDate(new Date()); };
 
   /* ---------- Count-up ---------- */
   LT.countUp = function (el, target, opts) {

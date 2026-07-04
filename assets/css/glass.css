@@ -72,8 +72,6 @@
   --toast-border: rgba(255, 255, 255, 0.18);
   --scroll-thumb: rgba(255, 255, 255, 0.14);
   --scroll-thumb-hover: rgba(255, 255, 255, 0.26);
-  --skeleton-a: rgba(255, 255, 255, 0.05);
-  --skeleton-b: rgba(255, 255, 255, 0.12);
   --stat-grad: linear-gradient(135deg, #fff 30%, var(--gold-400));
   --gold-grad: linear-gradient(115deg, var(--gold-300), var(--gold-400) 45%, var(--gold-500) 80%);
   --scheme: dark;
@@ -152,8 +150,6 @@
   --toast-border: rgba(255, 255, 255, 0.6);
   --scroll-thumb: rgba(20, 50, 34, 0.22);
   --scroll-thumb-hover: rgba(20, 50, 34, 0.38);
-  --skeleton-a: rgba(20, 50, 34, 0.06);
-  --skeleton-b: rgba(20, 50, 34, 0.12);
   --stat-grad: linear-gradient(135deg, #14342a 30%, #8a6414);
   --scheme: light;
   --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%23142b1e' stroke-opacity='.55' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -528,11 +524,6 @@ button { font-family: inherit; }
 .btn-ghost { color: var(--ink-mid); background: transparent; border-color: transparent; }
 .btn-ghost:hover { color: var(--ink-hi); background: var(--ghost-hover); }
 
-.btn-danger {
-  color: #fff;
-  background: linear-gradient(135deg, rgba(231, 86, 92, 0.95), rgba(206, 53, 64, 0.95));
-  box-shadow: 0 8px 22px rgba(220, 70, 76, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
 
 .btn-sm { padding: 7px 14px; font-size: 12.5px; }
 .btn-lg { padding: 14px 30px; font-size: 15.5px; }
@@ -636,7 +627,6 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 
 .form-msg { font-size: 13.5px; color: var(--tx-gold); min-height: 18px; }
 .form-msg.error { color: var(--tx-red); }
-.form-msg.ok { color: var(--tx-green); }
 
 /* ---------- Pills, badges, stats ---------- */
 .pill {
@@ -792,15 +782,8 @@ table.lt-table { width: 100%; border-collapse: separate; border-spacing: 0; font
   box-shadow: 0 6px 16px rgba(201, 162, 75, 0.3);
 }
 
-/* ---------- Skeleton / empty ---------- */
+/* ---------- Empty state ---------- */
 .empty-state { padding: var(--gap-5) var(--gap-4); text-align: center; color: var(--ink-low); font-size: 14px; }
-.skeleton {
-  border-radius: var(--r-md);
-  background: linear-gradient(100deg, var(--skeleton-a) 40%, var(--skeleton-b) 50%, var(--skeleton-a) 60%);
-  background-size: 200% 100%;
-  animation: lt-shimmer 1.4s infinite;
-}
-@keyframes lt-shimmer { to { background-position: -200% 0; } }
 
 /* ---------- Utilities ---------- */
 .muted { color: var(--ink-mid); }
@@ -888,8 +871,6 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 
 /* ---------- Dashboard components ---------- */
 .kpi { display: flex; flex-direction: column; gap: 2px; padding: var(--gap-3) var(--gap-4); }
-.kpi .spark { margin-top: 10px; height: 34px; width: 100%; }
-.kpi .spark rect { transform-origin: bottom; animation: lt-grow-bar 0.7s var(--ease-spring) both; }
 .kpi .delta { font-size: 11.5px; font-weight: 700; }
 .kpi .delta.up { color: var(--tx-green); } .kpi .delta.down { color: var(--tx-red); }
 @keyframes lt-grow-bar { from { transform: scaleY(0); } }
@@ -934,17 +915,6 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .feed-item .fi-body strong { color: var(--ink-hi); font-weight: 650; }
 .feed-item .fi-time { font-size: 11.5px; color: var(--ink-faint); margin-top: 1px; }
 
-/* Avatars */
-.avatars { display: flex; align-items: center; }
-.avatars .av {
-  width: 32px; height: 32px; border-radius: 50%; margin-left: -8px;
-  display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #1c1503;
-  background: var(--gold-grad);
-  border: 2px solid var(--option-bg); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
-}
-.avatars .av:first-child { margin-left: 0; }
-.avatars .av.more { background: var(--chip-bg); color: var(--ink-mid); }
-
 /* ---------- Attendance mark grid ---------- */
 .att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .att-tile {
@@ -987,36 +957,38 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .slot.sel .sl-time { color: var(--tx-gold); }
 .slot:disabled, .slot.taken { opacity: 0.42; cursor: not-allowed; }
 
-.quote-bar {
-  display: flex; align-items: center; gap: var(--gap-3); flex-wrap: wrap;
-  padding: var(--gap-3) var(--gap-4); border-radius: var(--r-lg);
-  border: 1px solid rgba(224, 189, 108, 0.4); background: rgba(201, 162, 75, 0.1);
-}
-.quote-bar .qb-total { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--tx-gold); }
-.quote-bar .qb-note { font-size: 12.5px; color: var(--ink-mid); }
 
-/* ---------- Court photo cards (staff bookings view) ---------- */
-.court-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
+/* ---------- Court cards (staff bookings view) ----------
+   Compact photo band up top for identity; the day timeline and numbers
+   live on a quiet glass panel below so the data — not the photo — leads. */
+.court-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--gap-3); }
 @media (max-width: 699px) { .court-grid { grid-template-columns: 1fr; } }
 
 .court-card {
   position: relative;
-  min-height: 250px;
   border-radius: var(--r-xl);
   overflow: hidden;
   cursor: pointer;
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  backdrop-filter: blur(22px) saturate(1.25);
   transition: transform 0.45s var(--ease-spring), box-shadow 0.45s ease, border-color 0.3s ease;
 }
 .court-card:hover { transform: translateY(-4px); border-color: var(--glass-border-hover); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-.court-card img.cc-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.02); transition: transform 0.7s ease; }
-.court-card:hover img.cc-photo { transform: scale(1.07); }
+.court-card .cc-media { position: relative; height: 118px; }
+.court-card img.cc-photo {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(0.72) brightness(0.86);
+  transform: scale(1.02); transition: transform 0.7s ease, filter 0.5s ease;
+}
+.court-card:hover img.cc-photo { transform: scale(1.06); filter: saturate(0.95) brightness(0.95); }
 .court-card .cc-shade {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(4, 19, 12, 0.06) 28%, rgba(4, 19, 12, 0.62) 62%, rgba(4, 19, 12, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(4, 19, 12, 0.16) 0%, rgba(4, 19, 12, 0.4) 58%, rgba(4, 19, 12, 0.72) 100%);
 }
-.court-card .cc-status { position: absolute; top: 14px; right: 14px; }
+.court-card .cc-status { position: absolute; top: 12px; right: 12px; }
 /* status pills sit on photos: give them a solid dark backdrop so they stay
    readable over bright skies in both themes */
 .court-card .cc-status .pill {
@@ -1025,20 +997,21 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
-.court-card .cc-body { position: absolute; inset: auto 0 0 0; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 9px; }
-.court-card .cc-name { font-family: var(--font-display); font-weight: 800; font-size: 19px; color: #fff; line-height: 1.15; }
-.court-card .cc-name small { display: block; font-family: var(--font-body); font-weight: 600; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(224, 189, 108, 0.95); margin-top: 2px; }
-.court-card .cc-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: rgba(255, 255, 255, 0.66); }
-.court-card .cc-meta b { color: #f0d795; font-weight: 700; }
+.court-card .cc-name { position: absolute; left: 16px; bottom: 10px; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: #fff; line-height: 1.15; }
+.court-card .cc-name small { display: block; font-family: var(--font-body); font-weight: 600; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(224, 189, 108, 0.95); margin-top: 2px; }
+.court-card .cc-body { padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 9px; }
+.court-card .cc-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--ink-mid); }
+.court-card .cc-meta b { color: var(--tx-gold); font-weight: 700; }
 
 /* Hour occupancy strip: one segment per bookable hour */
 .tl { display: flex; gap: 3px; height: 24px; }
 .tl .seg {
   flex: 1; border-radius: 5px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
   transform-origin: bottom;
   animation: lt-grow-bar 0.6s var(--ease-spring) both;
 }
+:root[data-theme="light"] .tl .seg { background: rgba(20, 50, 34, 0.13); }
 .tl .seg.past { opacity: 0.22; }
 .tl .seg.booked { background: var(--gold-grad); box-shadow: 0 2px 8px rgba(201, 162, 75, 0.5); }
 .tl .seg.pending {
@@ -1063,7 +1036,7 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 }
 .court-card:hover .tl .seg.booked { filter: brightness(1.15); }
 @media (prefers-reduced-motion: reduce) { .tl .seg, .tl .seg.pending::after, .tl .seg.now { animation: none; } }
-.tl-hours { display: flex; justify-content: space-between; font-size: 9.5px; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.45); }
+.tl-hours { display: flex; justify-content: space-between; font-size: 9.5px; letter-spacing: 0.04em; color: var(--ink-faint); }
 
 /* Legend chips shared by cards + modal */
 .tl-legend { display: flex; gap: var(--gap-3); flex-wrap: wrap; font-size: 12px; color: var(--ink-low); align-items: center; }
@@ -1071,8 +1044,8 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 
 /* ---------- Court schedule modal ---------- */
 .lt-modal.court-modal { padding: 0; overflow: hidden; }
-.court-modal .cm-hero { position: relative; height: 170px; }
-.court-modal .cm-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.court-modal .cm-hero { position: relative; height: 140px; }
+.court-modal .cm-hero img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(0.78) brightness(0.88); }
 .court-modal .cm-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(4, 19, 12, 0.85)); }
 .court-modal .cm-hero .cm-title { position: absolute; left: 20px; bottom: 14px; z-index: 1; }
 .court-modal .cm-hero .cm-title h2 { color: #fff; font-size: 22px; }
@@ -1156,7 +1129,7 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); background-clip: content-box; }
 
-/* ---------- Responsive: mobile <768, tablet 768–1099, desktop ≥1100 ---------- */
+/* ---------- Responsive: mobile <700 (fold inner screens get desktop), tablet 700–1099, desktop ≥1100 ---------- */
 @media (max-width: 1099px) {
   .lt-grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lt-grid.cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

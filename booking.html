@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=9" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=10" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .bk-wrap { max-width: 1080px; margin: 0 auto; width: 100%; }
@@ -31,12 +31,14 @@
 
     /* day/night court preview — crossfades when evening hours are picked */
     .qp-photo { position: relative; margin-top: var(--gap-3); border-radius: var(--r-lg); overflow: hidden;
-      aspect-ratio: 16/8.5; border: 1px solid var(--glass-border); }
+      aspect-ratio: 16/7; border: 1px solid var(--glass-border); }
     .qp-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-      transition: opacity 1s ease; }
+      filter: saturate(0.82) brightness(0.92); transition: opacity 1s ease; }
+    .qp-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(180deg, transparent 55%, rgba(4, 19, 12, 0.38)); }
     .qp-photo img.night { opacity: 0; }
     .qp-photo.is-night img.night { opacity: 1; }
-    .qp-photo .qp-cap { position: absolute; left: 12px; bottom: 10px; z-index: 1; color: #fff;
+    .qp-photo .qp-cap { position: absolute; left: 12px; bottom: 10px; z-index: 2; color: #fff;
       font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 4px 12px; border-radius: 99px;
       background: rgba(4,19,12,.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
       display: inline-flex; align-items: center; gap: 6px; transition: background .5s ease; }
@@ -183,8 +185,8 @@
     <button type="button" class="btn btn-primary btn-sm" id="mbGo">Complete booking</button>
   </div>
 
-  <script src="assets/js/core.js?v=9"></script>
-  <script src="assets/js/data.js?v=9"></script>
+  <script src="assets/js/core.js?v=10"></script>
+  <script src="assets/js/data.js?v=10"></script>
   <script>
     (function () {
       var dateInput = document.getElementById("bkDate");

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=9" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=10" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -30,6 +30,9 @@
     .ch-legend { display: flex; gap: 8px 18px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--ink-mid); }
     .ch-legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
     .ch-legend b { color: var(--ink-hi); }
+
+    .tl-legend .sw-free { background: rgba(255, 255, 255, 0.16); }
+    :root[data-theme="light"] .tl-legend .sw-free { background: rgba(20, 50, 34, 0.16); }
   </style>
 </head>
 <body>
@@ -80,8 +83,8 @@
     <div class="tl-legend glass glass-card tight" style="justify-content:center;">
       <span><span class="sw" style="background:linear-gradient(115deg,#f0d795,#c9a24b);"></span>Booked</span>
       <span><span class="sw" style="background:repeating-linear-gradient(45deg, rgba(215,239,79,.55) 0 4px, rgba(215,239,79,.12) 4px 8px);"></span>Pending</span>
-      <span><span class="sw" style="background:rgba(255,255,255,.16);"></span>Free</span>
-      <span><span class="sw" style="background:rgba(255,255,255,.16);opacity:.3;"></span>Past</span>
+      <span><span class="sw sw-free"></span>Free</span>
+      <span><span class="sw sw-free" style="opacity:.3;"></span>Past</span>
     </div>
   </main>
 
@@ -130,8 +133,8 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=9"></script>
-  <script src="assets/js/data.js?v=9"></script>
+  <script src="assets/js/core.js?v=10"></script>
+  <script src="assets/js/data.js?v=10"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -178,7 +181,7 @@
 
       function paintChannels() {
         var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
-        var iso = cutoff.toISOString().slice(0, 10);
+        var iso = LT.isoDate(cutoff);
         var counts = {};
         LT_DATA.channels.forEach(function (c) { counts[c.id] = 0; });
         allBookings().forEach(function (b) {
@@ -238,11 +241,13 @@
           }).join("");
 
           return '<div class="court-card" data-court="' + c.id + '">' +
+            '<div class="cc-media">' +
             '<img class="cc-photo" src="' + c.img + '" alt="' + c.name + '" loading="lazy" />' +
             '<div class="cc-shade"></div>' +
             '<span class="cc-status"><span class="pill ' + st.cls + '">' + st.label + "</span></span>" +
-            '<div class="cc-body">' +
             '<div class="cc-name">' + c.name + "<small>" + LT_DATA.sports[c.sport].label + " · " + c.note + "</small></div>" +
+            "</div>" +
+            '<div class="cc-body">' +
             '<div class="tl">' + segs + "</div>" +
             '<div class="tl-hours"><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11 PM</span></div>' +
             '<div class="cc-meta"><span><b>' + booked + "</b> of " + hours.length + " hours booked</span><span><b>" + LT.fmtINR(earn) + "</b> confirmed</span></div>" +
