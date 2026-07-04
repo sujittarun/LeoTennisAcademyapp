@@ -26,3 +26,8 @@ delete from reminders_log where tenant_id = 'leo';
 
 -- demo court-booker contacts seeded for the CRM panel (migration 10)
 delete from bookings where id like 'B-CRM%';
+
+-- demo data seeded for booker/finance/partner features (migrations 13-14)
+delete from payments where ref like 'P-SEED%';
+delete from bookings where ext_ref is not null;
+update integrations set last_sync_at = null, last_result = null;

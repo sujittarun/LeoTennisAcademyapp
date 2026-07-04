@@ -690,3 +690,223 @@ create or replace function get_channels()
 returns jsonb language sql stable security definer set search_path = public as
 $$ select coalesce((select value::jsonb from platform_settings where key = 'channels'), '[]'::jsonb) $$;
 grant execute on function get_channels to anon, authenticated;
+-- ============================================================
+-- Migration 12 — HARDENING: transaction timeouts + application
+-- anti-spam RPC (closes the cross-tenant application-pollution finding)
+-- ============================================================
+-- a stuck/idle transaction can no longer hold locks forever; a query
+-- waiting on a lock gives up quickly instead of piling up
+alter role authenticated set idle_in_transaction_session_timeout = '60s';
+alter role authenticated set lock_timeout = '10s';
+alter role anon set idle_in_transaction_session_timeout = '30s';
+alter role anon set lock_timeout = '10s';
+
+-- public coaching enquiries now go through a validated, rate-limited RPC
+-- instead of a raw INSERT (which let anyone forge tenant_id / spam)
+create or replace function submit_application(
+  p_tenant text, p_name text, p_phone text, p_email text,
+  p_level text, p_goal text, p_program text, p_slot text, p_trial date
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_phone text; v_recent int;
+begin
+  if (select 1 from tenants where id = p_tenant) is null then raise exception 'unknown academy'; end if;
+  if length(trim(coalesce(p_name,''))) < 2 then raise exception 'name required'; end if;
+  v_phone := regexp_replace(coalesce(p_phone,''), '\D', '', 'g');
+  if length(v_phone) < 10 then raise exception 'valid phone required'; end if;
+  v_phone := right(v_phone, 10);
+  -- cap: one phone can lodge at most 3 enquiries per day
+  select count(*) into v_recent from applications
+    where phone = v_phone and created_at > now() - interval '1 day';
+  if v_recent >= 3 then raise exception 'too many requests — we already have your enquiry'; end if;
+  insert into applications (tenant_id, name, phone, email, level, goal, program, slot, trial_date)
+    values (p_tenant, trim(p_name), v_phone, nullif(trim(coalesce(p_email,'')),''),
+            p_level, p_goal, p_program, p_slot, p_trial);
+  return jsonb_build_object('ok', true);
+end $$;
+grant execute on function submit_application to anon, authenticated;
+
+-- lock the raw insert: enquiries must come through the RPC now
+drop policy if exists applications_public_w on applications;
+-- ============================================================
+-- Migration 13 — booker analytics + finance revenue streams
+-- ============================================================
+-- per-tenant booker stats (staff of the tenant, or operator)
+create or replace function tenant_booker_stats(p_tenant text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  if not (auth_role() = 'operator' or (auth_role() = 'staff' and auth_tenant() = p_tenant)) then
+    raise exception 'not authorised';
+  end if;
+  return jsonb_build_object(
+    'total_bookings', (select count(*) from bookings where tenant_id = p_tenant and status <> 'cancelled'),
+    'weekday_bookings', (select count(*) from bookings where tenant_id = p_tenant and status <> 'cancelled' and extract(isodow from date) < 6),
+    'weekend_bookings', (select count(*) from bookings where tenant_id = p_tenant and status <> 'cancelled' and extract(isodow from date) >= 6),
+    'booker_revenue_90d', (select coalesce(sum(amount),0) from bookings where tenant_id = p_tenant and status = 'confirmed' and date >= current_date - 90),
+    'distinct_bookers', (select count(distinct regexp_replace(phone,'\D','','g')) from bookings
+      where tenant_id = p_tenant and phone is not null and length(regexp_replace(phone,'\D','','g')) >= 10 and status <> 'cancelled')
+  );
+end $$;
+grant execute on function tenant_booker_stats to authenticated;
+
+-- monthly revenue by stream (memberships vs court by sport), last N months
+create or replace function tenant_revenue_streams(p_tenant text, p_months int default 6)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  if not (auth_role() = 'operator' or (auth_role() = 'staff' and auth_tenant() = p_tenant)) then
+    raise exception 'not authorised';
+  end if;
+  return (
+    select coalesce(jsonb_agg(row order by m), '[]'::jsonb) from (
+      select to_char(mo, 'Mon') as m, mo,
+        (select coalesce(sum(amount),0) from payments p where p.tenant_id = p_tenant and p.type = 'Membership'
+          and date_trunc('month', p.on_date) = mo) as memberships,
+        (select coalesce(sum(amount),0) from bookings b where b.tenant_id = p_tenant and b.status = 'confirmed' and b.sport = 'tennis'
+          and date_trunc('month', b.date) = mo) as tennis,
+        (select coalesce(sum(amount),0) from bookings b where b.tenant_id = p_tenant and b.status = 'confirmed' and b.sport = 'pickleball'
+          and date_trunc('month', b.date) = mo) as pickleball
+      from generate_series(date_trunc('month', current_date) - ((p_months - 1) || ' months')::interval,
+                           date_trunc('month', current_date), '1 month') mo
+    ) x
+  );
+end $$;
+grant execute on function tenant_revenue_streams to authenticated;
+
+-- give operator_portfolio a couple of booker fields for the AM cross-tenant view
+-- (weekend/weekday split + all-time bookings), reusing the existing function body
+create or replace function operator_portfolio()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare result jsonb;
+begin
+  if auth_role() <> 'operator' then raise exception 'operator only'; end if;
+  select coalesce(jsonb_agg(obj order by ord), '[]'::jsonb) into result from (
+    select t.created_at as ord, jsonb_build_object(
+      'tenant_id', t.id, 'name', t.name, 'config', t.config,
+      'plan', s.plan, 'mrr', coalesce(s.mrr,0), 'sub_status', s.status, 'renews_on', s.renews_on,
+      'tier', s.tier, 'player_cap', s.player_cap, 'msg_rate', coalesce(s.msg_rate,0.35),
+      'active_players', (select count(*) from members m where m.tenant_id=t.id and m.status in ('active','due')),
+      'contacts_count', (select count(distinct regexp_replace(phone,'\D','','g')) from bookings b
+                         where b.tenant_id=t.id and b.phone is not null
+                           and length(regexp_replace(b.phone,'\D','','g'))>=10 and b.status<>'cancelled'),
+      'total_bookings', (select count(*) from bookings b where b.tenant_id=t.id and b.status<>'cancelled'),
+      'weekend_bookings', (select count(*) from bookings b where b.tenant_id=t.id and b.status<>'cancelled' and extract(isodow from b.date)>=6),
+      'weekday_bookings', (select count(*) from bookings b where b.tenant_id=t.id and b.status<>'cancelled' and extract(isodow from b.date)<6),
+      'booker_rev_90d', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.status='confirmed' and b.date>=current_date-90),
+      'msgs_30d', (select count(*) from reminders_log r where r.tenant_id=t.id and r.sent_at >= current_date-30),
+      'msg_cost_30d', round((select count(*) from reminders_log r where r.tenant_id=t.id and r.sent_at >= current_date-30) * coalesce(s.msg_rate,0.35), 2),
+      'bookings_30d', (select count(*) from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status<>'cancelled'),
+      'bookings_prev', (select count(*) from bookings b where b.tenant_id=t.id and b.date >= current_date-60 and b.date < current_date-30 and b.status<>'cancelled'),
+      'gmv_30d', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status='confirmed')
+               + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-30),
+      'gmv_prev', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.date >= current_date-60 and b.date < current_date-30 and b.status='confirmed')
+                + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-60 and p.on_date < current_date-30),
+      'apps_30d', (select count(*) from applications a where a.tenant_id=t.id and a.created_at >= current_date-30),
+      'events_30d', (select count(*) from events e where e.tenant_id=t.id and e.at >= current_date-30),
+      'sessions_30d', (select count(distinct session_id) from events e where e.tenant_id=t.id and e.at >= current_date-30 and e.session_id is not null),
+      'active_days_30d', (select count(distinct e.at::date) from events e where e.tenant_id=t.id and e.at >= current_date-30),
+      'last_event_at', (select max(at) from events e where e.tenant_id=t.id),
+      'errors_30d', (select count(*) from events e where e.tenant_id=t.id and e.name='client_error' and e.at >= current_date-30),
+      'app_ver', (select props->>'ver' from events e where e.tenant_id=t.id and e.name='page_view' and e.props ? 'ver' order by e.at desc limit 1),
+      'channel_mix', (select coalesce(jsonb_object_agg(src, cnt), '{}'::jsonb) from
+        (select coalesce(source,'Website') src, count(*) cnt from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status<>'cancelled' group by 1) m),
+      'weekly_gmv', (select coalesce(jsonb_agg(wk order by wknum desc), '[]'::jsonb) from
+        (select g.n as wknum,
+          (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.status='confirmed' and b.date >= current_date-(g.n*7+6) and b.date <= current_date-(g.n*7))
+          + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-(g.n*7+6) and p.on_date <= current_date-(g.n*7)) as wk
+         from generate_series(0,7) g(n)) w),
+      'usage_daily', (select coalesce(jsonb_object_agg(d::text, cnt), '{}'::jsonb) from
+        (select e.at::date d, count(*) cnt from events e where e.tenant_id=t.id and e.at >= current_date-13 group by 1) u)
+    ) as obj
+    from tenants t left join subscriptions s on s.tenant_id = t.id
+  ) x;
+  return result;
+end $$;
+-- ============================================================
+-- Migration 14 — CHANNEL-PARTNER integrations (CourtSync)
+-- Architecture: the bookings ledger stays the single source of truth.
+-- A partner sync (Playo/Hudle/District) is just another CALLER that
+-- writes into the ledger, keyed by the partner's own booking id
+-- (ext_ref) for idempotency. Real APIs plug in via Supabase Edge
+-- Functions (poller + webhook) — scaffolded in supabase/functions/.
+-- partner_sync() below is a DUMMY that simulates a partner pushing a
+-- booking, proving the end-to-end path.
+-- ============================================================
+alter table bookings add column if not exists ext_ref text;  -- partner's booking id
+-- a partner booking id is unique per tenant+channel (idempotent sync)
+create unique index if not exists bookings_ext_ref_unique
+  on bookings (tenant_id, source, ext_ref) where ext_ref is not null;
+
+create table if not exists integrations (
+  tenant_id   text not null references tenants(id),
+  channel     text not null,
+  enabled     boolean not null default true,
+  config      jsonb not null default '{}',   -- api keys / venue ids (encrypted in prod)
+  last_sync_at timestamptz,
+  last_result text,
+  primary key (tenant_id, channel)
+);
+alter table integrations enable row level security;
+create policy integrations_staff on integrations for select
+  using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));
+
+create table if not exists sync_log (
+  id         bigint generated always as identity primary key,
+  tenant_id  text not null,
+  channel    text not null,
+  action     text not null,          -- pull | push | webhook
+  ext_ref    text,
+  status     text not null,          -- ok | skipped | error
+  detail     text,
+  at         timestamptz not null default now()
+);
+alter table sync_log enable row level security;
+create policy sync_log_staff on sync_log for select
+  using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));
+
+insert into integrations (tenant_id, channel, enabled, config) values
+  ('leo','Playo',    true,  '{"venue_id":"leo-playo-demo"}'),
+  ('leo','Hudle',    true,  '{"venue_id":"leo-hudle-demo"}'),
+  ('leo','District', true,  '{"venue_id":"leo-district-demo"}')
+on conflict (tenant_id, channel) do nothing;
+
+-- DUMMY partner pull: simulates the partner returning one new booking,
+-- writes it into the ledger via the same rules real syncs would use.
+create or replace function partner_sync(p_tenant text, p_channel text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_courts int; v_sport text; v_date date; v_hour int; v_court text;
+  v_ext text; v_amt int; v_id text; v_attempts int := 0; v_done boolean := false;
+begin
+  if not (auth_role() = 'operator' or (auth_role() = 'staff' and auth_tenant() = p_tenant)) then
+    raise exception 'not authorised';
+  end if;
+  if (select enabled from integrations where tenant_id = p_tenant and channel = p_channel) is not true then
+    raise exception 'integration not enabled';
+  end if;
+  select config into v_cfg from tenants where id = p_tenant;
+  v_ext := p_channel || '-' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  -- find a free future slot (partners book ahead); try a few random ones
+  while v_attempts < 12 and not v_done loop
+    v_attempts := v_attempts + 1;
+    v_sport := case when random() < 0.6 then 'tennis' else 'pickleball' end;
+    v_courts := coalesce((v_cfg#>>(array['courts', v_sport]))::int, 0);
+    v_date := current_date + (1 + floor(random()*10))::int;
+    v_hour := 6 + floor(random()*16)::int;
+    v_court := upper(left(v_sport,1)) || (1 + floor(random()*v_courts))::int;
+    v_amt := slot_rate(p_tenant, v_sport, v_hour);
+    v_id := 'B-EXT' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+    begin
+      insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source, ext_ref)
+        values (v_id, p_tenant, p_channel || ' booking', null, v_sport, v_court, v_date, v_hour, v_amt, 'confirmed', p_channel, v_ext);
+      v_done := true;
+    exception when unique_violation then null; -- slot taken, try another
+    end;
+  end loop;
+  update integrations set last_sync_at = now(),
+    last_result = case when v_done then 'imported 1 booking' else 'no free slots' end
+    where tenant_id = p_tenant and channel = p_channel;
+  insert into sync_log (tenant_id, channel, action, ext_ref, status, detail)
+    values (p_tenant, p_channel, 'pull', v_ext, case when v_done then 'ok' else 'skipped' end,
+            case when v_done then 'imported ' || v_court || ' ' || v_date else 'no free slot found' end);
+  return jsonb_build_object('imported', case when v_done then 1 else 0 end, 'channel', p_channel,
+                            'court', v_court, 'date', v_date);
+end $$;
+grant execute on function partner_sync to authenticated;

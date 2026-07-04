@@ -97,6 +97,37 @@
     return req("POST", "/rpc/" + name, args).catch(function (e) { throw new Error(friendly(e)); });
   }
 
+  /* ---------- offline outbox ----------
+     Fire-and-forget writes (analytics, attendance ticks, reminder logs)
+     that fail on a flaky network are queued in localStorage and replayed
+     on reconnect, so a booking marked in a venue dead-zone isn't lost.
+     Money-path writes deliberately stay reject-on-fail (the UI reacts). */
+  var OUTBOX_KEY = "lt-outbox";
+  function outbox() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY)) || []; } catch (e) { return []; } }
+  function saveOutbox(q) { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(q.slice(-300))); } catch (e) {} }
+  function isNetworkErr(e) { return /Failed to fetch|NetworkError|Load failed|no connection/.test(String(e && e.message || e)); }
+  function durable(method, path, body, extra) {
+    return req(method, path, body, extra).catch(function (err) {
+      if (isNetworkErr(err)) { var q = outbox(); q.push({ method: method, path: path, body: body, extra: extra }); saveOutbox(q); }
+      return null;
+    });
+  }
+  function flushOutbox() {
+    var q = outbox();
+    if (!q.length) return Promise.resolve();
+    var remaining = [], chain = Promise.resolve();
+    q.forEach(function (op) {
+      chain = chain.then(function () {
+        return req(op.method, op.path, op.body, op.extra).catch(function (err) { if (isNetworkErr(err)) remaining.push(op); });
+      });
+    });
+    return chain.then(function () { saveOutbox(remaining); });
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("online", flushOutbox);
+    setTimeout(flushOutbox, 1500);
+  }
+
   window.LT_CLOUD = {
     tenant: TENANT,
     STRICT_AUTH: STRICT_AUTH,
@@ -134,15 +165,24 @@
     },
 
     /* -------- operational tables (staff) -------- */
+    // public enquiry — validated + rate-limited server-side (REJECTS on failure)
     addApplication: function (a) {
-      return req("POST", "/applications", {
-        tenant_id: TENANT, name: a.name, phone: a.phone || null, email: a.email || null,
-        level: a.level || null, goal: a.goal || null, program: a.program || null,
-        slot: a.slot || null, trial_date: a.date || null,
-      }).catch(soft);
+      return rpc("submit_application", {
+        p_tenant: TENANT, p_name: a.name, p_phone: a.phone || null, p_email: a.email || null,
+        p_level: a.level || null, p_goal: a.goal || null, p_program: a.program || null,
+        p_slot: a.slot || null, p_trial: a.date || null,
+      });
     },
     // booking-channel master list (single source of truth in the DB)
     fetchChannels: function () { return rpc("get_channels", {}).catch(soft); },
+    // per-tenant booker analytics + finance streams (staff of tenant / operator)
+    fetchBookerStats: function (tenant) { return rpc("tenant_booker_stats", { p_tenant: tenant || TENANT }).catch(soft); },
+    fetchRevenueStreams: function (months, tenant) { return rpc("tenant_revenue_streams", { p_tenant: tenant || TENANT, p_months: months || 6 }).catch(soft); },
+    // channel-partner integrations (CourtSync)
+    fetchIntegrations: function (tenant) {
+      return req("GET", "/integrations?tenant_id=eq." + (tenant || TENANT) + "&select=channel,enabled,last_sync_at,last_result&order=channel").catch(soft);
+    },
+    partnerSync: function (channel, tenant) { return rpc("partner_sync", { p_tenant: tenant || TENANT, p_channel: channel }); },
     // court regulars (derived contacts view) — staff-scoped by RLS to own tenant
     fetchContacts: function () {
       return req("GET", "/contacts?order=bookings.desc&limit=100&select=phone,name,bookings,spent,last_seen").catch(soft);
@@ -166,29 +206,30 @@
       return req("GET", "/attendance?tenant_id=eq." + TENANT + "&date=eq." + dateIso +
         "&present=eq.true&select=kind,person_id").catch(soft);
     },
+    // attendance ticks survive a flaky network via the outbox
     setPresence: function (dateIso, kind, personId, present) {
-      return req("POST", "/attendance", {
+      return durable("POST", "/attendance", {
         tenant_id: TENANT, date: dateIso, kind: kind,
         person_id: String(personId), present: !!present,
-      }, { Prefer: "resolution=merge-duplicates" }).catch(soft);
+      }, { Prefer: "resolution=merge-duplicates" });
     },
     logReminder: function (memberId, upi) {
-      return req("POST", "/reminders_log", {
+      return durable("POST", "/reminders_log", {
         tenant_id: TENANT, member_id: String(memberId), channel: "whatsapp", upi_used: upi,
-      }).catch(soft);
+      });
     },
 
-    /* usage analytics */
+    /* usage analytics (outbox-backed so events aren't lost offline) */
     track: function (name, props) {
       var sid;
       try {
         sid = sessionStorage.getItem("lt-sid") ||
           (sid = Math.random().toString(36).slice(2), sessionStorage.setItem("lt-sid", sid), sid);
       } catch (e) { sid = null; }
-      return req("POST", "/events", {
+      return durable("POST", "/events", {
         tenant_id: TENANT, name: name, props: props || {},
         session_id: sid, page: location.pathname.split("/").pop() || "index.html",
-      }).catch(soft);
+      });
     },
   };
 

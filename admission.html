@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=20" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=21" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .adm-wrap { max-width: 720px; margin: 0 auto; width: 100%; }
@@ -119,9 +119,9 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=20"></script>
-  <script src="assets/js/data.js?v=20"></script>
-  <script src="assets/js/cloud.js?v=20"></script>
+  <script src="assets/js/core.js?v=21"></script>
+  <script src="assets/js/data.js?v=21"></script>
+  <script src="assets/js/cloud.js?v=21"></script>
   <script>
     (function () {
       var step = 1, TOTAL = 3;
@@ -188,16 +188,23 @@
           level: d.get("level"), goal: d.get("goal"), program: d.get("program"),
           slot: d.get("slot"), date: d.get("date"), at: new Date().toISOString(),
         };
-        apps.unshift(rec);
-        LT.store.write("applications", apps);
-        if (window.LT_CLOUD) {
-          LT_CLOUD.addApplication(rec);
-          LT_CLOUD.track("admission_submitted", { program: rec.program || "" });
+        function showDone() {
+          apps.unshift(rec);
+          LT.store.write("applications", apps);
+          document.getElementById("wizard").style.display = "none";
+          document.querySelector(".adm-hero").style.display = "none";
+          document.getElementById("doneCard").classList.add("show");
+          LT.toast("Application received — see you on court! 🎾");
         }
-        document.getElementById("wizard").style.display = "none";
-        document.querySelector(".adm-hero").style.display = "none";
-        document.getElementById("doneCard").classList.add("show");
-        LT.toast("Application received — see you on court! 🎾");
+        if (window.LT_CLOUD) {
+          LT_CLOUD.track("admission_submitted", { program: rec.program || "" });
+          LT_CLOUD.addApplication(rec).then(showDone).catch(function (e) {
+            msg.textContent = /too many/.test(String(e.message)) ? "We already have your enquiry — our coach will call you."
+              : /no connection/.test(String(e.message)) ? "No connection — please try again or call +91 96768 29060."
+              : "Something went wrong — please call +91 96768 29060.";
+            msg.className = "form-msg error";
+          });
+        } else { showDone(); }
       });
       document.getElementById("backBtn").addEventListener("click", function () { if (step > 1) { step--; paint(); } });
 

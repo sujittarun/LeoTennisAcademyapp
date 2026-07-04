@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=20" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=21" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
@@ -86,6 +86,21 @@
     .rem-item .acts .wa svg { width: 15px; height: 15px; }
     .rem-upi { font-size: 11.5px; margin: -6px 0 12px; }
     .rem-upi b { color: var(--tx-gold); font-weight: 700; }
+    /* revenue streams */
+    .stream-wrap { display: grid; grid-template-columns: 1.5fr .8fr; gap: var(--gap-4); align-items: end; }
+    @media (max-width: 799px) { .stream-wrap { grid-template-columns: 1fr; } }
+    .stream-bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; }
+    .stream-bars .mo { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+    .stream-bars .stack { width: 100%; max-width: 40px; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; }
+    .stream-bars .stack i { display: block; transform-origin: bottom; animation: lt-grow-bar .6s var(--ease-spring) both; }
+    .stream-bars .mo-l { font-size: 10.5px; color: var(--ink-low); }
+    .seg-mem { background: var(--gold-grad); }
+    .seg-ten { background: linear-gradient(180deg,#6ee7b7,#34d399); }
+    .seg-pick { background: linear-gradient(180deg,#e7f97e,#cbe34f); }
+    .stream-donut { display: flex; flex-direction: column; gap: 8px; }
+    .stream-donut .d-ring { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto; }
+    .stream-donut .d-tot { text-align: center; font-size: 12px; color: var(--ink-low); }
+    .stream-donut .d-tot b { display: block; font-family: var(--font-display); font-size: 20px; color: var(--tx-gold); }
   </style>
 </head>
 <body>
@@ -142,6 +157,18 @@
       </div>
     </div>
 
+    <!-- revenue by stream: memberships vs court (tennis / pickleball) -->
+    <div class="glass glass-card reveal hide" id="streamCard">
+      <div class="card-head">
+        <div><div class="kicker">Revenue streams</div><h2>Where the money comes from</h2></div>
+        <div class="rv-legend" id="streamLegend"></div>
+      </div>
+      <div class="stream-wrap">
+        <div class="stream-bars" id="streamBars"></div>
+        <div class="stream-donut" id="streamDonut"></div>
+      </div>
+    </div>
+
     <div class="glass">
       <div class="card-head" style="padding: var(--gap-3) var(--gap-3) 0;">
         <div><div class="kicker">Ledger</div><h2 style="font-size:18px;">Recent payments</h2></div>
@@ -179,9 +206,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=20"></script>
-  <script src="assets/js/data.js?v=20"></script>
-  <script src="assets/js/cloud.js?v=20"></script>
+  <script src="assets/js/core.js?v=21"></script>
+  <script src="assets/js/data.js?v=21"></script>
+  <script src="assets/js/cloud.js?v=21"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -203,6 +230,32 @@
             render();
           }
         });
+        LT_CLOUD.fetchRevenueStreams && LT_CLOUD.fetchRevenueStreams(6).then(paintStreams);
+      }
+
+      function paintStreams(months) {
+        if (!months || !months.length) return;
+        var totMem = 0, totTen = 0, totPick = 0, max = 1;
+        months.forEach(function (m) {
+          totMem += m.memberships; totTen += m.tennis; totPick += m.pickleball;
+          var t = m.memberships + m.tennis + m.pickleball; if (t > max) max = t;
+        });
+        var grand = totMem + totTen + totPick || 1;
+        document.getElementById("streamBars").innerHTML = months.map(function (m) {
+          function seg(cls, v) { return v ? '<i class="' + cls + '" style="height:' + Math.round((v / max) * 150) + 'px;" title="' + LT.fmtINR(v) + '"></i>' : ""; }
+          return '<div class="mo"><div class="stack">' + seg("seg-mem", m.memberships) + seg("seg-ten", m.tennis) + seg("seg-pick", m.pickleball) +
+            '</div><span class="mo-l">' + m.m + "</span></div>";
+        }).join("");
+        // conic donut of the 6-month split
+        var pMem = (totMem / grand) * 100, pTen = (totTen / grand) * 100;
+        document.getElementById("streamDonut").innerHTML =
+          '<div class="d-ring" style="background:conic-gradient(#c9a24b 0 ' + pMem + '%, #34d399 ' + pMem + '% ' + (pMem + pTen) + '%, #cbe34f ' + (pMem + pTen) + '% 100%); -webkit-mask:radial-gradient(circle 34px at center, transparent 98%, #000 100%); mask:radial-gradient(circle 34px at center, transparent 98%, #000 100%);"></div>' +
+          '<div class="d-tot">6-month total<b>' + LT.fmtINR(grand) + "</b></div>";
+        document.getElementById("streamLegend").innerHTML =
+          '<span><span class="sw" style="background:var(--gold-grad);"></span>Memberships ' + Math.round(pMem) + "%</span>" +
+          '<span><span class="sw" style="background:#34d399;"></span>Tennis courts ' + Math.round(pTen) + "%</span>" +
+          '<span><span class="sw" style="background:#cbe34f;"></span>Pickleball ' + Math.round((totPick / grand) * 100) + "%</span>";
+        document.getElementById("streamCard").classList.remove("hide");
       }
 
       function allPayments() {

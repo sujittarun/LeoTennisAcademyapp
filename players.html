@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=20" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=21" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -23,6 +23,14 @@
     .app-row .aq-what { font-size: 12.5px; color: var(--ink-mid); }
     .app-row .aq-when { font-size: 11.5px; color: var(--ink-faint); margin-left: auto; }
     .app-row .aq-call { font-size: 12.5px; font-weight: 700; color: var(--tx-gold); }
+    .bstat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 620px) { .bstat-row { grid-template-columns: 1fr 1fr; } }
+    .bstat { border: 1px solid var(--tile-border); background: var(--tile-bg); border-radius: var(--r-md); padding: 12px 14px; }
+    .bstat .k { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-low); }
+    .bstat .v { display: block; font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--ink-hi); margin-top: 3px; }
+    .bstat .s { font-size: 11px; color: var(--ink-faint); }
+    .we-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 6px; background: var(--line); }
+    .we-bar i { display: block; height: 100%; }
   </style>
 </head>
 <body>
@@ -62,6 +70,14 @@
       </div>
     </div>
 
+    <!-- booker insights (from bookings, per tenant) -->
+    <div class="glass glass-card tight hide" id="bookerStats" style="margin-top: var(--gap-3);">
+      <div class="card-head" style="margin-bottom: 10px;">
+        <div><div class="kicker">Court bookings</div><h2 style="font-size:16px;">Booker insights</h2></div>
+      </div>
+      <div class="bstat-row" id="bstatRow"></div>
+    </div>
+
     <!-- court regulars — people who book courts but aren't coaching members;
          a passive contact list derived from bookings (NOT the roster) -->
     <div class="glass glass-card tight hide" id="regCard" style="margin-top: var(--gap-3);">
@@ -78,9 +94,9 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=20"></script>
-  <script src="assets/js/data.js?v=20"></script>
-  <script src="assets/js/cloud.js?v=20"></script>
+  <script src="assets/js/core.js?v=21"></script>
+  <script src="assets/js/data.js?v=21"></script>
+  <script src="assets/js/cloud.js?v=21"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -123,6 +139,20 @@
               '<span class="aq-when">' + fmtD(a.created_at) + "</span></div>";
           }).join("");
           document.getElementById("appCard").classList.remove("hide");
+        });
+
+        // booker insights — total, weekday/weekend split, 90-day court revenue
+        LT_CLOUD.fetchBookerStats && LT_CLOUD.fetchBookerStats().then(function (s) {
+          if (!s) return;
+          var tot = (s.weekday_bookings || 0) + (s.weekend_bookings || 0) || 1;
+          var wkPct = Math.round((s.weekday_bookings / tot) * 100);
+          document.getElementById("bstatRow").innerHTML =
+            '<div class="bstat"><span class="k">Total bookings</span><span class="v">' + (s.total_bookings || 0) + '</span><span class="s">all time</span></div>' +
+            '<div class="bstat"><span class="k">Weekday / weekend</span><span class="v" style="font-size:16px;">' + (s.weekday_bookings || 0) + " / " + (s.weekend_bookings || 0) + '</span>' +
+              '<div class="we-bar"><i style="width:' + wkPct + '%;background:var(--tx-gold);"></i><i style="width:' + (100 - wkPct) + '%;background:var(--tx-optic);"></i></div></div>' +
+            '<div class="bstat"><span class="k">Court revenue · 90d</span><span class="v" style="color:var(--tx-gold);">' + LT.fmtINR(s.booker_revenue_90d || 0) + '</span><span class="s">from bookers</span></div>' +
+            '<div class="bstat"><span class="k">Unique bookers</span><span class="v">' + (s.distinct_bookers || 0) + '</span><span class="s">distinct phones</span></div>';
+          document.getElementById("bookerStats").classList.remove("hide");
         });
 
         // court regulars — the academy's own booker CRM, derived from bookings
