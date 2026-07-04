@@ -1139,7 +1139,7 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 }
 @media (max-width: 699px) {
   body { font-size: 14px; }
-  .sched-row .sr-time { width: 74px; font-size: 11px; }
+  .sched-row .sr-time { width: 86px; font-size: 11px; white-space: nowrap; }
   .sched-row .sr-who { max-width: 118px; font-size: 11.5px; }
   .court-modal .cm-hero { height: 130px; }
   .lt-page {

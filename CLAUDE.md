@@ -53,6 +53,10 @@ split, manual add-booking) · attendance.html (members AND staff/coach modes) ·
 fees.html (Finance). LT_DATA.staff holds the coach/ops roster.
 
 ## Conventions
+- PRIMARY TARGET: iPhone Safari — most users are on mobile. Design and verify
+  the ≤699px layout FIRST (375×812; mind safe-area insets, -webkit- prefixes,
+  viewport-height quirks), then desktop. Never ship a change checked only on
+  desktop widths.
 - Prefix classes/keys `lt-`. Only use tokens from glass.css, never hardcoded colors.
 - Both themes must stay consistent; test dark (default) and light.
 - Mobile breakpoint is 699px (not 767) so fold-phone inner screens (~717px)
