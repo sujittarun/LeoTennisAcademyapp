@@ -423,3 +423,54 @@ grant execute on function cancel_booking to authenticated;
 drop policy if exists tenants_staff_r on tenants;
 create policy tenants_staff_r on tenants for select
   using (auth_role() = 'staff' and id = auth_tenant());
+-- ============================================================
+-- Migration 7 — anti-abuse on the public booking path
+-- Closes the verified DoS: anon could create unlimited pending
+-- bookings with fake/no phone and exhaust a day's capacity.
+-- No external service needed. Full OTP verification comes later.
+-- ============================================================
+create or replace function request_booking(
+  p_tenant text, p_sport text, p_date date, p_hour int, p_name text, p_phone text
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_courts int; v_taken int; v_amt int; v_id text;
+  v_phone text; v_pending_phone int; v_pending_day int;
+begin
+  if p_hour < 6 or p_hour > 22 then raise exception 'invalid hour'; end if;
+  if p_date < current_date then raise exception 'date in the past'; end if;
+  if p_date > current_date + 90 then raise exception 'date too far ahead'; end if;
+  if length(trim(coalesce(p_name,''))) < 2 then raise exception 'name required'; end if;
+  -- require a real 10-digit phone: gives us an identity to rate-limit on
+  v_phone := regexp_replace(coalesce(p_phone,''), '\D', '', 'g');
+  if length(v_phone) < 10 then raise exception 'valid phone required'; end if;
+  v_phone := right(v_phone, 10);
+
+  select config into v_cfg from tenants where id = p_tenant;
+  if v_cfg is null then raise exception 'unknown academy'; end if;
+
+  -- self-cleaning: unconfirmed website requests older than 90 min evaporate,
+  -- so junk can never pile up and block real customers
+  delete from bookings
+    where tenant_id = p_tenant and date = p_date and source = 'Website'
+      and status = 'pending' and created_at < now() - interval '90 minutes';
+
+  -- flood caps: per phone, and per venue-day
+  select count(*) into v_pending_phone from bookings
+    where phone = v_phone and status = 'pending' and source = 'Website';
+  if v_pending_phone >= 5 then raise exception 'too many pending requests — wait for confirmation'; end if;
+
+  v_courts := court_count(v_cfg, p_sport);
+  select count(*) into v_pending_day from bookings
+    where tenant_id = p_tenant and date = p_date and source = 'Website' and status = 'pending';
+  if v_pending_day >= greatest(v_courts * 8, 24) then raise exception 'the desk is catching up on requests — please call to book'; end if;
+
+  v_amt := slot_rate(p_tenant, p_sport, p_hour);
+  select count(*) into v_taken from bookings
+    where tenant_id = p_tenant and date = p_date and hour = p_hour
+      and sport = p_sport and status <> 'cancelled';
+  if v_taken >= v_courts then raise exception 'slot full'; end if;
+
+  v_id := 'B-' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS') || '-' || p_hour;
+  insert into bookings (id, tenant_id, name, phone, sport, date, hour, amount, status, source)
+    values (v_id, p_tenant, trim(p_name), v_phone, p_sport, p_date, p_hour, v_amt, 'pending', 'Website');
+  return jsonb_build_object('id', v_id, 'amount', v_amt);
+end $$;
