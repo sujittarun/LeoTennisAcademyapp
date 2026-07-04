@@ -9,6 +9,7 @@
 (function () {
   "use strict";
 
+  var APP_VER = "15"; // keep in step with the ?v= cache-buster — the operator console shows it
   var BASE = "https://ugsklcipzyiogxynshnh.supabase.co/rest/v1";
   var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnc2tsY2lwenlpb2d4eW5zaG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4OTUyMzksImV4cCI6MjA5ODQ3MTIzOX0.w7xkjdTkYN2qA0oxMKLUNtua0ScKVHKQzfEyIayh9eo";
   var TENANT = "leo";
@@ -116,6 +117,25 @@
     },
   };
 
-  // every page that loads the adapter logs a view
-  LT_CLOUD.track("page_view", {});
+  // every page that loads the adapter logs a view (with app version, so
+  // the operator console can see which build a tenant is running)
+  LT_CLOUD.track("page_view", { ver: APP_VER });
+
+  // error telemetry — first thing to check when a tenant reports a problem
+  var errSent = 0;
+  window.addEventListener("error", function (e) {
+    if (errSent++ >= 5) return; // don't flood on error loops
+    LT_CLOUD.track("client_error", {
+      msg: String(e.message || "").slice(0, 200),
+      src: String(e.filename || "").split("/").pop() + ":" + (e.lineno || 0),
+      ver: APP_VER,
+    });
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    if (errSent++ >= 5) return;
+    LT_CLOUD.track("client_error", {
+      msg: ("promise: " + String(e.reason && e.reason.message || e.reason || "")).slice(0, 200),
+      ver: APP_VER,
+    });
+  });
 })();
