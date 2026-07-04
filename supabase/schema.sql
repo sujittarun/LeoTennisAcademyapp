@@ -155,3 +155,22 @@ alter table payments add column if not exists ref text;
 create unique index if not exists payments_ref_unique on payments (tenant_id, ref) where ref is not null;
 -- the Academy Manager console reads usage analytics
 create policy events_read on events for select using (true);
+-- What each academy pays the platform (operator-only concept; the
+-- tenant apps never read this). MRR amounts are PLACEHOLDERS — edit in
+-- the dashboard or via SQL when real contracts are signed.
+create table if not exists subscriptions (
+  tenant_id  text primary key references tenants(id),
+  plan       text not null default 'pilot',   -- pilot | standard | pro
+  mrr        int  not null default 0,         -- ₹ per month
+  status     text not null default 'active',  -- active | pilot | paused
+  started    date,
+  renews_on  date,
+  notes      text
+);
+alter table subscriptions enable row level security;
+create policy subscriptions_read on subscriptions for select using (true);
+
+insert into subscriptions (tenant_id, plan, mrr, status, started, renews_on, notes) values
+  ('leo',      'pilot',    2500, 'active', '2026-07-01', '2026-08-01', 'Won after demo — placeholder MRR, set real contract value'),
+  ('genalpha', 'standard', 2000, 'active', '2026-06-01', '2026-08-01', 'First client — placeholder MRR')
+on conflict (tenant_id) do nothing;
