@@ -81,7 +81,10 @@
       return LT.store.read("session", null);
     },
     require: function () {
-      if (!LT.auth.session()) location.replace("login.html");
+      var s = LT.auth.session();
+      if (!s) return location.replace("login.html");
+      // once strict auth is on, a legacy local session no longer counts
+      if (window.LT_CLOUD && LT_CLOUD.STRICT_AUTH && !s.access_token) location.replace("login.html");
     },
   };
 

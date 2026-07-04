@@ -15,13 +15,13 @@
 (function () {
   "use strict";
 
-  var APP_VER = "16"; // keep in step with the ?v= cache-buster
+  var APP_VER = "17"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
   var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnc2tsY2lwenlpb2d4eW5zaG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4OTUyMzksImV4cCI6MjA5ODQ3MTIzOX0.w7xkjdTkYN2qA0oxMKLUNtua0ScKVHKQzfEyIayh9eo";
   var TENANT = "leo";
-  var STRICT_AUTH = false;
+  var STRICT_AUTH = true; // real sign-in required (dummy users provisioned 2026-07-04)
   var SESSION_KEY = "lt-cloud-session";
 
   /* ---------- session ---------- */
