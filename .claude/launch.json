@@ -4,8 +4,28 @@
     {
       "name": "leo-tennis",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "http-server", "-p", "8123", "-c-1", "."],
+      "runtimeArgs": [
+        "--yes",
+        "http-server",
+        "-p",
+        "8123",
+        "-c-1",
+        "."
+      ],
       "port": 8123
+    },
+    {
+      "name": "academy-manager",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "http-server",
+        "-p",
+        "8124",
+        "-c-1",
+        "/Users/jiths/Documents/AcademyManager"
+      ],
+      "port": 8124
     }
   ]
 }

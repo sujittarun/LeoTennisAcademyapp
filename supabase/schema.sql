@@ -153,3 +153,5 @@ create policy applications_write on applications for insert with check (true);
 
 alter table payments add column if not exists ref text;
 create unique index if not exists payments_ref_unique on payments (tenant_id, ref) where ref is not null;
+-- the Academy Manager console reads usage analytics
+create policy events_read on events for select using (true);
