@@ -44,6 +44,15 @@
     slotHours: { open: 6, close: 23 },          // last slot starts 22:00 (10–11 PM)
     rates: { peakFrom: 16 },                    // peak hour shared by both sports; amounts live in sports.*.rates
 
+    // UPI collection accounts — PLACEHOLDER IDs, swap for the real ones before
+    // launch. Rotation spreads incoming payments across accounts: days 1–5 of
+    // the month collect to the first ID, 6–10 to the second, then repeat.
+    billing: {
+      payee: "Leo Academy",
+      upiIds: ["1234567890@ybl", "0123456789@ybl"],
+      upiWindowDays: 5,
+    },
+
     contact: {
       address: "Opp. Lingampally MMTS Station, Venkat Reddy Colony, Serilingampally, Hyderabad",
       phone: "+91 96768 29060",
@@ -59,7 +68,7 @@
       { id: 4,  name: "Rohit Venkatesh",  program: "perf",    age: 38, phone: "90000 87641", joined: "2025-03-02", validTill: daysFromNow(58),  status: "active" },
       { id: 5,  name: "Meera Iyer",       program: "found",   age: 27, phone: "98661 90035", joined: "2026-02-18", validTill: daysFromNow(41),  status: "active" },
       { id: 6,  name: "Adityan Pillai",   program: "private", age: 45, phone: "96520 71148", joined: "2024-12-01", validTill: daysFromNow(-8),  status: "due" },
-      { id: 7,  name: "Farhan Sheikh",    program: "perf",    age: 29, phone: "90104 22983", joined: "2025-07-22", validTill: daysFromNow(22),  status: "active" },
+      { id: 7,  name: "Farhan Sheikh",    program: "perf",    age: 29, phone: "90104 22983", joined: "2025-07-22", validTill: daysFromNow(2),   status: "active" },
       { id: 8,  name: "Divya Chandran",   program: "cardio",  age: 35, phone: "97010 38854", joined: "2025-10-08", validTill: daysFromNow(-1),  status: "due" },
       { id: 9,  name: "Vikram Bhat",      program: "found",   age: 41, phone: "98850 61147", joined: "2026-05-12", validTill: daysFromNow(33),  status: "active" },
       { id: 10, name: "Ananya Deshpande", program: "perf",    age: 26, phone: "98481 33290", joined: "2026-01-10", validTill: daysFromNow(19),  status: "active" },
