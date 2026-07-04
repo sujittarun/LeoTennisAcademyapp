@@ -1,0 +1,21 @@
+-- ============================================================
+-- GO-LIVE RESET — run once when Leo Academy launches for real.
+-- Removes demo/seed records from the platform DB so the client
+-- starts from zero honest numbers.
+-- ALSO REQUIRED at launch (code side):
+--   · empty the seed arrays in assets/js/data.js (members, bookings,
+--     payments, finance, activity) and delete the backfill IIFE
+--   · run supabase/lockdown.sql if not already applied
+-- ============================================================
+
+-- generated 30-day demo booking history + fixed demo seeds
+delete from bookings where id like 'B-H%';
+
+-- demo-period telemetry (keep if you want the pre-launch usage history)
+-- delete from events where at < now();
+
+-- verify what remains
+select 'bookings' as tbl, count(*) from bookings
+union all select 'payments', count(*) from payments
+union all select 'members', count(*) from members
+union all select 'applications', count(*) from applications;

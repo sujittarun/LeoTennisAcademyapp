@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=15" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=16" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .bk-wrap { max-width: 1080px; margin: 0 auto; width: 100%; }
@@ -185,9 +185,9 @@
     <button type="button" class="btn btn-primary btn-sm" id="mbGo">Complete booking</button>
   </div>
 
-  <script src="assets/js/core.js?v=15"></script>
-  <script src="assets/js/data.js?v=15"></script>
-  <script src="assets/js/cloud.js?v=15"></script>
+  <script src="assets/js/core.js?v=16"></script>
+  <script src="assets/js/data.js?v=16"></script>
+  <script src="assets/js/cloud.js?v=16"></script>
   <script>
     (function () {
       var dateInput = document.getElementById("bkDate");
@@ -196,14 +196,16 @@
       var selected = [];
       var sport = "tennis";
 
-      // cloud ledger: bookings recorded on ANY device/channel, fetched from
-      // Supabase; local store still covers offline and pre-schema operation
+      // cloud ledger: slot occupancy from ANY device/channel via the
+      // PII-free public_slots view; local seeds still merge for the demo
       var cloudBookings = [];
-      if (window.LT_CLOUD) {
-        LT_CLOUD.fetchBookings(LT.today()).then(function (rows) {
+      function refreshSlots() {
+        if (!window.LT_CLOUD) return;
+        LT_CLOUD.fetchPublicSlots(LT.today()).then(function (rows) {
           if (rows && rows.length) { cloudBookings = rows; renderSlots(); }
         });
       }
+      refreshSlots();
 
       // live availability: every booking — website, Playo, Hudle or walk-in —
       // counts against the sport's courts, so a slot booked on any channel
@@ -329,31 +331,42 @@
         if (String(d.get("phone") || "").replace(/\D/g, "").length < 10) { msg.textContent = "Please enter a valid 10-digit number."; msg.className = "form-msg error"; return; }
         msg.textContent = "";
 
-        var total = selected.reduce(function (s, h) { return s + LT_SLOTS.rate(h, sport); }, 0);
-        var reqs = LT.store.read("bookings", []);
-        selected.slice().sort(function (a, b) { return a - b; }).forEach(function (h) {
-          var rec = {
-            id: "B-" + Date.now().toString().slice(-6) + "-" + h,
-            name: d.get("name"), phone: d.get("phone"),
-            court: null, sport: sport, date: dateInput.value, hour: h,
-            amount: LT_SLOTS.rate(h, sport), status: "pending",
-            source: "Website",
-          };
-          reqs.unshift(rec);
-          if (window.LT_CLOUD) LT_CLOUD.addBooking(rec);
+        // price + capacity enforced server-side (request_booking RPC) —
+        // this page never decides amounts
+        var hours = selected.slice().sort(function (a, b) { return a - b; });
+        var btn = this.querySelector('[type="submit"]');
+        if (btn) { btn.disabled = true; }
+        Promise.allSettled(hours.map(function (h) {
+          return LT_CLOUD.requestBooking(sport, dateInput.value, h, d.get("name"), d.get("phone"));
+        })).then(function (results) {
+          if (btn) { btn.disabled = false; }
+          var ok = results.filter(function (r) { return r.status === "fulfilled"; });
+          if (!ok.length) {
+            var reason = String(results[0].reason && results[0].reason.message || "");
+            msg.textContent = /no connection/.test(reason)
+              ? "Couldn't reach the booking desk — please call +91 96768 29060."
+              : /slot full/.test(reason)
+                ? "Those hours just filled up — pick different slots."
+                : "Something went wrong — please try again or call us.";
+            msg.className = "form-msg error";
+            selected = [];
+            refreshSlots();
+            return;
+          }
+          var total = ok.reduce(function (s, r) { return s + r.value.amount; }, 0);
+          LT_CLOUD.track("booking_submitted", { sport: sport, hours: ok.length, amount: total });
+          var missed = hours.length - ok.length;
+          document.getElementById("doneDetail").innerHTML =
+            "<strong>" + ok.length + " hour" + (ok.length > 1 ? "s" : "") + "</strong> on " +
+            new Date(dateInput.value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }) +
+            " · total <strong>" + LT.fmtINR(total) + "</strong>" +
+            (missed ? "<br /><span class='faint'>" + missed + " hour" + (missed > 1 ? "s were" : " was") + " already full and not requested.</span>" : "");
+          document.getElementById("bookingFlow").style.display = "none";
+          document.querySelector(".bk-hero").style.display = "none";
+          document.body.classList.remove("has-selection");
+          document.getElementById("doneCard").classList.add("show");
+          LT.toast("Booking request sent ✓");
         });
-        LT.store.write("bookings", reqs);
-        if (window.LT_CLOUD) LT_CLOUD.track("booking_submitted", { sport: sport, hours: selected.length, amount: total });
-
-        document.getElementById("doneDetail").innerHTML =
-          "<strong>" + selected.length + " hour" + (selected.length > 1 ? "s" : "") + "</strong> on " +
-          new Date(dateInput.value).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" }) +
-          " · total <strong>" + LT.fmtINR(total) + "</strong>";
-        document.getElementById("bookingFlow").style.display = "none";
-        document.querySelector(".bk-hero").style.display = "none";
-        document.body.classList.remove("has-selection");
-        document.getElementById("doneCard").classList.add("show");
-        LT.toast("Booking request sent ✓");
       });
 
       document.getElementById("againBtn").addEventListener("click", function () {
@@ -363,6 +376,7 @@
         document.querySelector(".bk-hero").style.display = "";
         document.getElementById("bkForm").reset();
         renderSlots();
+        refreshSlots();
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
 

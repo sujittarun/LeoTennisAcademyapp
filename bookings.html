@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=15" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=16" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -133,9 +133,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=15"></script>
-  <script src="assets/js/data.js?v=15"></script>
-  <script src="assets/js/cloud.js?v=15"></script>
+  <script src="assets/js/core.js?v=16"></script>
+  <script src="assets/js/data.js?v=16"></script>
+  <script src="assets/js/cloud.js?v=16"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -326,11 +326,9 @@
       document.getElementById("cmClose").addEventListener("click", function () { backdrop.classList.remove("open"); openCourt = null; });
       backdrop.addEventListener("click", function (e) { if (e.target === backdrop) { backdrop.classList.remove("open"); openCourt = null; } });
 
-      /* confirm actions (tray + modal) */
-      document.addEventListener("click", function (e) {
-        var btn = e.target.closest("[data-confirm]");
-        if (!btn) return;
-        var id = btn.dataset.confirm;
+      /* confirm actions (tray + modal) — the DATABASE claims the court
+         atomically; two phones can no longer double-assign a slot */
+      function confirmLocally(id) { // demo seeds only exist in this browser
         var ov = overrides();
         ov[id] = "confirmed";
         var b = allBookings().find(function (x) { return x.id === id; });
@@ -343,10 +341,27 @@
           }
         }
         LT.store.write("booking-status", ov);
-        if (window.LT_CLOUD) LT_CLOUD.updateBooking(id, ov[id + ":court"]
-          ? { status: "confirmed", court: ov[id + ":court"] } : { status: "confirmed" });
-        LT.toast("Booking confirmed ✓");
-        render();
+      }
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-confirm]");
+        if (!btn) return;
+        var id = btn.dataset.confirm;
+        btn.disabled = true;
+        LT_CLOUD.confirmBooking(id).then(function (res) {
+          var ov = overrides();
+          ov[id] = "confirmed";
+          if (res && res.court) ov[id + ":court"] = res.court;
+          LT.store.write("booking-status", ov);
+          LT.toast("Confirmed" + (res && res.court ? " · " + res.court : "") + " ✓");
+          render();
+        }).catch(function (err) {
+          btn.disabled = false;
+          var m = String(err.message || "");
+          if (/unknown booking/.test(m)) { confirmLocally(id); LT.toast("Booking confirmed ✓"); render(); return; }
+          LT.toast(/all courts taken/.test(m) ? "No free court left for that hour"
+            : /no connection/.test(m) ? "No connection — not confirmed, try again"
+            : "Couldn't confirm: " + m);
+        });
       });
 
       /* ---------- manual add booking ---------- */
@@ -379,37 +394,36 @@
         if (!String(d.get("name") || "").trim()) { msg.textContent = "Please enter who booked."; msg.className = "form-msg error"; return; }
         var hour = +d.get("hour"), date = d.get("date") || dateInput.value;
         var sport = d.get("sport") || "tennis";
-        var court = d.get("court") || null;
-        if (!court) { // auto-assign first free court of that sport for that hour
-          var used = allBookings().filter(function (x) { return x.date === date && x.hour === hour && x.court; })
-            .map(function (x) { return x.court; });
-          var pool = LT_SLOTS.courtsOf(sport);
-          for (var ci = 0; ci < pool.length; ci++) {
-            if (used.indexOf(pool[ci].id) === -1) { court = pool[ci].id; break; }
-          }
-          if (!court) { msg.textContent = "All " + sport + " courts are taken for that hour."; msg.className = "form-msg error"; return; }
-        }
-        var list = LT.store.read("bookings", []);
-        var rec = {
-          id: "B-M" + Date.now().toString().slice(-6),
+        var form = this;
+        // the RPC prices the slot and claims a court atomically server-side
+        LT_CLOUD.recordBooking({
           name: d.get("name"), phone: d.get("phone") || "",
-          court: court, sport: sport, date: date, hour: hour,
-          amount: LT_SLOTS.rate(hour, sport), status: "confirmed",
-          source: d.get("source"),
-        };
-        list.unshift(rec);
-        LT.store.write("bookings", list);
-        if (window.LT_CLOUD) {
-          LT_CLOUD.addBooking(rec);
-          LT_CLOUD.track("staff_booking_added", { source: rec.source, sport: sport });
-        }
-        abBackdrop.classList.remove("open");
-        this.reset();
-        var cn = LT_DATA.courtsMeta.find(function (x) { return x.id === court; });
-        LT.toast("Booking saved · " + (cn ? cn.name : court) + " ✓");
-        dateInput.value = date;
-        render();
-        paintChannels();
+          sport: sport, date: date, hour: hour,
+          source: d.get("source"), court: d.get("court") || null,
+        }).then(function (res) {
+          var list = LT.store.read("bookings", []);
+          list.unshift({
+            id: res.id, name: d.get("name"), phone: d.get("phone") || "",
+            court: res.court, sport: sport, date: date, hour: hour,
+            amount: LT_SLOTS.rate(hour, sport), status: "confirmed",
+            source: d.get("source"),
+          });
+          LT.store.write("bookings", list);
+          LT_CLOUD.track("staff_booking_added", { source: d.get("source"), sport: sport });
+          abBackdrop.classList.remove("open");
+          form.reset();
+          var cn = LT_DATA.courtsMeta.find(function (x) { return x.id === res.court; });
+          LT.toast("Booking saved · " + (cn ? cn.name : res.court) + " ✓");
+          dateInput.value = date;
+          render();
+          paintChannels();
+        }).catch(function (err) {
+          var m = String(err.message || "");
+          msg.textContent = /all courts taken/.test(m) ? "All " + sport + " courts are taken for that hour."
+            : /no connection/.test(m) ? "No connection — booking NOT saved. Try again."
+            : "Couldn't save: " + m;
+          msg.className = "form-msg error";
+        });
       });
 
       dateInput.addEventListener("change", render);

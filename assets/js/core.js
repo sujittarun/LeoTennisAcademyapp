@@ -65,11 +65,21 @@
     },
   };
 
-  /* ---------- Auth (local session; production swaps in real auth) ---------- */
+  /* ---------- Auth (Supabase session via LT_CLOUD; legacy local
+     session remains valid until lockdown flips STRICT_AUTH) ---------- */
   LT.auth = {
     login: function (email) { LT.store.write("session", { email: email || "coach@leotennis.in", at: Date.now() }); },
-    logout: function () { try { localStorage.removeItem("lt-session"); } catch (e) {} location.href = "index.html"; },
-    session: function () { return LT.store.read("session", null); },
+    logout: function () {
+      try { localStorage.removeItem("lt-session"); localStorage.removeItem("lt-cloud-session"); } catch (e) {}
+      location.href = "index.html";
+    },
+    session: function () {
+      try {
+        var cloud = JSON.parse(localStorage.getItem("lt-cloud-session"));
+        if (cloud && cloud.access_token) return cloud;
+      } catch (e) {}
+      return LT.store.read("session", null);
+    },
     require: function () {
       if (!LT.auth.session()) location.replace("login.html");
     },

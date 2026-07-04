@@ -1,0 +1,20 @@
+# Two jobs in one daily ping:
+# 1. keeps the Supabase free-tier project from pausing for inactivity
+# 2. acts as an uptime check — if the platform DB stops answering,
+#    this workflow fails and GitHub emails the repo owner.
+# The key below is the PUBLIC anon key (also shipped in cloud.js).
+name: platform-keepalive
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping platform database
+        run: |
+          KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnc2tsY2lwenlpb2d4eW5zaG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4OTUyMzksImV4cCI6MjA5ODQ3MTIzOX0.w7xkjdTkYN2qA0oxMKLUNtua0ScKVHKQzfEyIayh9eo"
+          curl -fsS "https://ugsklcipzyiogxynshnh.supabase.co/rest/v1/public_slots?select=id&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" > /dev/null
+          echo "platform DB is answering"

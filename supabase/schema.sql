@@ -174,3 +174,235 @@ insert into subscriptions (tenant_id, plan, mrr, status, started, renews_on, not
   ('leo',      'pilot',    2500, 'active', '2026-07-01', '2026-08-01', 'Won after demo — placeholder MRR, set real contract value'),
   ('genalpha', 'standard', 2000, 'active', '2026-06-01', '2026-08-01', 'First client — placeholder MRR')
 on conflict (tenant_id) do nothing;
+-- ============================================================
+-- Migration 5 — trust layer, phase A (non-breaking)
+-- Server-side pricing, atomic court assignment, PII-free public
+-- availability. Strict per-role policies live in lockdown.sql and
+-- are applied once auth users exist (platform_settings.lockdown).
+-- ============================================================
+
+create table if not exists platform_settings (key text primary key, value text not null);
+insert into platform_settings values ('lockdown','false') on conflict (key) do nothing;
+alter table platform_settings enable row level security;  -- no policies: service/definer access only
+
+create or replace function is_locked() returns boolean language sql stable security definer
+set search_path = public as
+$$ select coalesce((select value from platform_settings where key='lockdown'),'false') = 'true' $$;
+
+create or replace function auth_role() returns text language sql stable as
+$$ select coalesce(auth.jwt()->'app_metadata'->>'am_role','') $$;
+
+create or replace function auth_tenant() returns text language sql stable as
+$$ select coalesce(auth.jwt()->'app_metadata'->>'tenant_id','') $$;
+
+-- staff/operator guard that only bites after lockdown is enabled
+create or replace function assert_staff(p_tenant text) returns void language plpgsql stable as $$
+begin
+  if not is_locked() then return; end if;
+  if auth_role() = 'operator' then return; end if;
+  if auth_role() = 'staff' and auth_tenant() = p_tenant then return; end if;
+  raise exception 'not authorised';
+end $$;
+
+-- Public availability: slot occupancy WITHOUT names or phones.
+-- Definer-owned view so anon never needs (and post-lockdown never has)
+-- select on the bookings table itself.
+create or replace view public_slots as
+  select id, tenant_id, sport, date, hour, court, status
+  from bookings where status <> 'cancelled';
+grant select on public_slots to anon, authenticated;
+
+-- Server-side pricing shared by all booking paths
+create or replace function slot_rate(p_tenant text, p_sport text, p_hour int)
+returns int language plpgsql stable as $$
+declare v_cfg jsonb; v_amt int;
+begin
+  select config into v_cfg from tenants where id = p_tenant;
+  if v_cfg is null then raise exception 'unknown academy'; end if;
+  v_amt := case when p_hour >= coalesce((v_cfg#>>'{rates,peakFrom}')::int, 16)
+    then (v_cfg#>>('{rates,' || p_sport || ',peak}'))::int
+    else (v_cfg#>>('{rates,' || p_sport || ',offPeak}'))::int end;
+  if v_amt is null then raise exception 'unknown sport'; end if;
+  return v_amt;
+end $$;
+
+-- Public booking request: price computed here, capacity enforced here.
+create or replace function request_booking(
+  p_tenant text, p_sport text, p_date date, p_hour int, p_name text, p_phone text
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_courts int; v_taken int; v_amt int; v_id text;
+begin
+  if p_hour < 6 or p_hour > 22 then raise exception 'invalid hour'; end if;
+  if p_date < current_date then raise exception 'date in the past'; end if;
+  if length(trim(coalesce(p_name,''))) < 2 then raise exception 'name required'; end if;
+  select config into v_cfg from tenants where id = p_tenant;
+  if v_cfg is null then raise exception 'unknown academy'; end if;
+  v_amt := slot_rate(p_tenant, p_sport, p_hour);
+  v_courts := coalesce((v_cfg#>>('{courts,' || p_sport || '}'))::int, 0);
+  select count(*) into v_taken from bookings
+    where tenant_id = p_tenant and date = p_date and hour = p_hour
+      and sport = p_sport and status <> 'cancelled';
+  if v_taken >= v_courts then raise exception 'slot full'; end if;
+  v_id := 'B-' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS') || '-' || p_hour;
+  insert into bookings (id, tenant_id, name, phone, sport, date, hour, amount, status, source)
+    values (v_id, p_tenant, trim(p_name), nullif(trim(coalesce(p_phone,'')),''),
+            p_sport, p_date, p_hour, v_amt, 'pending', 'Website');
+  return jsonb_build_object('id', v_id, 'amount', v_amt);
+end $$;
+grant execute on function request_booking to anon, authenticated;
+
+-- Staff manual entry (Playo/Hudle/walk-in): priced server-side,
+-- court claimed atomically (unique index arbitrates races).
+create or replace function record_booking(
+  p_tenant text, p_sport text, p_date date, p_hour int,
+  p_name text, p_phone text, p_source text, p_court text default null
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_amt int; v_id text; v_courts int; v_court text; i int;
+begin
+  perform assert_staff(p_tenant);
+  select config into v_cfg from tenants where id = p_tenant;
+  v_amt := slot_rate(p_tenant, p_sport, p_hour);
+  v_id := 'B-M' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  if p_court is not null then
+    insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source)
+      values (v_id, p_tenant, p_name, p_phone, p_sport, p_court, p_date, p_hour, v_amt, 'confirmed', p_source);
+    return jsonb_build_object('id', v_id, 'court', p_court);
+  end if;
+  v_courts := coalesce((v_cfg#>>('{courts,' || p_sport || '}'))::int, 0);
+  for i in 1..v_courts loop
+    v_court := upper(left(p_sport,1)) || i;
+    begin
+      insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source)
+        values (v_id, p_tenant, p_name, p_phone, p_sport, v_court, p_date, p_hour, v_amt, 'confirmed', p_source);
+      return jsonb_build_object('id', v_id, 'court', v_court);
+    exception when unique_violation then null; -- court taken, try next
+    end;
+  end loop;
+  raise exception 'all courts taken';
+end $$;
+grant execute on function record_booking to anon, authenticated;
+
+-- Confirm a pending request: locks the row, claims a court atomically,
+-- idempotent if already confirmed.
+create or replace function confirm_booking(p_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype; v_cfg jsonb; v_courts int; v_court text; i int;
+begin
+  select * into b from bookings where id = p_id for update;
+  if not found then raise exception 'unknown booking'; end if;
+  perform assert_staff(b.tenant_id);
+  if b.status = 'confirmed' and b.court is not null then
+    return jsonb_build_object('id', b.id, 'court', b.court);
+  end if;
+  if b.court is not null then
+    update bookings set status = 'confirmed' where id = p_id;
+    return jsonb_build_object('id', b.id, 'court', b.court);
+  end if;
+  select config into v_cfg from tenants where id = b.tenant_id;
+  v_courts := coalesce((v_cfg#>>('{courts,' || b.sport || '}'))::int, 0);
+  for i in 1..v_courts loop
+    v_court := upper(left(b.sport,1)) || i;
+    begin
+      update bookings set status = 'confirmed', court = v_court where id = p_id;
+      return jsonb_build_object('id', b.id, 'court', v_court);
+    exception when unique_violation then null;
+    end;
+  end loop;
+  raise exception 'all courts taken';
+end $$;
+grant execute on function confirm_booking to anon, authenticated;
+-- fix: concatenated jsonb paths need an explicit text[] cast
+create or replace function slot_rate(p_tenant text, p_sport text, p_hour int)
+returns int language plpgsql stable as $$
+declare v_cfg jsonb; v_amt int;
+begin
+  select config into v_cfg from tenants where id = p_tenant;
+  if v_cfg is null then raise exception 'unknown academy'; end if;
+  v_amt := case when p_hour >= coalesce((v_cfg#>>'{rates,peakFrom}')::int, 16)
+    then (v_cfg#>>(array['rates', p_sport, 'peak']))::int
+    else (v_cfg#>>(array['rates', p_sport, 'offPeak']))::int end;
+  if v_amt is null then raise exception 'unknown sport'; end if;
+  return v_amt;
+end $$;
+
+create or replace function court_count(p_cfg jsonb, p_sport text)
+returns int language sql stable as
+$$ select coalesce((p_cfg#>>(array['courts', p_sport]))::int, 0) $$;
+
+create or replace function request_booking(
+  p_tenant text, p_sport text, p_date date, p_hour int, p_name text, p_phone text
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_courts int; v_taken int; v_amt int; v_id text;
+begin
+  if p_hour < 6 or p_hour > 22 then raise exception 'invalid hour'; end if;
+  if p_date < current_date then raise exception 'date in the past'; end if;
+  if length(trim(coalesce(p_name,''))) < 2 then raise exception 'name required'; end if;
+  select config into v_cfg from tenants where id = p_tenant;
+  if v_cfg is null then raise exception 'unknown academy'; end if;
+  v_amt := slot_rate(p_tenant, p_sport, p_hour);
+  v_courts := court_count(v_cfg, p_sport);
+  select count(*) into v_taken from bookings
+    where tenant_id = p_tenant and date = p_date and hour = p_hour
+      and sport = p_sport and status <> 'cancelled';
+  if v_taken >= v_courts then raise exception 'slot full'; end if;
+  v_id := 'B-' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS') || '-' || p_hour;
+  insert into bookings (id, tenant_id, name, phone, sport, date, hour, amount, status, source)
+    values (v_id, p_tenant, trim(p_name), nullif(trim(coalesce(p_phone,'')),''),
+            p_sport, p_date, p_hour, v_amt, 'pending', 'Website');
+  return jsonb_build_object('id', v_id, 'amount', v_amt);
+end $$;
+
+create or replace function record_booking(
+  p_tenant text, p_sport text, p_date date, p_hour int,
+  p_name text, p_phone text, p_source text, p_court text default null
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_amt int; v_id text; v_courts int; v_court text; i int;
+begin
+  perform assert_staff(p_tenant);
+  select config into v_cfg from tenants where id = p_tenant;
+  v_amt := slot_rate(p_tenant, p_sport, p_hour);
+  v_id := 'B-M' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  if p_court is not null then
+    insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source)
+      values (v_id, p_tenant, p_name, p_phone, p_sport, p_court, p_date, p_hour, v_amt, 'confirmed', p_source);
+    return jsonb_build_object('id', v_id, 'court', p_court);
+  end if;
+  v_courts := court_count(v_cfg, p_sport);
+  for i in 1..v_courts loop
+    v_court := upper(left(p_sport,1)) || i;
+    begin
+      insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source)
+        values (v_id, p_tenant, p_name, p_phone, p_sport, v_court, p_date, p_hour, v_amt, 'confirmed', p_source);
+      return jsonb_build_object('id', v_id, 'court', v_court);
+    exception when unique_violation then null;
+    end;
+  end loop;
+  raise exception 'all courts taken';
+end $$;
+
+create or replace function confirm_booking(p_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype; v_cfg jsonb; v_courts int; v_court text; i int;
+begin
+  select * into b from bookings where id = p_id for update;
+  if not found then raise exception 'unknown booking'; end if;
+  perform assert_staff(b.tenant_id);
+  if b.status = 'confirmed' and b.court is not null then
+    return jsonb_build_object('id', b.id, 'court', b.court);
+  end if;
+  if b.court is not null then
+    update bookings set status = 'confirmed' where id = p_id;
+    return jsonb_build_object('id', b.id, 'court', b.court);
+  end if;
+  select config into v_cfg from tenants where id = b.tenant_id;
+  v_courts := court_count(v_cfg, b.sport);
+  for i in 1..v_courts loop
+    v_court := upper(left(b.sport,1)) || i;
+    begin
+      update bookings set status = 'confirmed', court = v_court where id = p_id;
+      return jsonb_build_object('id', b.id, 'court', v_court);
+    exception when unique_violation then null;
+    end;
+  end loop;
+  raise exception 'all courts taken';
+end $$;
