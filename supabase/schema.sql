@@ -406,3 +406,20 @@ begin
   end loop;
   raise exception 'all courts taken';
 end $$;
+-- CourtSync needs: cancel (free a slot) + venues readable by their own staff
+create or replace function cancel_booking(p_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype;
+begin
+  select * into b from bookings where id = p_id for update;
+  if not found then raise exception 'unknown booking'; end if;
+  perform assert_staff(b.tenant_id);
+  update bookings set status = 'cancelled' where id = p_id;
+  return jsonb_build_object('id', b.id, 'court', b.court, 'status', 'cancelled');
+end $$;
+grant execute on function cancel_booking to authenticated;
+
+-- staff may read THEIR OWN tenant row (courts/rates config drive the grid)
+drop policy if exists tenants_staff_r on tenants;
+create policy tenants_staff_r on tenants for select
+  using (auth_role() = 'staff' and id = auth_tenant());

@@ -26,6 +26,19 @@
         "/Users/jiths/Documents/AcademyManager"
       ],
       "port": 8124
+    },
+    {
+      "name": "courtsync",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "http-server",
+        "-p",
+        "8125",
+        "-c-1",
+        "/Users/jiths/Documents/CourtSync"
+      ],
+      "port": 8125
     }
   ]
 }
