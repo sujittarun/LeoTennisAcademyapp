@@ -474,3 +474,53 @@ begin
     values (v_id, p_tenant, trim(p_name), v_phone, p_sport, p_date, p_hour, v_amt, 'pending', 'Website');
   return jsonb_build_object('id', v_id, 'amount', v_amt);
 end $$;
+-- ============================================================
+-- Migration 8 — operator_portfolio(): one call returns per-tenant
+-- rollups computed IN the database. Two wins:
+--  · performance — the console makes 1 RPC instead of 5×N raw fetches
+--  · data minimization — only aggregates leave the DB; member names,
+--    phones and payment details never reach the operator's browser
+-- Operator-only (self-checked; SECURITY DEFINER bypasses RLS).
+-- ============================================================
+create or replace function operator_portfolio()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare result jsonb;
+begin
+  if auth_role() <> 'operator' then raise exception 'operator only'; end if;
+  select coalesce(jsonb_agg(obj order by ord), '[]'::jsonb) into result from (
+    select t.created_at as ord, jsonb_build_object(
+      'tenant_id', t.id,
+      'name', t.name,
+      'config', t.config,
+      'plan', s.plan,
+      'mrr', coalesce(s.mrr, 0),
+      'sub_status', s.status,
+      'renews_on', s.renews_on,
+      'bookings_30d', (select count(*) from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status<>'cancelled'),
+      'bookings_prev', (select count(*) from bookings b where b.tenant_id=t.id and b.date >= current_date-60 and b.date < current_date-30 and b.status<>'cancelled'),
+      'gmv_30d', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status='confirmed')
+               + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-30),
+      'gmv_prev', (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.date >= current_date-60 and b.date < current_date-30 and b.status='confirmed')
+                + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-60 and p.on_date < current_date-30),
+      'apps_30d', (select count(*) from applications a where a.tenant_id=t.id and a.created_at >= current_date-30),
+      'events_30d', (select count(*) from events e where e.tenant_id=t.id and e.at >= current_date-30),
+      'sessions_30d', (select count(distinct session_id) from events e where e.tenant_id=t.id and e.at >= current_date-30 and e.session_id is not null),
+      'active_days_30d', (select count(distinct e.at::date) from events e where e.tenant_id=t.id and e.at >= current_date-30),
+      'last_event_at', (select max(at) from events e where e.tenant_id=t.id),
+      'errors_30d', (select count(*) from events e where e.tenant_id=t.id and e.name='client_error' and e.at >= current_date-30),
+      'app_ver', (select props->>'ver' from events e where e.tenant_id=t.id and e.name='page_view' and e.props ? 'ver' order by e.at desc limit 1),
+      'channel_mix', (select coalesce(jsonb_object_agg(src, cnt), '{}'::jsonb) from
+        (select coalesce(source,'Website') src, count(*) cnt from bookings b where b.tenant_id=t.id and b.date >= current_date-30 and b.status<>'cancelled' group by 1) m),
+      'weekly_gmv', (select coalesce(jsonb_agg(wk order by wknum desc), '[]'::jsonb) from
+        (select g.n as wknum,
+          (select coalesce(sum(amount),0) from bookings b where b.tenant_id=t.id and b.status='confirmed' and b.date >= current_date-(g.n*7+6) and b.date <= current_date-(g.n*7))
+          + (select coalesce(sum(amount),0) from payments p where p.tenant_id=t.id and p.on_date >= current_date-(g.n*7+6) and p.on_date <= current_date-(g.n*7)) as wk
+         from generate_series(0,7) g(n)) w),
+      'usage_daily', (select coalesce(jsonb_object_agg(d::text, cnt), '{}'::jsonb) from
+        (select e.at::date d, count(*) cnt from events e where e.tenant_id=t.id and e.at >= current_date-13 group by 1) u)
+    ) as obj
+    from tenants t left join subscriptions s on s.tenant_id = t.id
+  ) x;
+  return result;
+end $$;
+grant execute on function operator_portfolio to authenticated;
