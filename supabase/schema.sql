@@ -133,3 +133,23 @@ insert into tenants (id, name, config) values
      "billing":{"payee":"Leo Academy","upiIds":["1234567890@ybl","0123456789@ybl"],"upiWindowDays":5}}'),
   ('genalpha', 'Gen Alpha Cricket Academy', '{"brand":"Gen Alpha","city":"Hyderabad"}')
 on conflict (id) do nothing;
+create table if not exists applications (
+  id         bigint generated always as identity primary key,
+  tenant_id  text not null references tenants(id),
+  name       text not null,
+  phone      text,
+  email      text,
+  level      text,
+  goal       text,
+  program    text,
+  slot       text,
+  trial_date date,
+  created_at timestamptz not null default now()
+);
+create index if not exists applications_tenant_idx on applications (tenant_id, created_at desc);
+alter table applications enable row level security;
+create policy applications_read  on applications for select using (true);
+create policy applications_write on applications for insert with check (true);
+
+alter table payments add column if not exists ref text;
+create unique index if not exists payments_ref_unique on payments (tenant_id, ref) where ref is not null;

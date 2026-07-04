@@ -58,6 +58,44 @@
       return req("PATCH", "/bookings?tenant_id=eq." + TENANT + "&id=eq." + encodeURIComponent(id), patch).catch(soft);
     },
 
+    /* membership pipeline */
+    addApplication: function (a) {
+      return req("POST", "/applications", {
+        tenant_id: TENANT, name: a.name, phone: a.phone || null, email: a.email || null,
+        level: a.level || null, goal: a.goal || null, program: a.program || null,
+        slot: a.slot || null, trial_date: a.date || null,
+      }).catch(soft);
+    },
+    fetchApplications: function (limit) {
+      return req("GET", "/applications?tenant_id=eq." + TENANT +
+        "&order=created_at.desc&limit=" + (limit || 12) +
+        "&select=name,phone,program,slot,trial_date,created_at").catch(soft);
+    },
+
+    /* payments ledger — ref is the app-side id used for merge/dedupe */
+    addPayment: function (p) {
+      return req("POST", "/payments", {
+        tenant_id: TENANT, ref: p.ref || null, name: p.name, type: p.type,
+        detail: p.detail, amount: p.amount, mode: p.mode, on_date: p.on,
+      }).catch(soft);
+    },
+    fetchPayments: function () {
+      return req("GET", "/payments?tenant_id=eq." + TENANT +
+        "&order=on_date.desc&limit=200&select=ref,name,type,detail,amount,mode,on_date").catch(soft);
+    },
+
+    /* attendance — one row per person per day, kind = member | staff */
+    fetchAttendance: function (dateIso) {
+      return req("GET", "/attendance?tenant_id=eq." + TENANT + "&date=eq." + dateIso +
+        "&present=eq.true&select=kind,person_id").catch(soft);
+    },
+    setPresence: function (dateIso, kind, personId, present) {
+      return req("POST", "/attendance", {
+        tenant_id: TENANT, date: dateIso, kind: kind,
+        person_id: String(personId), present: !!present,
+      }, { Prefer: "resolution=merge-duplicates" }).catch(soft);
+    },
+
     logReminder: function (memberId, upi) {
       return req("POST", "/reminders_log", {
         tenant_id: TENANT, member_id: String(memberId), channel: "whatsapp", upi_used: upi,

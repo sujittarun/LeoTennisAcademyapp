@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=13" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=14" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .att-mode { display: flex; gap: 8px; }
@@ -48,8 +48,9 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=13"></script>
-  <script src="assets/js/data.js?v=13"></script>
+  <script src="assets/js/core.js?v=14"></script>
+  <script src="assets/js/data.js?v=14"></script>
+  <script src="assets/js/cloud.js?v=14"></script>
   <script>
     LT.auth.require();
     LT.managerShell("attendance.html");
@@ -86,6 +87,21 @@
       function key() { return (mode === "staff" ? "att-staff-" : "att-") + dateInput.value; }
       function present() { return LT.store.read(key(), []); }
 
+      // cloud is authoritative when reachable: pull the day's marks (both
+      // modes) into the local store so every staff phone sees the same ticks
+      function syncFromCloud() {
+        if (!window.LT_CLOUD) return;
+        var d = dateInput.value;
+        LT_CLOUD.fetchAttendance(d).then(function (rows) {
+          if (!rows) return;
+          var mem = [], st = [];
+          rows.forEach(function (r) { (r.kind === "staff" ? st : mem).push(r.kind === "staff" ? r.person_id : +r.person_id); });
+          LT.store.write("att-" + d, mem);
+          LT.store.write("att-staff-" + d, st);
+          render();
+        });
+      }
+
       function render() {
         var marks = present();
         var list, total;
@@ -121,11 +137,13 @@
         var i = marks.indexOf(id);
         if (i === -1) marks.push(id); else marks.splice(i, 1);
         LT.store.write(key(), marks);
+        if (window.LT_CLOUD) LT_CLOUD.setPresence(dateInput.value, mode === "staff" ? "staff" : "member", id, i === -1);
         render();
       });
 
-      dateInput.addEventListener("change", render);
+      dateInput.addEventListener("change", function () { render(); syncFromCloud(); });
       render();
+      syncFromCloud();
     })();
   </script>
 </body>

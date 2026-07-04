@@ -9,13 +9,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=13" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=14" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
     .toolbar input[type="search"] { max-width: 280px; }
     .pl-name { display: flex; align-items: center; gap: 10px; }
     .pl-name .av { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
+    .app-tray { display: flex; flex-direction: column; gap: 8px; }
+    .app-row { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 14px;
+      border: 1px solid rgba(224, 189, 108, 0.35); background: rgba(201, 162, 75, 0.07); border-radius: var(--r-md); }
+    .app-row .aq-who { font-weight: 700; color: var(--ink-hi); font-size: 13.5px; }
+    .app-row .aq-what { font-size: 12.5px; color: var(--ink-mid); }
+    .app-row .aq-when { font-size: 11.5px; color: var(--ink-faint); margin-left: auto; }
+    .app-row .aq-call { font-size: 12.5px; font-weight: 700; color: var(--tx-gold); }
   </style>
 </head>
 <body>
@@ -38,6 +45,14 @@
       </div>
     </div>
 
+    <!-- coaching applications from the website (cloud) -->
+    <div class="glass glass-card tight hide" id="appCard">
+      <div class="card-head" style="margin-bottom: 10px;">
+        <div><div class="kicker">Enquiries</div><h2 style="font-size:16px;">New coaching applications</h2></div>
+      </div>
+      <div class="app-tray" id="appTray"></div>
+    </div>
+
     <div class="glass">
       <div class="table-wrap">
         <table class="lt-table">
@@ -48,8 +63,9 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=13"></script>
-  <script src="assets/js/data.js?v=13"></script>
+  <script src="assets/js/core.js?v=14"></script>
+  <script src="assets/js/data.js?v=14"></script>
+  <script src="assets/js/cloud.js?v=14"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -75,6 +91,25 @@
       });
 
       function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }); }
+
+      // website coaching applications land in the cloud — surface them here
+      if (window.LT_CLOUD) {
+        LT_CLOUD.fetchApplications(10).then(function (rows) {
+          if (!rows || !rows.length) return;
+          var progName = function (id) {
+            var p = LT_DATA.programs.find(function (x) { return x.id === id; });
+            return p ? p.name : (id || "Any program");
+          };
+          document.getElementById("appTray").innerHTML = rows.map(function (a) {
+            return '<div class="app-row"><span class="aq-who">' + a.name + "</span>" +
+              '<span class="aq-what">' + progName(a.program) + (a.slot ? " · " + a.slot : "") +
+              (a.trial_date ? " · trial " + fmtD(a.trial_date) : "") + "</span>" +
+              (a.phone ? '<a class="aq-call" href="https://wa.me/91' + String(a.phone).replace(/\D/g, "").slice(-10) + '">WhatsApp →</a>' : "") +
+              '<span class="aq-when">' + fmtD(a.created_at) + "</span></div>";
+          }).join("");
+          document.getElementById("appCard").classList.remove("hide");
+        });
+      }
 
       function render() {
         var list = LT_DATA.members.filter(function (m) {

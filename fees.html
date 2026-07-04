@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=13" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=14" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
@@ -179,9 +179,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=13"></script>
-  <script src="assets/js/data.js?v=13"></script>
-  <script src="assets/js/cloud.js?v=13"></script>
+  <script src="assets/js/core.js?v=14"></script>
+  <script src="assets/js/data.js?v=14"></script>
+  <script src="assets/js/cloud.js?v=14"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -191,8 +191,25 @@
       document.getElementById("monthLine").textContent =
         new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
+      // payments recorded on any device, merged with local + seeds by ref
+      var cloudPayments = [];
+      if (window.LT_CLOUD) {
+        LT_CLOUD.fetchPayments().then(function (rows) {
+          if (rows && rows.length) {
+            cloudPayments = rows.map(function (r) {
+              return { ref: r.ref, name: r.name, type: r.type, detail: r.detail, amount: r.amount, mode: r.mode, on: r.on_date };
+            });
+            paintKPIs();
+            render();
+          }
+        });
+      }
+
       function allPayments() {
-        return LT.store.read("payments", []).concat(LT_DATA.payments);
+        var local = LT.store.read("payments", []).concat(LT_DATA.payments);
+        var refs = {};
+        local.forEach(function (p) { if (p.ref) refs[p.ref] = 1; });
+        return local.concat(cloudPayments.filter(function (p) { return !p.ref || !refs[p.ref]; }));
       }
 
       function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" }); }
@@ -491,12 +508,18 @@
         var member = LT_DATA.members.find(function (m) { return m.name === d.get("member"); });
         var prog = member && LT_DATA.programs.find(function (p) { return p.id === member.program; });
         var list = LT.store.read("payments", []);
-        list.unshift({
+        var rec = {
+          ref: "P-" + Date.now(),
           name: d.get("member"), type: "Membership",
           detail: plan.label + (prog ? " · " + prog.name : ""),
           amount: +d.get("amount") || plan.amount, mode: d.get("mode"), on: LT.today(),
-        });
+        };
+        list.unshift(rec);
         LT.store.write("payments", list);
+        if (window.LT_CLOUD) {
+          LT_CLOUD.addPayment(rec);
+          LT_CLOUD.track("payment_recorded", { amount: rec.amount, mode: rec.mode });
+        }
         backdrop.classList.remove("open");
         LT.toast("Payment recorded ✓");
         paintKPIs();
