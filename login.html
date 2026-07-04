@@ -33,8 +33,9 @@
       <h1>Staff Console</h1>
       <p class="sub">Leo Academy · Hyderabad</p>
       <form id="loginForm">
-        <label class="field"><span>Email</span><input type="email" name="email" placeholder="you@leotennis.in" autocomplete="username" /></label>
-        <label class="field"><span>Password</span><input type="password" name="password" placeholder="••••••••" autocomplete="current-password" /></label>
+        <!-- prefilled DUMMY credentials — remove the value attributes at client handover -->
+        <label class="field"><span>Email</span><input type="email" name="email" value="staff@leoacademy.in" placeholder="you@leotennis.in" autocomplete="username" /></label>
+        <label class="field"><span>Password</span><input type="password" name="password" value="123456" placeholder="••••••••" autocomplete="current-password" /></label>
         <div class="form-msg" id="msg" style="min-height:0;"></div>
         <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
       </form>
@@ -59,6 +60,7 @@
         return;
       }
       function go() { LT.toast("Welcome back!"); setTimeout(function () { location.href = "dashboard.html"; }, 400); }
+      try { localStorage.setItem("lt-last-email", email); } catch (err) {}
       LT_CLOUD.signIn(email, pw).then(function (s) {
         if (s.role !== "staff" && s.role !== "operator") {
           LT_CLOUD.signOut();
@@ -73,6 +75,10 @@
         msg.className = "form-msg error";
       });
     });
+    try { // remember the last signed-in email across visits
+      var last = localStorage.getItem("lt-last-email");
+      if (last) document.querySelector('[name="email"]').value = last;
+    } catch (err) {}
     document.getElementById("forgot").addEventListener("click", function (e) {
       e.preventDefault();
       LT.toast("Ask the academy admin to reset your password.");
