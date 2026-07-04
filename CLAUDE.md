@@ -43,6 +43,15 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
   payments, revenue, activity; dates generated relative to today) and
   `window.LT_SLOTS` (hour list, rate + label helpers). Seed data until the
   production API lands; app-recorded records merge from LT.store.
+- `assets/js/cloud.js` — `window.LT_CLOUD`: Supabase REST adapter (fetch, no
+  SDK). Org "Academy Manager" · project "Leo Academy" (ref ugsklcipzyiogxynshnh,
+  the renamed ex-Suhas project; anon key in-file is public by design).
+  Multi-tenant: every row carries tenant_id ("leo"); schema in
+  supabase/schema.sql (run via dashboard SQL editor). Fails SOFT — if tables
+  are missing or offline, pages run on LT.store exactly as before. Wired:
+  booking.html (availability merge + insert + track), bookings.html (ledger
+  merge + insert + confirm patch), fees.html (reminders_log), all pages
+  page_view → events table. Never let a cloud failure break the UI.
 
 ## Pages
 Public: index.html · booking.html (slot quote + request) · admission.html

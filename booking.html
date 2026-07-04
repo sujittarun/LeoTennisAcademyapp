@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=12" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=13" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .bk-wrap { max-width: 1080px; margin: 0 auto; width: 100%; }
@@ -185,8 +185,9 @@
     <button type="button" class="btn btn-primary btn-sm" id="mbGo">Complete booking</button>
   </div>
 
-  <script src="assets/js/core.js?v=12"></script>
-  <script src="assets/js/data.js?v=12"></script>
+  <script src="assets/js/core.js?v=13"></script>
+  <script src="assets/js/data.js?v=13"></script>
+  <script src="assets/js/cloud.js?v=13"></script>
   <script>
     (function () {
       var dateInput = document.getElementById("bkDate");
@@ -195,15 +196,28 @@
       var selected = [];
       var sport = "tennis";
 
+      // cloud ledger: bookings recorded on ANY device/channel, fetched from
+      // Supabase; local store still covers offline and pre-schema operation
+      var cloudBookings = [];
+      if (window.LT_CLOUD) {
+        LT_CLOUD.fetchBookings(LT.today()).then(function (rows) {
+          if (rows && rows.length) { cloudBookings = rows; renderSlots(); }
+        });
+      }
+
       // live availability: every booking — website, Playo, Hudle or walk-in —
       // counts against the sport's courts, so a slot booked on any channel
       // shows as Full here the moment staff record it
       function bookedCount(date, h, sp) {
-        return LT.store.read("bookings", []).concat(LT_DATA.bookings).filter(function (b) {
-          var cid = LT_SLOTS.courtId(b.court);
-          var bs = b.sport || (cid && cid[0] === "P" ? "pickleball" : "tennis");
-          return b.date === date && b.hour === h && bs === sp && b.status !== "cancelled";
-        }).length;
+        var local = LT.store.read("bookings", []).concat(LT_DATA.bookings);
+        var seen = {};
+        local.forEach(function (b) { seen[b.id] = 1; });
+        return local.concat(cloudBookings.filter(function (b) { return !seen[b.id]; }))
+          .filter(function (b) {
+            var cid = LT_SLOTS.courtId(b.court);
+            var bs = b.sport || (cid && cid[0] === "P" ? "pickleball" : "tennis");
+            return b.date === date && b.hour === h && bs === sp && b.status !== "cancelled";
+          }).length;
       }
 
       function paintLegend() {
@@ -318,15 +332,18 @@
         var total = selected.reduce(function (s, h) { return s + LT_SLOTS.rate(h, sport); }, 0);
         var reqs = LT.store.read("bookings", []);
         selected.slice().sort(function (a, b) { return a - b; }).forEach(function (h) {
-          reqs.unshift({
+          var rec = {
             id: "B-" + Date.now().toString().slice(-6) + "-" + h,
             name: d.get("name"), phone: d.get("phone"),
             court: null, sport: sport, date: dateInput.value, hour: h,
             amount: LT_SLOTS.rate(h, sport), status: "pending",
             source: "Website",
-          });
+          };
+          reqs.unshift(rec);
+          if (window.LT_CLOUD) LT_CLOUD.addBooking(rec);
         });
         LT.store.write("bookings", reqs);
+        if (window.LT_CLOUD) LT_CLOUD.track("booking_submitted", { sport: sport, hours: selected.length, amount: total });
 
         document.getElementById("doneDetail").innerHTML =
           "<strong>" + selected.length + " hour" + (selected.length > 1 ? "s" : "") + "</strong> on " +

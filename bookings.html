@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=12" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=13" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -133,8 +133,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=12"></script>
-  <script src="assets/js/data.js?v=12"></script>
+  <script src="assets/js/core.js?v=13"></script>
+  <script src="assets/js/data.js?v=13"></script>
+  <script src="assets/js/cloud.js?v=13"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -148,9 +149,21 @@
 
       var sportFilter = "all";
 
+      // cloud ledger — bookings recorded on any device join the local view
+      var cloudBookings = [];
+      if (window.LT_CLOUD) {
+        var since = new Date(); since.setDate(since.getDate() - 31);
+        LT_CLOUD.fetchBookings(LT.isoDate(since)).then(function (rows) {
+          if (rows && rows.length) { cloudBookings = rows; render(); paintChannels(); }
+        });
+      }
+
       function allBookings() {
         var ov = overrides();
-        return LT.store.read("bookings", []).concat(LT_DATA.bookings).map(function (b) {
+        var local = LT.store.read("bookings", []).concat(LT_DATA.bookings);
+        var seen = {};
+        local.forEach(function (b) { seen[b.id] = 1; });
+        return local.concat(cloudBookings.filter(function (b) { return !seen[b.id]; })).map(function (b) {
           var o = Object.assign({}, b, ov[b.id] ? { status: ov[b.id], court: ov[b.id + ":court"] || b.court } : {});
           o.court = LT_SLOTS.courtId(o.court);
           if (!o.sport) o.sport = o.court && o.court[0] === "P" ? "pickleball" : "tennis";
@@ -330,6 +343,8 @@
           }
         }
         LT.store.write("booking-status", ov);
+        if (window.LT_CLOUD) LT_CLOUD.updateBooking(id, ov[id + ":court"]
+          ? { status: "confirmed", court: ov[id + ":court"] } : { status: "confirmed" });
         LT.toast("Booking confirmed ✓");
         render();
       });
@@ -375,14 +390,19 @@
           if (!court) { msg.textContent = "All " + sport + " courts are taken for that hour."; msg.className = "form-msg error"; return; }
         }
         var list = LT.store.read("bookings", []);
-        list.unshift({
+        var rec = {
           id: "B-M" + Date.now().toString().slice(-6),
           name: d.get("name"), phone: d.get("phone") || "",
           court: court, sport: sport, date: date, hour: hour,
           amount: LT_SLOTS.rate(hour, sport), status: "confirmed",
           source: d.get("source"),
-        });
+        };
+        list.unshift(rec);
         LT.store.write("bookings", list);
+        if (window.LT_CLOUD) {
+          LT_CLOUD.addBooking(rec);
+          LT_CLOUD.track("staff_booking_added", { source: rec.source, sport: sport });
+        }
         abBackdrop.classList.remove("open");
         this.reset();
         var cn = LT_DATA.courtsMeta.find(function (x) { return x.id === court; });
