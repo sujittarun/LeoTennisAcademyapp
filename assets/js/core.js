@@ -205,6 +205,19 @@
       });
     });
 
+    // global: freeze page scroll whenever ANY modal backdrop is open, so a
+    // touch-scroll moves the modal (which scrolls internally), not the page
+    // behind it. Covers every popup without per-page wiring.
+    if ("MutationObserver" in window) {
+      var lockSync = function () {
+        document.body.classList.toggle("lt-noscroll", !!document.querySelector(".lt-modal-backdrop.open"));
+      };
+      var lockMo = new MutationObserver(lockSync);
+      document.querySelectorAll(".lt-modal-backdrop").forEach(function (b) {
+        lockMo.observe(b, { attributes: true, attributeFilter: ["class"] });
+      });
+    }
+
     // count-up stats when visible
     var seen = new WeakSet();
     if ("IntersectionObserver" in window) {

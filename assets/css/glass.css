@@ -663,8 +663,12 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 .stat-value[data-countup] { font-variant-numeric: tabular-nums; }
 
 /* ---------- Tables ---------- */
-.table-wrap { overflow-x: auto; border-radius: var(--r-lg); }
+.table-wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; border-radius: var(--r-lg); }
 table.lt-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
+/* `tight` = one clean line per cell; the wrapper scrolls sideways instead of
+   wrapping names/details across rows. Consistent data-table feel everywhere. */
+.lt-table.tight th, .lt-table.tight td { white-space: nowrap; vertical-align: middle; }
+.lt-table.tight td .faint { white-space: nowrap; }
 .lt-table thead th {
   position: sticky;
   top: 0;
