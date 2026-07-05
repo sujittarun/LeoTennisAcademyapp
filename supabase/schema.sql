@@ -1177,3 +1177,40 @@ begin
   return jsonb_build_object('ok', true, 'secret_id', v_id, 'stored', 'encrypted in Vault');
 end $$;
 grant execute on function set_integration_secret to authenticated;
+-- ============================================================
+-- Migration 18 — method-agnostic channel connection
+-- A channel is connected by a METHOD (manual | autologin | api | ical)
+-- plus whatever credential that method needs, stored ENCRYPTED in Vault.
+-- The engine downstream (ledger, queue, worker) doesn't care which method;
+-- only the adapter differs. This is the onboarding capture point.
+-- ============================================================
+create or replace function connect_integration(
+  p_tenant text, p_channel text, p_method text, p_creds jsonb default null, p_enabled boolean default true
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_name text; v_id uuid; v_existing uuid;
+begin
+  if not (auth_role() = 'operator' or (auth_role() = 'staff' and auth_tenant() = p_tenant)) then
+    raise exception 'not authorised';
+  end if;
+  if p_method not in ('manual','autologin','api','ical') then raise exception 'bad method'; end if;
+
+  insert into integrations (tenant_id, channel, enabled, config)
+    values (p_tenant, p_channel, p_enabled, jsonb_build_object('method', p_method))
+  on conflict (tenant_id, channel) do update
+    set enabled = p_enabled, config = integrations.config || jsonb_build_object('method', p_method);
+
+  -- credentials (api key, or username+password for autologin) → Vault, never plaintext
+  if p_creds is not null and p_creds <> '{}'::jsonb then
+    v_name := 'partner:' || p_tenant || ':' || p_channel;
+    select id into v_existing from vault.secrets where name = v_name;
+    if v_existing is not null then perform vault.update_secret(v_existing, p_creds::text); v_id := v_existing;
+    else v_id := vault.create_secret(p_creds::text, v_name, 'creds for ' || p_tenant || '/' || p_channel); end if;
+    update integrations set config = config || jsonb_build_object('secret_id', v_id::text)
+      where tenant_id = p_tenant and channel = p_channel;
+  end if;
+  return jsonb_build_object('ok', true, 'channel', p_channel, 'method', p_method, 'has_creds', (p_creds is not null and p_creds <> '{}'::jsonb));
+end $$;
+grant execute on function connect_integration to authenticated;
+
+-- seed sensible defaults so the onboarding UI shows a starting state
+update integrations set config = config || '{"method":"api"}' where config->>'method' is null;
