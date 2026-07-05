@@ -1145,3 +1145,35 @@ begin
   return jsonb_build_object('ok', true, 'booking', v_id);
 end $$;
 grant execute on function sync_ingest to anon, authenticated;
+-- ============================================================
+-- Migration 17 — per-account partner credentials, ENCRYPTED
+-- Each account's partner API key is unique to that account and must
+-- never sit in a readable column. We store it in Supabase Vault
+-- (encrypted at rest); integrations.config keeps only a non-secret
+-- reference (secret_id + venue_id). Only the worker (service role)
+-- can decrypt; staff/operator never see the raw key.
+-- ============================================================
+create or replace function set_integration_secret(p_tenant text, p_channel text, p_secret text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_name text; v_id uuid; v_existing uuid;
+begin
+  -- a tenant may set its own key; the operator may set any tenant's
+  if not (auth_role() = 'operator' or (auth_role() = 'staff' and auth_tenant() = p_tenant)) then
+    raise exception 'not authorised';
+  end if;
+  if (select 1 from integrations where tenant_id = p_tenant and channel = p_channel) is null then
+    raise exception 'unknown integration';
+  end if;
+  v_name := 'partner:' || p_tenant || ':' || p_channel;
+  select id into v_existing from vault.secrets where name = v_name;
+  if v_existing is not null then
+    perform vault.update_secret(v_existing, p_secret);
+    v_id := v_existing;
+  else
+    v_id := vault.create_secret(p_secret, v_name, 'partner API key for ' || p_tenant || '/' || p_channel);
+  end if;
+  update integrations set config = config || jsonb_build_object('secret_id', v_id::text)
+    where tenant_id = p_tenant and channel = p_channel;
+  return jsonb_build_object('ok', true, 'secret_id', v_id, 'stored', 'encrypted in Vault');
+end $$;
+grant execute on function set_integration_secret to authenticated;

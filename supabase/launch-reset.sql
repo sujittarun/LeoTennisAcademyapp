@@ -37,3 +37,7 @@ delete from bookings where tenant_id = 'demo-courts';
 delete from sync_jobs;
 delete from integrations where tenant_id = 'demo-courts';
 delete from tenants where id = 'demo-courts';
+
+-- demo partner secrets (migration 17) — remove Vault entries + references
+delete from vault.secrets where name like 'partner:%';
+update integrations set config = config - 'secret_id';

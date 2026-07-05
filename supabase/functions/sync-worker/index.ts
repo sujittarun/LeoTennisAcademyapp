@@ -28,11 +28,19 @@ Deno.serve(async () => {
   let done = 0, failed = 0;
 
   for (const j of jobs ?? []) {
-    // load this account's credentials for the target channel
+    // load this account's config (holds venue_id + a Vault secret_id — NOT the key)
     const { data: intg } = await db.from("integrations")
       .select("config").eq("tenant_id", j.tenant_id).eq("channel", j.channel).maybeSingle();
+    const cfg = intg?.config ?? {};
+    // decrypt THIS account's own partner key from Vault (service role only)
+    let apiKey = "";
+    if (cfg.secret_id) {
+      const { data: sec } = await db.schema("vault").from("decrypted_secrets")
+        .select("decrypted_secret").eq("id", cfg.secret_id).maybeSingle();
+      apiKey = sec?.decrypted_secret ?? "";
+    }
     try {
-      await callPartner(j.channel, j.action, intg?.config ?? {}, j.payload);
+      await callPartner(j.channel, j.action, { ...cfg, api_key: apiKey }, j.payload);
       await db.from("sync_jobs").update({ status: "done", attempts: j.attempts + 1 }).eq("id", j.id);
       await db.from("sync_log").insert({
         tenant_id: j.tenant_id, channel: j.channel, action: "push",
