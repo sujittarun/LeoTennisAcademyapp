@@ -484,7 +484,7 @@
           var payBtn = b && b.status === "confirmed" && b.phone && b.amount > 0
             ? '<button class="btn btn-icon btn-glass btn-sm" data-pay="' + b.id + '" title="Send UPI pay link" aria-label="Send pay link">₹</button>' : "";
           var cancelBtn = b
-            ? '<button class="btn btn-icon btn-glass btn-sm" data-cancel="' + b.id + '" title="Cancel booking" aria-label="Cancel">✕</button>' : "";
+            ? '<button class="btn btn-icon btn-glass btn-sm" data-cancel="' + b.id + '" title="Cancel booking" aria-label="Cancel booking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>' : "";
           var blockBtn = (!b && !(isToday && h < nowH))
             ? '<button class="btn btn-icon btn-glass btn-sm" data-block="' + h + '" title="Block for maintenance" aria-label="Block">🔧</button>' : "";
           var act = (b && b.status === "pending"

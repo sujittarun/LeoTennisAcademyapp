@@ -56,19 +56,34 @@ Bad migrations are the #1 self-inflicted outage. Every schema change:
 
 ---
 
-## 4. Alerting  — `supabase/functions/reconcile`
+## 4. Auto-sync + alerting
 
-Nightly (and hourly) reconcile + health check that **pages you** when drift,
-dead-letters, a stalled queue, or stale channels cross a threshold.
+### Auto-sync is LIVE (pg_cron, no Edge Function needed)
+The engine already runs on a schedule with nobody's app open:
+- `drain-sync-jobs` (every minute) → `process_sync_jobs(200)` — drains the block/
+  unblock queue, propagating each booking to the other channels.
+- `reconcile-check` (hourly) → `cron_health_check()` — logs propagation gaps /
+  failed jobs into `sync_log` (tenant `platform`).
 
+Proven end-to-end (a Playo booking auto-blocked Hudle+District the same minute).
+The ONLY stub left is the real partner HTTP call inside `process_sync_jobs` —
+swap in the `partner-push` Edge Function once a partner gives real API creds.
+Manage the schedules:
+```sql
+select jobname, schedule, active from cron.job;         -- list
+select cron.unschedule('drain-sync-jobs');              -- pause if needed
+```
+
+### Pushed alerts (optional upgrade) — `supabase/functions/reconcile`
+The hourly cron logs to `sync_log`; to get **pushed** alerts (Slack/Discord)
+instead of just a log + the AM banner:
 1. `supabase functions deploy reconcile`
-2. Set secret: `supabase secrets set ALERT_WEBHOOK_URL=<slack-or-discord-incoming-webhook>`
-3. Schedule in the dashboard: `0 * * * *` (hourly) and `30 20 * * *` (full-day reconcile).
-4. Signals it watches: `reconcile_report()` (propagation gaps) + `platform_health()`
-   (queued/dead jobs + age, stale channels). Same data the operator banner shows.
+2. `supabase secrets set ALERT_WEBHOOK_URL=<incoming-webhook>`
+3. Schedule it (dashboard) `0 * * * *`; it runs `reconcile_report()` +
+   `platform_health()` and POSTs when thresholds cross.
 
-Until deployed, the operator sees the passive amber/red banner atop the Academy
-Manager console — but nothing is pushed to you. Deploy this to get pushed alerts.
+Until then: the operator sees the amber/red banner atop the Academy Manager
+console, and `cron_health_check` leaves a trail in `sync_log`.
 
 ---
 

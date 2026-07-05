@@ -1402,3 +1402,39 @@ begin
   return result;
 end $$;
 grant execute on function reconcile_report(date) to authenticated;
+
+-- ============ migration 22: pg_cron auto-sync (BaaS-native, LIVE) ============
+-- The sync engine now runs on a schedule with NOBODY's app open — deployed via
+-- pg_cron (1.6.4, already installed), no Edge Function / Docker needed:
+--   cron 'drain-sync-jobs'  every minute  -> select process_sync_jobs(200)
+--        drains the block/unblock queue, propagating to the other channels.
+--   cron 'reconcile-check'  hourly        -> select cron_health_check()
+--        flags propagation gaps / failed jobs into sync_log ('platform' tenant).
+-- Proven end-to-end: a Playo booking -> propagate_block queues Hudle+District
+-- blocks -> pg_cron drained them the same minute (sync_log push, status ok),
+-- no manual trigger. Only the REAL partner HTTP call is still stubbed inside
+-- process_sync_jobs (swap in the partner-push Edge Function once creds exist).
+-- Scheduled from the Management API:
+--   select cron.schedule('drain-sync-jobs','* * * * *', $$select process_sync_jobs(200)$$);
+--   select cron.schedule('reconcile-check','0 * * * *', $$select cron_health_check()$$);
+create or replace function cron_health_check()
+returns void language plpgsql security definer set search_path = public as $$
+declare v_gaps int; v_failed int;
+begin
+  select count(*) into v_failed from sync_jobs where status = 'failed';
+  select count(*) into v_gaps from (
+    select 1 from bookings b
+    join integrations i on i.tenant_id = b.tenant_id and i.enabled and i.channel <> b.source
+    where b.date = current_date and b.status = 'confirmed' and b.court is not null
+      and not exists (
+        select 1 from sync_log sl
+        where sl.tenant_id = b.tenant_id and sl.channel = i.channel
+          and sl.action = 'push' and sl.status = 'ok'
+          and sl.detail like '%' || b.court || '%' || current_date::text || '%' || b.hour || ':00%')
+  ) g;
+  if v_gaps > 0 or v_failed > 0 then
+    insert into sync_log (tenant_id, channel, action, status, detail)
+      values ('platform', '*', 'reconcile', case when v_failed > 0 then 'error' else 'warn' end,
+        v_gaps || ' propagation gap(s), ' || v_failed || ' failed job(s)');
+  end if;
+end $$;
