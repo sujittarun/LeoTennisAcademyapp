@@ -1214,3 +1214,104 @@ grant execute on function connect_integration to authenticated;
 
 -- seed sensible defaults so the onboarding UI shows a starting state
 update integrations set config = config || '{"method":"api"}' where config->>'method' is null;
+-- ============================================================
+-- Migration 19 — booking cancellation (weather/rain/maintenance) +
+-- maintenance holds. Cancelling frees the slot AND queues an UNBLOCK
+-- to reopen it on the partner channels.
+-- ============================================================
+alter table bookings add column if not exists cancel_reason text;
+
+-- unblock the other channels when a slot is freed (mirror of propagate_block)
+create or replace function propagate_unblock(p_booking_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype; ch text; queued text[] := '{}';
+begin
+  select * into b from bookings where id = p_booking_id;
+  if not found or b.court is null then return jsonb_build_object('queued', queued); end if;
+  for ch in select channel from integrations where tenant_id = b.tenant_id and enabled and channel <> b.source loop
+    insert into sync_jobs (tenant_id, channel, action, ext_ref, payload)
+      values (b.tenant_id, ch, 'unblock', b.ext_ref,
+        jsonb_build_object('court', b.court, 'date', b.date::text, 'hour', b.hour, 'source', b.source));
+    queued := queued || ch;
+  end loop;
+  return jsonb_build_object('queued', queued);
+end $$;
+grant execute on function propagate_unblock to authenticated;
+
+create or replace function cancel_booking(p_id text, p_reason text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype;
+begin
+  select * into b from bookings where id = p_id for update;
+  if not found then raise exception 'unknown booking'; end if;
+  perform assert_staff(b.tenant_id);
+  update bookings set status = 'cancelled', cancel_reason = p_reason where id = p_id;
+  if b.court is not null then begin perform propagate_unblock(p_id); exception when others then null; end; end if;
+  return jsonb_build_object('id', b.id, 'court', b.court, 'status', 'cancelled');
+end $$;
+grant execute on function cancel_booking to authenticated;
+
+-- block a specific court-hour for maintenance / rain (a zero-fee hold)
+create or replace function block_maintenance(p_tenant text, p_sport text, p_date date, p_hour int, p_court text, p_reason text default 'Maintenance')
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_id text;
+begin
+  perform assert_staff(p_tenant);
+  v_id := 'B-MNT' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source, cancel_reason)
+    values (v_id, p_tenant, coalesce(p_reason,'Maintenance'), null, p_sport, p_court, p_date, p_hour, 0, 'confirmed', 'Maintenance', null);
+  begin perform propagate_block(v_id); exception when others then null; end;
+  return jsonb_build_object('id', v_id, 'court', p_court);
+end $$;
+grant execute on function block_maintenance to authenticated;
+-- ============================================================
+-- Migration 19 — booking cancellation (weather/rain/maintenance) +
+-- maintenance holds. Cancelling frees the slot AND queues an UNBLOCK
+-- to reopen it on the partner channels.
+-- ============================================================
+alter table bookings add column if not exists cancel_reason text;
+
+-- unblock the other channels when a slot is freed (mirror of propagate_block)
+create or replace function propagate_unblock(p_booking_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype; ch text; queued text[] := '{}';
+begin
+  select * into b from bookings where id = p_booking_id;
+  if not found or b.court is null then return jsonb_build_object('queued', queued); end if;
+  for ch in select channel from integrations where tenant_id = b.tenant_id and enabled and channel <> b.source loop
+    insert into sync_jobs (tenant_id, channel, action, ext_ref, payload)
+      values (b.tenant_id, ch, 'unblock', b.ext_ref,
+        jsonb_build_object('court', b.court, 'date', b.date::text, 'hour', b.hour, 'source', b.source));
+    queued := queued || ch;
+  end loop;
+  return jsonb_build_object('queued', queued);
+end $$;
+grant execute on function propagate_unblock to authenticated;
+
+drop function if exists cancel_booking(text);
+create or replace function cancel_booking(p_id text, p_reason text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype;
+begin
+  select * into b from bookings where id = p_id for update;
+  if not found then raise exception 'unknown booking'; end if;
+  perform assert_staff(b.tenant_id);
+  update bookings set status = 'cancelled', cancel_reason = p_reason where id = p_id;
+  if b.court is not null then begin perform propagate_unblock(p_id); exception when others then null; end; end if;
+  return jsonb_build_object('id', b.id, 'court', b.court, 'status', 'cancelled');
+end $$;
+grant execute on function cancel_booking(text, text) to authenticated;
+
+-- block a specific court-hour for maintenance / rain (a zero-fee hold)
+create or replace function block_maintenance(p_tenant text, p_sport text, p_date date, p_hour int, p_court text, p_reason text default 'Maintenance')
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_id text;
+begin
+  perform assert_staff(p_tenant);
+  v_id := 'B-MNT' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source, cancel_reason)
+    values (v_id, p_tenant, coalesce(p_reason,'Maintenance'), null, p_sport, p_court, p_date, p_hour, 0, 'confirmed', 'Maintenance', null);
+  begin perform propagate_block(v_id); exception when others then null; end;
+  return jsonb_build_object('id', v_id, 'court', p_court);
+end $$;
+grant execute on function block_maintenance to authenticated;

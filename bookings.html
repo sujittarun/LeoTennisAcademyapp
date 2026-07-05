@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=22" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=23" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -33,6 +33,10 @@
 
     .tl-legend .sw-free { background: rgba(255, 255, 255, 0.16); }
     :root[data-theme="light"] .tl-legend .sw-free { background: rgba(20, 50, 34, 0.16); }
+    .sched-row .sr-acts { display: flex; gap: 4px; flex: none; align-items: center; }
+    .sched-row .sr-acts .btn-icon { width: 30px; height: 30px; font-size: 13px; }
+    .sched-row.free .sr-acts .btn-icon { opacity: 0; transition: opacity .2s ease; }
+    .sched-row.free:hover .sr-acts .btn-icon, .sched-row.free:active .sr-acts .btn-icon { opacity: .8; }
   </style>
 </head>
 <body>
@@ -133,9 +137,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=22"></script>
-  <script src="assets/js/data.js?v=22"></script>
-  <script src="assets/js/cloud.js?v=22"></script>
+  <script src="assets/js/core.js?v=23"></script>
+  <script src="assets/js/data.js?v=23"></script>
+  <script src="assets/js/cloud.js?v=23"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -316,12 +320,19 @@
           var waBtn = b && b.phone
             ? '<a class="btn btn-icon btn-glass btn-sm" href="https://wa.me/91' + String(b.phone).replace(/\D/g, "").slice(-10) + '" target="_blank" rel="noopener" aria-label="Message ' + LT.esc(b.name) + '" title="Message ' + LT.esc(b.name) + '"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.08-.3-.15-1.26-.47-2.4-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.87 1.22 3.07c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z"/></svg></a>'
             : "";
+          // pay-on-exit reminder (walk-ins pay at end of session via UPI link)
+          var payBtn = b && b.status === "confirmed" && b.phone && b.amount > 0
+            ? '<button class="btn btn-icon btn-glass btn-sm" data-pay="' + b.id + '" title="Send UPI pay link" aria-label="Send pay link">₹</button>' : "";
+          var cancelBtn = b
+            ? '<button class="btn btn-icon btn-glass btn-sm" data-cancel="' + b.id + '" title="Cancel booking" aria-label="Cancel">✕</button>' : "";
+          var blockBtn = (!b && !(isToday && h < nowH))
+            ? '<button class="btn btn-icon btn-glass btn-sm" data-block="' + h + '" title="Block for maintenance" aria-label="Block">🔧</button>' : "";
           var act = (b && b.status === "pending"
-            ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>' : "") + waBtn;
+            ? '<button class="btn btn-glass btn-sm" data-confirm="' + b.id + '">Confirm</button>' : "") + payBtn + waBtn + cancelBtn + blockBtn;
           rows.push('<div class="' + cls + '" style="animation-delay:' + i * 28 + 'ms;">' +
             '<span class="sr-time">' + LT_SLOTS.label(h) + "</span>" +
             '<span class="sr-bar"><i style="animation-delay:' + (i * 28 + 120) + 'ms;"></i></span>' +
-            who + act + "</div>");
+            who + '<span class="sr-acts">' + act + "</span></div>");
         }
         document.getElementById("cmSched").innerHTML = rows.join("");
       }
@@ -379,6 +390,71 @@
           LT.toast(/all courts taken/.test(m) ? "No free court left for that hour"
             : /no connection/.test(m) ? "No connection — not confirmed, try again"
             : "Couldn't confirm: " + m);
+        });
+      });
+
+      /* pay-on-exit: WhatsApp a UPI link for the court fee (walk-ins pay
+         at the end of the session). UPI id rotates like the renewal flow. */
+      function activeUpi() {
+        var b = LT_DATA.billing;
+        return b.upiIds[Math.floor((new Date().getDate() - 1) / b.upiWindowDays) % b.upiIds.length];
+      }
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-pay]");
+        if (!btn) return;
+        var b = dayBookings().find(function (x) { return x.id === btn.dataset.pay; });
+        if (!b || !b.phone) return;
+        var upi = activeUpi(), payee = LT_DATA.billing.payee, amt = b.amount;
+        var msg = "Hi " + b.name.split(" ")[0] + "! Thanks for playing at Leo Academy 🎾\n" +
+          "Court fee for your " + LT_SLOTS.label(b.hour) + " session: ₹" + amt.toLocaleString("en-IN") +
+          "\nPay by UPI to: " + upi + " (" + payee + ")" +
+          "\nupi://pay?pa=" + upi + "&pn=" + encodeURIComponent(payee) + "&am=" + amt + "&cu=INR&tn=" + encodeURIComponent("Court booking") +
+          "\n\nSee you again! 🦁";
+        window.open("https://wa.me/91" + String(b.phone).replace(/\D/g, "").slice(-10) + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
+        LT.toast("Pay link opened for " + b.name.split(" ")[0] + " ✓");
+      });
+
+      /* cancel a booking (rain / no-show / double-entry) — frees the slot */
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-cancel]");
+        if (!btn) return;
+        var id = btn.dataset.cancel;
+        var reason = window.prompt("Cancel this booking? Optional reason (e.g. rain, maintenance):", "");
+        if (reason === null) return; // dismissed
+        btn.disabled = true;
+        LT_CLOUD.cancelBooking(id, reason || null).then(function () {
+          var ov = overrides(); ov[id] = "cancelled"; LT.store.write("booking-status", ov);
+          // seed-only bookings live locally; hide them too
+          var local = LT.store.read("bookings", []).filter(function (x) { return x.id !== id; });
+          LT.store.write("bookings", local);
+          LT.toast("Booking cancelled — slot freed ✓");
+          render(); paintChannels();
+        }).catch(function (err) {
+          btn.disabled = false;
+          var m = String(err.message || "");
+          if (/unknown booking/.test(m)) { // demo seed: just hide locally
+            var ov2 = overrides(); ov2[id] = "cancelled"; LT.store.write("booking-status", ov2);
+            LT.toast("Booking cancelled ✓"); render(); return;
+          }
+          LT.toast(/no connection/.test(m) ? "No connection — not cancelled" : "Couldn't cancel: " + m);
+        });
+      });
+
+      /* block a court-hour for maintenance / rain closure */
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-block]");
+        if (!btn) return;
+        var c = LT_DATA.courtsMeta.find(function (x) { return x.id === openCourt; });
+        var hour = +btn.dataset.block;
+        var reason = window.prompt("Block " + c.name + " at " + LT_SLOTS.label(hour) + " for:", "Maintenance");
+        if (reason === null) return;
+        btn.disabled = true;
+        LT_CLOUD.blockMaintenance(c.sport, dateInput.value, hour, c.id, reason || "Maintenance").then(function () {
+          LT.toast(c.name + " blocked · " + LT_SLOTS.label(hour) + " ✓");
+          render(); paintChannels();
+        }).catch(function (err) {
+          btn.disabled = false;
+          LT.toast(/no connection/.test(String(err.message)) ? "No connection — not blocked" : "Couldn't block: " + err.message);
         });
       });
 

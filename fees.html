@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=22" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=23" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
@@ -101,6 +101,19 @@
     .stream-donut .d-ring { width: 120px; height: 120px; border-radius: 50%; margin: 0 auto; }
     .stream-donut .d-tot { text-align: center; font-size: 12px; color: var(--ink-low); }
     .stream-donut .d-tot b { display: block; font-family: var(--font-display); font-size: 20px; color: var(--tx-gold); }
+    .stream-bars .mo { border: none; background: none; cursor: pointer; padding: 0; }
+    .stream-bars .mo .stack { transition: filter .2s ease, transform .2s ease; }
+    .stream-bars .mo:hover .stack { filter: brightness(1.12); }
+    .stream-bars .mo.sel .stack { transform: scaleY(1.03); box-shadow: 0 0 0 1.5px rgba(224,189,108,.6); }
+    .stream-bars .mo.sel .mo-l { color: var(--tx-gold); font-weight: 700; }
+    .stream-detail { margin-top: var(--gap-3); padding-top: var(--gap-3); border-top: 1px solid var(--line); }
+    .stream-detail .sd-h { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-hi); margin-bottom: 8px; }
+    .stream-detail .sd-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12.5px; color: var(--ink-mid); }
+    .stream-detail .sd-row .sd-k { display: flex; align-items: center; }
+    .stream-detail .sd-row .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; }
+    .stream-detail .sd-row .sd-v { font-weight: 700; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
+    .stream-detail .sd-sum { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+    .stream-detail .sd-sum .sd-k { color: var(--tx-gold); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -167,6 +180,7 @@
         <div class="stream-bars" id="streamBars"></div>
         <div class="stream-donut" id="streamDonut"></div>
       </div>
+      <div class="stream-detail" id="streamDetail"></div>
     </div>
 
     <div class="glass">
@@ -206,9 +220,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=22"></script>
-  <script src="assets/js/data.js?v=22"></script>
-  <script src="assets/js/cloud.js?v=22"></script>
+  <script src="assets/js/core.js?v=23"></script>
+  <script src="assets/js/data.js?v=23"></script>
+  <script src="assets/js/cloud.js?v=23"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -241,11 +255,26 @@
           var t = m.memberships + m.tennis + m.pickleball; if (t > max) max = t;
         });
         var grand = totMem + totTen + totPick || 1;
-        document.getElementById("streamBars").innerHTML = months.map(function (m) {
+        document.getElementById("streamBars").innerHTML = months.map(function (m, i) {
           function seg(cls, v) { return v ? '<i class="' + cls + '" style="height:' + Math.round((v / max) * 150) + 'px;" title="' + LT.fmtINR(v) + '"></i>' : ""; }
-          return '<div class="mo"><div class="stack">' + seg("seg-mem", m.memberships) + seg("seg-ten", m.tennis) + seg("seg-pick", m.pickleball) +
-            '</div><span class="mo-l">' + m.m + "</span></div>";
+          return '<button type="button" class="mo" data-mo="' + i + '"><div class="stack">' + seg("seg-mem", m.memberships) + seg("seg-ten", m.tennis) + seg("seg-pick", m.pickleball) +
+            '</div><span class="mo-l">' + m.m + "</span></button>";
         }).join("");
+        // tap a month to break its streams down (interactive)
+        function showMonth(i) {
+          var m = months[i], t = m.memberships + m.tennis + m.pickleball || 1, courts = m.tennis + m.pickleball;
+          document.querySelectorAll("#streamBars .mo").forEach(function (el, j) { el.classList.toggle("sel", j === +i); });
+          document.getElementById("streamDetail").innerHTML =
+            '<div class="sd-h">' + m.m + " · " + LT.fmtINR(t) + " collected</div>" +
+            '<div class="sd-row"><span class="sd-k"><span class="sw" style="background:var(--gold-grad);"></span>Memberships</span><span class="sd-v">' + LT.fmtINR(m.memberships) + " · " + Math.round(m.memberships / t * 100) + "%</span></div>" +
+            '<div class="sd-row"><span class="sd-k"><span class="sw" style="background:#34d399;"></span>Tennis court bookings</span><span class="sd-v">' + LT.fmtINR(m.tennis) + " · " + Math.round(m.tennis / t * 100) + "%</span></div>" +
+            '<div class="sd-row"><span class="sd-k"><span class="sw" style="background:#cbe34f;"></span>Pickleball court bookings</span><span class="sd-v">' + LT.fmtINR(m.pickleball) + " · " + Math.round(m.pickleball / t * 100) + "%</span></div>" +
+            '<div class="sd-row sd-sum"><span class="sd-k">Court bookings total</span><span class="sd-v">' + LT.fmtINR(courts) + " · " + Math.round(courts / t * 100) + "% of revenue</span></div>";
+        }
+        document.getElementById("streamBars").addEventListener("click", function (e) {
+          var b = e.target.closest(".mo"); if (b) showMonth(b.dataset.mo);
+        });
+        showMonth(months.length - 1); // default: latest month
         // conic donut of the 6-month split
         var pMem = (totMem / grand) * 100, pTen = (totTen / grand) * 100;
         document.getElementById("streamDonut").innerHTML =

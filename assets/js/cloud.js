@@ -151,6 +151,10 @@
       });
     },
     confirmBooking: function (id) { return rpc("confirm_booking", { p_id: id }); },
+    cancelBooking: function (id, reason) { return rpc("cancel_booking", { p_id: id, p_reason: reason || null }); },
+    blockMaintenance: function (sport, date, hour, court, reason) {
+      return rpc("block_maintenance", { p_tenant: TENANT, p_sport: sport, p_date: date, p_hour: hour, p_court: court, p_reason: reason || "Maintenance" });
+    },
 
     /* -------- reads (fail soft) -------- */
     fetchPublicSlots: function (sinceIso) { // occupancy only — no names, no phones
