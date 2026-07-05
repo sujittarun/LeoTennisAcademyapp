@@ -181,6 +181,14 @@ body {
   position: fixed;
   inset: 0;
   z-index: -2;
+  /* pin the ambient background to its own GPU layer. Without this the fixed
+     bg re-rasterizes on every scroll, and the backdrop-filter glass above it
+     re-samples each frame — which reads as flicker on Android / fold hardware
+     (most visible on the wide fold viewport). translateZ(0) caches it as a
+     composited texture so scrolling never repaints it. */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   background:
     radial-gradient(46% 42% at 12% 10%, rgba(24, 130, 84, 0.55), transparent 68%),
     radial-gradient(40% 36% at 86% 14%, rgba(201, 162, 75, 0.32), transparent 66%),
@@ -209,6 +217,11 @@ body {
      and a gentle range, so the background never reads as "shifting" */
   animation: lt-drift 80s ease-in-out infinite alternate;
   filter: blur(42px);
+  /* keep the big blurred drift layer on its own composited plane so the
+     42px blur is rasterized once, not re-blurred every scrolled frame */
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 :root[data-theme="light"] .lt-bg::before {
   background:
