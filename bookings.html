@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=29" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=30" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -204,9 +204,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=29"></script>
-  <script src="assets/js/data.js?v=29"></script>
-  <script src="assets/js/cloud.js?v=29"></script>
+  <script src="assets/js/core.js?v=30"></script>
+  <script src="assets/js/data.js?v=30"></script>
+  <script src="assets/js/cloud.js?v=30"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -572,10 +572,13 @@
         var b = dayBookings().find(function (x) { return x.id === btn.dataset.pay; });
         if (!b || !b.phone) return;
         var upi = activeUpi(), payee = LT_DATA.billing.payee, amt = b.amount;
+        var payBase = location.origin + location.pathname.replace(/[^/]*$/, "") + "pay.html";
+        var payUrl = payBase + "?pa=" + encodeURIComponent(upi) + "&pn=" + encodeURIComponent(payee) +
+          "&am=" + amt + "&tn=" + encodeURIComponent("Court booking · " + b.court);
         var msg = "Hi " + b.name.split(" ")[0] + "! Thanks for playing at Leo Academy 🎾\n" +
           "Court fee for your " + LT_SLOTS.label(b.hour) + " session: ₹" + amt.toLocaleString("en-IN") +
-          "\nPay by UPI to: " + upi + " (" + payee + ")" +
-          "\nupi://pay?pa=" + upi + "&pn=" + encodeURIComponent(payee) + "&am=" + amt + "&cu=INR&tn=" + encodeURIComponent("Court booking") +
+          "\nPay in one tap 👉 " + payUrl +
+          "\n(or UPI to " + upi + ")" +
           "\n\nSee you again! 🦁";
         window.open("https://wa.me/91" + String(b.phone).replace(/\D/g, "").slice(-10) + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
         LT.toast("Pay link opened for " + b.name.split(" ")[0] + " ✓");

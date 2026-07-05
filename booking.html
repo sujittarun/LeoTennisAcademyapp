@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=29" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=30" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .bk-wrap { max-width: 1080px; margin: 0 auto; width: 100%; }
@@ -185,9 +185,9 @@
     <button type="button" class="btn btn-primary btn-sm" id="mbGo">Complete booking</button>
   </div>
 
-  <script src="assets/js/core.js?v=29"></script>
-  <script src="assets/js/data.js?v=29"></script>
-  <script src="assets/js/cloud.js?v=29"></script>
+  <script src="assets/js/core.js?v=30"></script>
+  <script src="assets/js/data.js?v=30"></script>
+  <script src="assets/js/cloud.js?v=30"></script>
   <script>
     (function () {
       var dateInput = document.getElementById("bkDate");
@@ -239,7 +239,7 @@
           var peak = h >= LT_DATA.rates.peakFrom;
           var left = total - bookedCount(dateInput.value, h, sport);
           var full = left <= 0;
-          var cls = "slot" + (selected.indexOf(h) !== -1 ? " sel" : "") + (past || full ? " taken" : "");
+          var cls = "slot" + (peak ? " pk" : "") + (selected.indexOf(h) !== -1 ? " sel" : "") + (past || full ? " taken" : "");
           var rate = LT_SLOTS.rate(h, sport);
           var sub = full ? '<span style="color:var(--tx-red);font-weight:700;">Full</span>'
             : (peak ? '<span class="peak">₹' + rate + " · lights</span>" : "₹" + rate) +

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Pay · Leo Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=30" />
+  <script>document.documentElement.dataset.theme = "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    .pay-wrap { max-width: 430px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px 40px; }
+    .pay-card { text-align: center; }
+    .pay-amt { font-family: var(--font-display); font-size: 46px; font-weight: 800; color: var(--tx-gold); line-height: 1.05; margin: 8px 0 2px; }
+    .pay-to { font-size: 14px; color: var(--ink-hi); font-weight: 600; }
+    .pay-note { font-size: 12.5px; color: var(--ink-low); margin-top: 3px; }
+    .pay-qr { width: 200px; height: 200px; margin: 22px auto 8px; background: #fff; border-radius: 16px; padding: 12px; display: grid; place-items: center; }
+    .pay-qr img, .pay-qr canvas { width: 176px !important; height: 176px !important; }
+    .pay-qr-cap { font-size: 12px; color: var(--ink-low); margin-bottom: 18px; }
+    .pay-apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+    .pay-app { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 13px 6px; border-radius: 14px;
+      border: 1px solid var(--tile-border); background: var(--tile-bg); color: var(--ink-hi); font-size: 12px; font-weight: 650; text-decoration: none; }
+    .pay-app:active { transform: scale(0.97); }
+    .pay-app .ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; }
+    .pay-copy { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-radius: 12px;
+      border: 1px dashed var(--chip-border); font-size: 13px; color: var(--ink-mid); margin-top: 4px; }
+    .pay-copy b { color: var(--tx-gold); font-variant-numeric: tabular-nums; }
+    .pay-foot { font-size: 11.5px; color: var(--ink-faint); text-align: center; margin-top: 18px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="lt-bg" aria-hidden="true"></div>
+  <div class="pay-wrap">
+    <div class="glass glass-card pay-card">
+      <div class="kicker">Leo Academy</div>
+      <div class="pay-amt" id="payAmt">₹—</div>
+      <div class="pay-to" id="payTo"></div>
+      <div class="pay-note" id="payNote"></div>
+      <div class="pay-qr" id="payQr"></div>
+      <div class="pay-qr-cap">Scan with any UPI app</div>
+      <a class="btn btn-primary btn-block" id="payOpen" style="margin-bottom:16px;">Pay now</a>
+      <div class="pay-apps" id="payApps"></div>
+      <div class="pay-copy"><span>UPI ID · <b id="payUpi">—</b></span><button class="btn btn-glass btn-sm" id="payCopy" type="button">Copy</button></div>
+      <div class="pay-foot">Opens in your UPI app — nothing is charged on this page.<br />Payable to Leo Tennis Academy, Hyderabad.</div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var pa = q.get("pa") || "", pn = q.get("pn") || "Leo Academy", am = q.get("am") || "", tn = q.get("tn") || "Payment";
+      function upiLink(scheme) {
+        return scheme + "?pa=" + encodeURIComponent(pa) + "&pn=" + encodeURIComponent(pn) +
+          (am ? "&am=" + encodeURIComponent(am) : "") + "&cu=INR&tn=" + encodeURIComponent(tn);
+      }
+      var generic = upiLink("upi://pay");
+      var amNum = am ? "₹" + Number(am).toLocaleString("en-IN") : "₹—";
+      document.getElementById("payAmt").textContent = amNum;
+      document.getElementById("payTo").textContent = "to " + pn;
+      document.getElementById("payNote").textContent = tn;
+      document.getElementById("payUpi").textContent = pa || "—";
+      var openBtn = document.getElementById("payOpen");
+      openBtn.href = generic; openBtn.textContent = "Pay " + amNum + " now";
+
+      // QR encodes the standard UPI string — scannable by every UPI app, any device
+      try { new QRCode(document.getElementById("payQr"), { text: generic, width: 176, height: 176, correctLevel: QRCode.CorrectLevel.M }); }
+      catch (e) { document.getElementById("payQr").innerHTML = '<div style="color:#333;font-size:12px;padding:16px;">Use the UPI ID below to pay</div>'; }
+
+      // app-specific deep links — iOS needs these (a bare upi:// often has no handler)
+      var apps = [
+        { n: "GPay", c: "#1a73e8", u: upiLink("tez://upi/pay") },
+        { n: "PhonePe", c: "#5f259f", u: upiLink("phonepe://pay") },
+        { n: "Paytm", c: "#00b9f1", u: upiLink("paytmmp://pay") },
+      ];
+      document.getElementById("payApps").innerHTML = apps.map(function (a) {
+        return '<a class="pay-app" href="' + a.u + '"><span class="ic" style="background:' + a.c + ';">' + a.n[0] + "</span>" + a.n + "</a>";
+      }).join("");
+
+      document.getElementById("payCopy").addEventListener("click", function () {
+        var btn = this;
+        try { navigator.clipboard.writeText(pa); } catch (e) {}
+        btn.textContent = "Copied ✓"; setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+      });
+    })();
+  </script>
+</body>
+</html>

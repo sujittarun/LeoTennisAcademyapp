@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=29" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=30" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -84,7 +84,7 @@
     <div class="glass glass-card tight">
       <div class="toolbar">
         <input type="search" id="q" placeholder="Search members…" />
-        <div class="chip-row" id="programChips"></div>
+        <div class="chip-row filters" id="programChips"></div>
       </div>
     </div>
 
@@ -162,9 +162,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=29"></script>
-  <script src="assets/js/data.js?v=29"></script>
-  <script src="assets/js/cloud.js?v=29"></script>
+  <script src="assets/js/core.js?v=30"></script>
+  <script src="assets/js/data.js?v=30"></script>
+  <script src="assets/js/cloud.js?v=30"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -338,11 +338,15 @@
         var daysLeft = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
         var validTxt = daysLeft < 0 ? '<span style="color:var(--tx-red);">' + (-daysLeft) + "d overdue</span>"
           : daysLeft <= 3 ? '<span style="color:var(--tx-gold);">in ' + daysLeft + "d</span>" : "in " + daysLeft + "d";
+        var joinedDays = Math.max(0, Math.round((new Date(LT.today()) - new Date(m.joined)) / 864e5));
+        var months = Math.floor(joinedDays / 30);
+        var tenure = months >= 1 ? months : joinedDays;
+        var tenureUnit = months >= 1 ? (months === 1 ? "month" : "months") : (joinedDays === 1 ? "day" : "days");
         document.getElementById("mdName").textContent = m.name;
         document.getElementById("mdBody").innerHTML =
           '<div class="md-stats">' +
             '<div class="bstat"><span class="k">Attendance</span><span class="v">' + s.attendance + '</span><span class="s">last 30d</span></div>' +
-            '<div class="bstat"><span class="k">Court bookings</span><span class="v">' + s.bookings + '</span><span class="s">on file</span></div>' +
+            '<div class="bstat"><span class="k">Member for</span><span class="v">' + tenure + '</span><span class="s">' + tenureUnit + '</span></div>' +
             '<div class="bstat"><span class="k">Paid</span><span class="v" style="font-size:16px;">' + LT.fmtINR(s.paid) + '</span><span class="s">to date</span></div>' +
           "</div>" +
           '<div class="md-facts">' +
@@ -388,6 +392,14 @@
         }).filter(function (x) { return x.daysTo <= 2; }).sort(function (a, b) { return a.daysTo - b.daysTo; });
       }
       function niceDate(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long" }); }
+      // one tappable https link → pay.html (renders a QR + UPI-app buttons that
+      // work on BOTH iPhone and Android, unlike a bare upi:// link)
+      function payLink(amt, note) {
+        var b = LT_DATA.billing, upi = activeUpi();
+        var base = location.origin + location.pathname.replace(/[^/]*$/, "") + "pay.html";
+        return base + "?pa=" + encodeURIComponent(upi) + "&pn=" + encodeURIComponent(b.payee) +
+          "&am=" + amt + "&tn=" + encodeURIComponent(note);
+      }
       function waMessage(m, daysTo) {
         var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
         var b = LT_DATA.billing, upi = activeUpi(), amt = renewalAmount();
@@ -399,8 +411,8 @@
             : "Hi " + first + ", your " + p.name + " membership at Leo Academy was due on " + when + " (" + (-daysTo) + (daysTo === -1 ? " day" : " days") + " ago). Renew to keep your sessions going.";
         return opening +
           "\n\nAmount: ₹" + amt.toLocaleString("en-IN") +
-          "\nPay by UPI to: " + upi + " (" + b.payee + ")" +
-          "\nupi://pay?pa=" + upi + "&pn=" + encodeURIComponent(b.payee) + "&am=" + amt + "&cu=INR&tn=" + encodeURIComponent(p.name + " renewal") +
+          "\nPay in one tap 👉 " + payLink(amt, p.name + " renewal") +
+          "\n(or UPI to " + upi + ")" +
           "\n\nSee you on court! 🦁";
       }
       function openWhatsApp(m, daysTo) {
