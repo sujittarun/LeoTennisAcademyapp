@@ -162,6 +162,35 @@
     </div>
   </div>
 
+  <!-- record payment + renew (from a member) -->
+  <div class="lt-modal-backdrop" id="mpBackdrop" style="z-index: 96;">
+    <div class="glass lt-modal" style="width: min(400px, 100%);">
+      <div class="modal-head">
+        <div><div class="kicker">Record payment</div><h2 id="mpName" style="font-size:19px;"></h2></div>
+        <button class="btn btn-icon btn-ghost" id="mpClose" aria-label="Close">✕</button>
+      </div>
+      <form id="mpForm" class="lt-grid" style="gap: var(--gap-3);">
+        <label class="field"><span>Amount received</span><input type="number" name="amount" id="mpAmt" /></label>
+        <label class="field"><span>Paid by</span>
+          <div class="chip-row filters" id="mpMode">
+            <button type="button" class="chip active" data-m="Cash">Cash</button>
+            <button type="button" class="chip" data-m="UPI">UPI</button>
+            <button type="button" class="chip" data-m="Card">Card</button>
+          </div>
+        </label>
+        <label class="field"><span>Renew membership by</span>
+          <div class="chip-row filters" id="mpDur">
+            <button type="button" class="chip active" data-mo="1">1 month</button>
+            <button type="button" class="chip" data-mo="3">3 months</button>
+            <button type="button" class="chip" data-mo="6">6 months</button>
+            <button type="button" class="chip" data-mo="0">Don't renew</button>
+          </div>
+        </label>
+        <button class="btn btn-primary btn-block" type="submit">Save payment</button>
+      </form>
+    </div>
+  </div>
+
   <script src="assets/js/core.js?v=30"></script>
   <script src="assets/js/data.js?v=30"></script>
   <script src="assets/js/cloud.js?v=30"></script>
@@ -189,13 +218,17 @@
       function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }); }
       function normPhone(p) { return String(p || "").replace(/\D/g, "").slice(-10); }
 
-      // roster = seed members + any added on this device (merged, deduped by id)
+      // roster = seed members + any added on this device (merged, deduped by id).
+      // Renewals recorded via "Record payment" are stored as per-member overrides
+      // (new validTill + status) applied here so the roster reflects them at once.
       function localMembers() { return LT.store.read("members", []); }
+      function memberOverrides() { return LT.store.read("member-overrides", {}); }
       function allMembers() {
         var seen = {}, out = LT_DATA.members.slice();
         out.forEach(function (m) { seen[String(m.id)] = 1; });
         localMembers().forEach(function (m) { if (!seen[String(m.id)]) { seen[String(m.id)] = 1; out.push(m); } });
-        return out;
+        var ov = memberOverrides();
+        return out.map(function (m) { return ov[m.id] ? Object.assign({}, m, ov[m.id]) : m; });
       }
       function memberById(id) { return allMembers().find(function (m) { return String(m.id) === String(id); }); }
 
@@ -359,20 +392,62 @@
             '<button class="btn btn-primary" data-md-remind="' + m.id + '">' +
               '<svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M12.05 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.14 1.6 5.95L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.69 1.45c6.55 0 11.89-5.34 11.9-11.9C23.94 5.34 18.6 0 12.05 0m6.99 16.94c-.3.83-1.5 1.53-2.08 1.62-.53.08-1.2.11-1.94-.12-.45-.14-1.02-.33-1.76-.65-3.1-1.34-5.12-4.46-5.27-4.66-.15-.2-1.26-1.67-1.26-3.19s.8-2.27 1.08-2.58c.28-.31.61-.39.81-.39h.58c.19 0 .44-.07.68.52.25.6.85 2.06.92 2.21.08.15.13.33.03.53-.1.2-.15.32-.3.5-.14.17-.3.38-.44.51-.15.15-.3.3-.13.6.17.29.77 1.27 1.65 2.05 1.14 1.02 2.1 1.33 2.4 1.48.29.15.46.12.63-.07.2-.22.72-.84.91-1.13.2-.3.4-.25.66-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.07.12.07.71-.23 1.54"/></svg>' +
               " Remind</button>" +
-            '<button class="btn btn-glass" data-md-notice="' + m.id + '">Notice</button>' +
+            '<button class="btn btn-glass" data-md-pay="' + m.id + '">Record payment</button>' +
           "</div>";
         mdBackdrop.classList.add("open");
       }
       document.getElementById("mdClose").addEventListener("click", function () { mdBackdrop.classList.remove("open"); });
       mdBackdrop.addEventListener("click", function (e) { if (e.target === mdBackdrop) mdBackdrop.classList.remove("open"); });
       document.getElementById("mdBody").addEventListener("click", function (e) {
-        var rem = e.target.closest("[data-md-remind]"), notice = e.target.closest("[data-md-notice]");
-        if (!rem && !notice) return;
-        var m = memberById(rem ? rem.dataset.mdRemind : notice.dataset.mdNotice);
+        var rem = e.target.closest("[data-md-remind]"), pay = e.target.closest("[data-md-pay]");
+        if (!rem && !pay) return;
+        var m = memberById(rem ? rem.dataset.mdRemind : pay.dataset.mdPay);
         if (!m) return;
-        var daysTo = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
-        if (rem) { openWhatsApp(m, daysTo); mdBackdrop.classList.remove("open"); }
-        else downloadNotice(m, daysTo);
+        if (rem) { openWhatsApp(m, Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5)); mdBackdrop.classList.remove("open"); }
+        else openPay(m);
+      });
+
+      /* ---------- record payment + renew (cash / UPI / card at the desk) ---------- */
+      var mpBackdrop = document.getElementById("mpBackdrop"), mpMode = "Cash", mpDur = 1, mpMember = null;
+      function chipGroup(hostId, attr, set) {
+        document.getElementById(hostId).addEventListener("click", function (e) {
+          var b = e.target.closest(".chip"); if (!b) return;
+          this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === b); });
+          set(b.dataset[attr]);
+        });
+      }
+      chipGroup("mpMode", "m", function (v) { mpMode = v; });
+      chipGroup("mpDur", "mo", function (v) { mpDur = +v; });
+      function openPay(m) {
+        mpMember = m; mpMode = "Cash"; mpDur = 1;
+        document.getElementById("mpName").textContent = m.name;
+        document.getElementById("mpAmt").value = renewalAmount();
+        document.querySelectorAll("#mpMode .chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+        document.querySelectorAll("#mpDur .chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+        mpBackdrop.classList.add("open");
+      }
+      document.getElementById("mpClose").addEventListener("click", function () { mpBackdrop.classList.remove("open"); });
+      mpBackdrop.addEventListener("click", function (e) { if (e.target === mpBackdrop) mpBackdrop.classList.remove("open"); });
+      document.getElementById("mpForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var m = mpMember; if (!m) return;
+        var amt = Math.max(0, +document.getElementById("mpAmt").value || 0);
+        var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+        // 1) log the payment (cloud ledger + local so Finance shows it at once)
+        var pay = { ref: "P-" + Date.now(), name: m.name, type: "Membership",
+          detail: (p ? p.name : "Membership") + (mpDur ? " · " + mpDur + "mo renewal" : ""), amount: amt, mode: mpMode, on: LT.today() };
+        var local = LT.store.read("payments", []); local.unshift(pay); LT.store.write("payments", local);
+        if (window.LT_CLOUD && LT_CLOUD.addPayment) LT_CLOUD.addPayment(pay);
+        // 2) renew: extend validity from max(today, current) by the chosen months
+        if (mpDur > 0) {
+          var from = new Date(Math.max(new Date(m.validTill).getTime(), new Date(LT.today()).getTime()));
+          from.setMonth(from.getMonth() + mpDur);
+          var ov = memberOverrides(); ov[m.id] = { validTill: LT.isoDate(from), status: "active" }; LT.store.write("member-overrides", ov);
+        }
+        mpBackdrop.classList.remove("open");
+        LT.toast("✓ ₹" + amt.toLocaleString("en-IN") + " recorded" + (mpDur ? " · membership renewed" : ""));
+        render(); paintReminders();
+        if (mdBackdrop.classList.contains("open")) openMember(m.id);
       });
 
       /* ================= renewal reminders (WhatsApp) =================
