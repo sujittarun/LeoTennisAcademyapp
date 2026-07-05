@@ -1315,3 +1315,41 @@ begin
   return jsonb_build_object('id', v_id, 'court', p_court);
 end $$;
 grant execute on function block_maintenance to authenticated;
+
+-- ============ migration 20: platform health / reconciliation signals ============
+-- ONE operator-only call that surfaces the sync engine's alarm signals:
+-- job backlog + age (lag), dead-lettered jobs (failed 5x), and channels that
+-- have gone stale (enabled but not synced in >6h). This is the "morning alert"
+-- / reconciliation read; when real partner adapters land, a re-pull-and-diff
+-- feeds the same surface. Operator-scoped so no tenant sees another's health.
+create or replace function platform_health()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare result jsonb;
+begin
+  if auth_role() <> 'operator' then raise exception 'operator only'; end if;
+  select jsonb_build_object(
+    'as_of', now(),
+    'jobs', jsonb_build_object(
+      'pending', (select count(*) from sync_jobs where status = 'pending'),
+      'failed',  (select count(*) from sync_jobs where status = 'failed'),
+      'oldest_pending_mins',
+        (select coalesce(round(extract(epoch from (now() - min(created_at))) / 60), 0)::int
+           from sync_jobs where status = 'pending')
+    ),
+    'stale_integrations', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'tenant_id', tenant_id, 'channel', channel,
+        'last_sync_at', last_sync_at, 'last_result', last_result)), '[]'::jsonb)
+      from integrations
+      where enabled and (last_sync_at is null or last_sync_at < now() - interval '6 hours')
+    ),
+    'dead_letters', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', id, 'tenant_id', tenant_id, 'channel', channel,
+        'action', action, 'attempts', attempts, 'last_error', last_error)), '[]'::jsonb)
+      from sync_jobs where status = 'failed'
+    )
+  ) into result;
+  return result;
+end $$;
+grant execute on function platform_health() to authenticated;

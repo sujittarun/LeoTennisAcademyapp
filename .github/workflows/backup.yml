@@ -1,0 +1,52 @@
+name: Nightly encrypted DB backup
+
+# An INDEPENDENT copy of the whole database, stored on GitHub (not Supabase),
+# so even "the Supabase project was deleted/lost" can't wipe the data. The dump
+# is GPG-encrypted before upload, so it is safe even though this repo is public.
+#
+# One-time setup (repo → Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL   postgresql://postgres:<db-password>@db.ugsklcipzyiogxynshnh.supabase.co:5432/postgres
+#   BACKUP_PASSPHRASE a long random passphrase you keep safe (needed to restore)
+# Restore:  gpg -d leo-academy-YYYYMMDD-HHMM.dump.gpg > db.dump
+#           pg_restore --no-owner --no-privileges -d "$SUPABASE_DB_URL" db.dump
+
+on:
+  schedule:
+    - cron: "30 20 * * *"   # 02:00 IST daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL 16 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update && sudo apt-get install -y postgresql-client-16
+
+      - name: Dump + encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Set SUPABASE_DB_URL and BACKUP_PASSPHRASE repo secrets first."
+            exit 1
+          fi
+          ts=$(date -u +%Y%m%d-%H%M)
+          pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges -Fc -f "leo-academy-$ts.dump"
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --passphrase "$BACKUP_PASSPHRASE" "leo-academy-$ts.dump"
+          rm -f "leo-academy-$ts.dump"
+          ls -lh *.dump.gpg
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: "*.dump.gpg"
+          retention-days: 30
