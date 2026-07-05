@@ -910,3 +910,125 @@ begin
                             'court', v_court, 'date', v_date);
 end $$;
 grant execute on function partner_sync to authenticated;
+-- ============================================================
+-- Migration 15 — cross-partner block propagation
+-- When a slot is taken on ANY channel, immediately notify every OTHER
+-- enabled channel to block it (the real channel-manager behaviour).
+-- DUMMY: logs the outbound "block" call to sync_log; the real HTTP call
+-- to Playo/Hudle/District lives in the partner-push Edge Function.
+-- Fired from every write path so a booking from anywhere fans out.
+-- ============================================================
+create or replace function propagate_block(p_booking_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype; ch text; notified text[] := '{}';
+begin
+  select * into b from bookings where id = p_booking_id;
+  if not found or b.status = 'cancelled' or b.court is null then return jsonb_build_object('notified', notified); end if;
+  for ch in select channel from integrations where tenant_id = b.tenant_id and enabled and channel <> b.source loop
+    insert into sync_log (tenant_id, channel, action, ext_ref, status, detail)
+      values (b.tenant_id, ch, 'push', b.ext_ref, 'ok',
+        'block ' || b.court || ' ' || to_char(b.date,'DD Mon') || ' ' || b.hour || ':00 (from ' || b.source || ')');
+    notified := notified || ch;
+  end loop;
+  return jsonb_build_object('notified', notified, 'court', b.court);
+end $$;
+grant execute on function propagate_block to authenticated;
+
+-- record_booking: propagate after a court is claimed
+create or replace function record_booking(p_tenant text, p_sport text, p_date date, p_hour integer, p_name text, p_phone text, p_source text, p_court text DEFAULT NULL::text)
+returns jsonb language plpgsql security definer set search_path = 'public' as $function$
+declare v_cfg jsonb; v_amt int; v_id text; v_courts int; v_court text; i int;
+begin
+  perform assert_staff(p_tenant);
+  select config into v_cfg from tenants where id = p_tenant;
+  v_amt := slot_rate(p_tenant, p_sport, p_hour);
+  v_id := 'B-M' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  if p_court is not null then
+    insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source)
+      values (v_id, p_tenant, p_name, p_phone, p_sport, p_court, p_date, p_hour, v_amt, 'confirmed', p_source);
+    begin perform propagate_block(v_id); exception when others then null; end;
+    return jsonb_build_object('id', v_id, 'court', p_court);
+  end if;
+  v_courts := court_count(v_cfg, p_sport);
+  for i in 1..v_courts loop
+    v_court := upper(left(p_sport,1)) || i;
+    begin
+      insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source)
+        values (v_id, p_tenant, p_name, p_phone, p_sport, v_court, p_date, p_hour, v_amt, 'confirmed', p_source);
+      begin perform propagate_block(v_id); exception when others then null; end;
+      return jsonb_build_object('id', v_id, 'court', v_court);
+    exception when unique_violation then null;
+    end;
+  end loop;
+  raise exception 'all courts taken';
+end $function$;
+
+-- confirm_booking: propagate once the pending request gets a court
+create or replace function confirm_booking(p_id text)
+returns jsonb language plpgsql security definer set search_path = 'public' as $function$
+declare b bookings%rowtype; v_cfg jsonb; v_courts int; v_court text; i int;
+begin
+  select * into b from bookings where id = p_id for update;
+  if not found then raise exception 'unknown booking'; end if;
+  perform assert_staff(b.tenant_id);
+  if b.status = 'confirmed' and b.court is not null then
+    return jsonb_build_object('id', b.id, 'court', b.court);
+  end if;
+  if b.court is not null then
+    update bookings set status = 'confirmed' where id = p_id;
+    begin perform propagate_block(p_id); exception when others then null; end;
+    return jsonb_build_object('id', b.id, 'court', b.court);
+  end if;
+  select config into v_cfg from tenants where id = b.tenant_id;
+  v_courts := court_count(v_cfg, b.sport);
+  for i in 1..v_courts loop
+    v_court := upper(left(b.sport,1)) || i;
+    begin
+      update bookings set status = 'confirmed', court = v_court where id = p_id;
+      begin perform propagate_block(p_id); exception when others then null; end;
+      return jsonb_build_object('id', b.id, 'court', v_court);
+    exception when unique_violation then null;
+    end;
+  end loop;
+  raise exception 'all courts taken';
+end $function$;
+
+-- partner_sync: an inbound partner booking fans a block out to the others
+create or replace function partner_sync(p_tenant text, p_channel text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_cfg jsonb; v_courts int; v_sport text; v_date date; v_hour int; v_court text;
+  v_ext text; v_amt int; v_id text; v_attempts int := 0; v_done boolean := false;
+begin
+  if not (auth_role() = 'operator' or (auth_role() = 'staff' and auth_tenant() = p_tenant)) then
+    raise exception 'not authorised';
+  end if;
+  if (select enabled from integrations where tenant_id = p_tenant and channel = p_channel) is not true then
+    raise exception 'integration not enabled';
+  end if;
+  select config into v_cfg from tenants where id = p_tenant;
+  v_ext := p_channel || '-' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  while v_attempts < 12 and not v_done loop
+    v_attempts := v_attempts + 1;
+    v_sport := case when random() < 0.6 then 'tennis' else 'pickleball' end;
+    v_courts := coalesce((v_cfg#>>(array['courts', v_sport]))::int, 0);
+    v_date := current_date + (1 + floor(random()*10))::int;
+    v_hour := 6 + floor(random()*16)::int;
+    v_court := upper(left(v_sport,1)) || (1 + floor(random()*v_courts))::int;
+    v_amt := slot_rate(p_tenant, v_sport, v_hour);
+    v_id := 'B-EXT' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+    begin
+      insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source, ext_ref)
+        values (v_id, p_tenant, p_channel || ' booking', null, v_sport, v_court, v_date, v_hour, v_amt, 'confirmed', p_channel, v_ext);
+      v_done := true;
+    exception when unique_violation then null;
+    end;
+  end loop;
+  if v_done then begin perform propagate_block(v_id); exception when others then null; end; end if;
+  update integrations set last_sync_at = now(),
+    last_result = case when v_done then 'imported 1 booking' else 'no free slots' end
+    where tenant_id = p_tenant and channel = p_channel;
+  insert into sync_log (tenant_id, channel, action, ext_ref, status, detail)
+    values (p_tenant, p_channel, 'pull', v_ext, case when v_done then 'ok' else 'skipped' end,
+            case when v_done then 'imported ' || v_court || ' ' || v_date else 'no free slot found' end);
+  return jsonb_build_object('imported', case when v_done then 1 else 0 end, 'channel', p_channel, 'court', v_court, 'date', v_date);
+end $$;

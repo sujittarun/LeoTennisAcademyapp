@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=21" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=22" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -70,33 +70,27 @@
       </div>
     </div>
 
-    <!-- booker insights (from bookings, per tenant) -->
-    <div class="glass glass-card tight hide" id="bookerStats" style="margin-top: var(--gap-3);">
+    <!-- court booking history (operational: last 30 days, filter by date) -->
+    <div class="glass glass-card tight hide" id="histCard" style="margin-top: var(--gap-3);">
       <div class="card-head" style="margin-bottom: 10px;">
-        <div><div class="kicker">Court bookings</div><h2 style="font-size:16px;">Booker insights</h2></div>
-      </div>
-      <div class="bstat-row" id="bstatRow"></div>
-    </div>
-
-    <!-- court regulars — people who book courts but aren't coaching members;
-         a passive contact list derived from bookings (NOT the roster) -->
-    <div class="glass glass-card tight hide" id="regCard" style="margin-top: var(--gap-3);">
-      <div class="card-head" style="margin-bottom: 10px;">
-        <div><div class="kicker">Court regulars</div><h2 style="font-size:16px;">People who book, not yet members</h2></div>
-        <span class="faint" style="font-size:11.5px;" id="regHint"></span>
+        <div><div class="kicker">Court bookings</div><h2 style="font-size:16px;">Booking history</h2></div>
+        <div class="flex wrap" style="gap:8px;">
+          <input type="date" id="histDate" style="width:auto;" />
+          <button class="btn btn-glass btn-sm" id="histAll">Last 30 days</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="lt-table">
-          <thead><tr><th>Contact</th><th>Bookings</th><th>Spent</th><th>Last played</th><th></th></tr></thead>
-          <tbody id="regRows"></tbody>
+          <thead><tr><th>When</th><th>Court</th><th>Booked by</th><th>Source</th><th>Amount</th><th></th></tr></thead>
+          <tbody id="histRows"></tbody>
         </table>
       </div>
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=21"></script>
-  <script src="assets/js/data.js?v=21"></script>
-  <script src="assets/js/cloud.js?v=21"></script>
+  <script src="assets/js/core.js?v=22"></script>
+  <script src="assets/js/data.js?v=22"></script>
+  <script src="assets/js/cloud.js?v=22"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -141,40 +135,39 @@
           document.getElementById("appCard").classList.remove("hide");
         });
 
-        // booker insights — total, weekday/weekend split, 90-day court revenue
-        LT_CLOUD.fetchBookerStats && LT_CLOUD.fetchBookerStats().then(function (s) {
-          if (!s) return;
-          var tot = (s.weekday_bookings || 0) + (s.weekend_bookings || 0) || 1;
-          var wkPct = Math.round((s.weekday_bookings / tot) * 100);
-          document.getElementById("bstatRow").innerHTML =
-            '<div class="bstat"><span class="k">Total bookings</span><span class="v">' + (s.total_bookings || 0) + '</span><span class="s">all time</span></div>' +
-            '<div class="bstat"><span class="k">Weekday / weekend</span><span class="v" style="font-size:16px;">' + (s.weekday_bookings || 0) + " / " + (s.weekend_bookings || 0) + '</span>' +
-              '<div class="we-bar"><i style="width:' + wkPct + '%;background:var(--tx-gold);"></i><i style="width:' + (100 - wkPct) + '%;background:var(--tx-optic);"></i></div></div>' +
-            '<div class="bstat"><span class="k">Court revenue · 90d</span><span class="v" style="color:var(--tx-gold);">' + LT.fmtINR(s.booker_revenue_90d || 0) + '</span><span class="s">from bookers</span></div>' +
-            '<div class="bstat"><span class="k">Unique bookers</span><span class="v">' + (s.distinct_bookers || 0) + '</span><span class="s">distinct phones</span></div>';
-          document.getElementById("bookerStats").classList.remove("hide");
-        });
-
-        // court regulars — the academy's own booker CRM, derived from bookings
-        LT_CLOUD.fetchContacts && LT_CLOUD.fetchContacts().then(function (rows) {
-          if (!rows || !rows.length) return;
-          var memberPhones = {};
-          LT_DATA.members.forEach(function (m) { memberPhones[String(m.phone).replace(/\D/g, "").slice(-10)] = 1; });
-          // show bookers who aren't already coaching members — the upsell list
-          var regs = rows.filter(function (c) { return !memberPhones[c.phone]; });
-          if (!regs.length) return;
-          document.getElementById("regHint").textContent = regs.length + " contacts · your upsell list";
-          document.getElementById("regRows").innerHTML = regs.map(function (c) {
-            var wa = "https://wa.me/91" + String(c.phone).replace(/\D/g, "").slice(-10);
-            var regular = c.bookings >= 3 ? ' <span class="pill green" style="font-size:10px;padding:2px 8px;">regular</span>' : "";
-            return "<tr><td class='t-name'>" + LT.esc(c.name) + regular +
-              "<br /><span class='faint' style='font-size:11.5px;'>" + LT.esc(c.phone) + "</span></td>" +
-              "<td class='num'>" + c.bookings + "</td>" +
-              "<td class='num gold'>" + LT.fmtINR(c.spent) + "</td>" +
-              "<td class='faint'>" + fmtD(c.last_seen) + "</td>" +
-              '<td><a class="btn btn-glass btn-sm" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a></td></tr>';
+        // court booking history — operational list of the last 30 days,
+        // filterable by date (defaults to today). Transactional, NOT the
+        // aggregate booker analytics (those stay in the operator console).
+        var histAll = [];
+        function timeLabel(h) { var ap = h >= 12 ? "PM" : "AM"; var v = h % 12 || 12; return v + " " + ap; }
+        function renderHistory(dateFilter) {
+          var list = histAll.filter(function (b) { return !dateFilter || b.date === dateFilter; });
+          list.sort(function (a, b) { return a.date === b.date ? b.hour - a.hour : (a.date < b.date ? 1 : -1); });
+          var host = document.getElementById("histRows");
+          if (!list.length) {
+            host.innerHTML = '<tr><td colspan="6"><div class="empty-state">No bookings ' + (dateFilter ? "on this date." : "in the last 30 days.") + "</div></td></tr>";
+            return;
+          }
+          host.innerHTML = list.map(function (b) {
+            var wa = b.phone ? '<a class="btn btn-glass btn-sm" href="https://wa.me/91' + String(b.phone).replace(/\D/g, "").slice(-10) + '" target="_blank" rel="noopener">WhatsApp</a>' : "";
+            return "<tr><td>" + fmtD(b.date) + '<br /><span class="faint" style="font-size:11.5px;">' + timeLabel(b.hour) + "</span></td>" +
+              "<td class='num'>" + LT.esc(b.court || "—") + "</td>" +
+              "<td class='t-name'>" + LT.esc(b.name) + (b.phone ? '<br /><span class="faint" style="font-size:11.5px;">' + LT.esc(b.phone) + "</span>" : "") + "</td>" +
+              "<td>" + LT.esc(b.source || "Website") + "</td>" +
+              "<td class='num gold'>" + LT.fmtINR(b.amount) + "</td>" +
+              "<td>" + wa + "</td></tr>";
           }).join("");
-          document.getElementById("regCard").classList.remove("hide");
+        }
+        var histSince = new Date(); histSince.setDate(histSince.getDate() - 30);
+        LT_CLOUD.fetchBookings(LT.isoDate(histSince)).then(function (rows) {
+          histAll = (rows || []).filter(function (b) { return b.status !== "cancelled"; });
+          var today = LT.today();
+          var histDate = document.getElementById("histDate");
+          histDate.value = today;
+          renderHistory(today);
+          histDate.addEventListener("change", function () { renderHistory(this.value); });
+          document.getElementById("histAll").addEventListener("click", function () { document.getElementById("histDate").value = ""; renderHistory(null); });
+          document.getElementById("histCard").classList.remove("hide");
         });
       }
 

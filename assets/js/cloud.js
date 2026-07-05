@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var APP_VER = "17"; // keep in step with the ?v= cache-buster
+  var APP_VER = "22"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
@@ -233,23 +233,57 @@
     },
   };
 
+  /* ---------- breadcrumbs ----------
+     A lightweight ring of the last dozen things the user did (page loads,
+     tracked actions, clicks). Attached to every client_error so you can
+     replay what led to a bug without a session-replay tool. */
+  var crumbs = [];
+  function crumb(type, label) {
+    crumbs.push({ t: new Date().toISOString().slice(11, 19), type: type, label: String(label).slice(0, 48) });
+    if (crumbs.length > 12) crumbs.shift();
+  }
+  LT_CLOUD.crumb = crumb; // pages can add their own (e.g. "confirmed booking")
+  if (typeof document !== "undefined") {
+    document.addEventListener("click", function (e) {
+      var el = e.target.closest("button, a, .chip, .court-card, [data-confirm]");
+      if (!el) return;
+      crumb("click", (el.getAttribute("aria-label") || el.textContent || el.id || el.tagName).replace(/\s+/g, " ").trim());
+    }, true);
+  }
+  crumb("load", location.pathname.split("/").pop() || "index.html");
+
+  function device() {
+    try {
+      return {
+        vw: window.innerWidth + "x" + window.innerHeight,
+        ua: (navigator.userAgent.match(/(iPhone|iPad|Android|Macintosh|Windows|CrOS|Linux)[^;)]*/) || ["?"])[0],
+        online: navigator.onLine,
+      };
+    } catch (e) { return {}; }
+  }
+  function sessionRole() { var s = session(); return s ? (s.role || "legacy") : "anon"; }
+
   LT_CLOUD.track("page_view", { ver: APP_VER });
 
-  // error telemetry — first thing to check when a tenant reports a problem
+  // error telemetry — enriched with breadcrumbs + device + role for triage
   var errSent = 0;
-  window.addEventListener("error", function (e) {
+  function reportError(props) {
     if (errSent++ >= 5) return;
-    LT_CLOUD.track("client_error", {
+    var dv = device();
+    LT_CLOUD.track("client_error", Object.assign({
+      ver: APP_VER, url: (location.pathname + location.search).slice(0, 120),
+      role: sessionRole(), vw: dv.vw, ua: dv.ua, online: dv.online,
+      crumbs: crumbs.slice(-8),
+    }, props));
+  }
+  window.addEventListener("error", function (e) {
+    reportError({
       msg: String(e.message || "").slice(0, 200),
-      src: String(e.filename || "").split("/").pop() + ":" + (e.lineno || 0),
-      ver: APP_VER,
+      src: String(e.filename || "").split("/").pop() + ":" + (e.lineno || 0) + ":" + (e.colno || 0),
+      stack: e.error && e.error.stack ? String(e.error.stack).slice(0, 300) : null,
     });
   });
   window.addEventListener("unhandledrejection", function (e) {
-    if (errSent++ >= 5) return;
-    LT_CLOUD.track("client_error", {
-      msg: ("promise: " + String(e.reason && e.reason.message || e.reason || "")).slice(0, 200),
-      ver: APP_VER,
-    });
+    reportError({ msg: ("promise: " + String(e.reason && e.reason.message || e.reason || "")).slice(0, 200) });
   });
 })();
