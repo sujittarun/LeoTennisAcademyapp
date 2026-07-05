@@ -883,8 +883,8 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 @media (max-width: 1099px) { .dash-main, .dash-bottom { grid-template-columns: 1fr; } }
 
 .chart-card { display: flex; flex-direction: column; }
-.chart-host { position: relative; width: 100%; flex: 1; min-height: 230px; }
-.chart-host svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.chart-host { position: relative; width: 100%; }
+.chart-host svg { width: 100%; height: auto; display: block; overflow: visible; }
 .area-line { fill: none; stroke: url(#ltLineGrad); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .area-fill { opacity: 0; transition: opacity 0.9s ease 0.3s; }
 .area-fill.in { opacity: 1; }
@@ -919,16 +919,16 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .feed-item .fi-time { font-size: 11.5px; color: var(--ink-faint); margin-top: 1px; }
 
 /* ---------- Attendance mark grid ---------- */
-.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .att-tile {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; border-radius: var(--r-md);
+  padding: 9px 12px; border-radius: var(--r-md); min-width: 0;
   border: 1px solid var(--tile-border); background: var(--tile-bg);
   cursor: pointer; user-select: none;
   transition: border-color 0.25s ease, background 0.25s ease, transform 0.3s var(--ease-spring);
 }
 .att-tile:active { transform: scale(0.97); }
-.att-tile .av { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
+.att-tile .av { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
 .att-tile .nm { font-size: 13px; font-weight: 650; color: var(--ink-hi); line-height: 1.2; }
 .att-tile .bt { font-size: 10.5px; color: var(--ink-low); }
 .att-tile.present {
