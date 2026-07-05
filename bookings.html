@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=23" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=24" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -37,6 +37,20 @@
     .sched-row .sr-acts .btn-icon { width: 30px; height: 30px; font-size: 13px; }
     .sched-row.free .sr-acts .btn-icon { opacity: 0; transition: opacity .2s ease; }
     .sched-row.free:hover .sr-acts .btn-icon, .sched-row.free:active .sr-acts .btn-icon { opacity: .8; }
+
+    /* connect channels (credentials feed the central CourtSync engine) */
+    .chn-intro { font-size: 12.5px; color: var(--ink-mid); margin-bottom: var(--gap-3); }
+    .chn { border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 10px; }
+    .chn-h { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink-hi); font-size: 14px; margin-bottom: 8px; }
+    .chn-h .dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+    .chn-h .chn-ok { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--tx-green); }
+    .chn select.chn-m { width: 100%; margin-bottom: 8px; }
+    .chn-creds { display: flex; flex-direction: column; gap: 8px; }
+    .chn-creds .ci { width: 100%; }
+    .chn-note { font-size: 11.5px; color: var(--ink-low); }
+    .chn .chn-save { margin-top: 10px; }
+    .chn-status { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-low); margin-top: 8px; }
+    .chn-status .on { color: var(--tx-green); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -60,10 +74,11 @@
     <div class="glass glass-card tight reveal">
       <div class="card-head" style="margin-bottom: 10px;">
         <div><div class="kicker">Channels</div><h2 style="font-size:16px;">Bookings by source · last 30 days</h2></div>
-        <span class="faint" style="font-size:11.5px;">Playo &amp; Hudle sync pending — staff add those manually</span>
+        <button class="btn btn-glass btn-sm" id="chnBtn" type="button">Connect channels</button>
       </div>
       <div class="ch-bar" id="chBar"></div>
       <div class="ch-legend" id="chLegend"></div>
+      <div class="chn-status" id="chnStatus"></div>
     </div>
 
     <!-- unassigned web requests -->
@@ -119,6 +134,22 @@
     </div>
   </div>
 
+  <!-- connect channels modal — academy staff link marketplaces; creds -> Vault -->
+  <div class="lt-modal-backdrop" id="chnBackdrop">
+    <div class="glass lt-modal">
+      <div class="modal-head">
+        <div><div class="kicker">Channels</div><h2 style="font-size:20px;">Connect booking channels</h2></div>
+        <button class="btn btn-icon btn-ghost" id="chnClose">✕</button>
+      </div>
+      <div class="chn-intro">
+        Most marketplaces have no public API — pick how each one stays in sync.
+        Your login is encrypted and used only to keep this venue's board in sync
+        across every channel; a slot taken anywhere is blocked everywhere.
+      </div>
+      <div id="chnForm"></div>
+    </div>
+  </div>
+
   <!-- court schedule modal -->
   <div class="lt-modal-backdrop" id="cmBackdrop">
     <div class="glass lt-modal court-modal" id="cmModal">
@@ -137,9 +168,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=23"></script>
-  <script src="assets/js/data.js?v=23"></script>
-  <script src="assets/js/cloud.js?v=23"></script>
+  <script src="assets/js/core.js?v=24"></script>
+  <script src="assets/js/data.js?v=24"></script>
+  <script src="assets/js/cloud.js?v=24"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -227,6 +258,73 @@
           return '<span><span class="sw" style="background:' + c.color + ';"></span>' + LT.esc(c.label) + " <b>" + counts[c.id] + "</b></span>";
         }).join("");
       }
+
+      /* ---- connect channels: academy staff link the marketplaces themselves.
+         The method + (optional) credentials are encrypted into Vault by the
+         connect_integration RPC and read by the central CourtSync engine — the
+         academy never logs into CourtSync. Website/Walk-in need no connection. */
+      var syncable = ["Playo", "Hudle", "District"];
+      function agoShort(ts) { var m = (Date.now() - new Date(ts)) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago"; }
+      function paintChnStatus() {
+        var host = document.getElementById("chnStatus");
+        if (!host || !window.LT_CLOUD || !LT_CLOUD.fetchIntegrations) return;
+        LT_CLOUD.fetchIntegrations().then(function (rows) {
+          var by = {}; (rows || []).forEach(function (r) { by[r.channel] = r; });
+          host.innerHTML = syncable.map(function (id) {
+            var r = by[id];
+            if (r && r.enabled) return '<span><span class="on">● ' + LT.esc(id) + "</span> · " + (r.last_sync_at ? "synced " + agoShort(r.last_sync_at) : "connected") + "</span>";
+            return "<span>○ " + LT.esc(id) + " · not connected</span>";
+          }).join("");
+        });
+      }
+
+      var chnBackdrop = document.getElementById("chnBackdrop");
+      function openChannels() {
+        var host = document.getElementById("chnForm");
+        var opts = [["manual", "Manual — we block it, you track"], ["autologin", "Assisted sign-in — we sign in for you"], ["api", "API key (if the partner offers one)"], ["off", "Off"]];
+        function wire(rowEl) {
+          var sel = rowEl.querySelector(".chn-m"), creds = rowEl.querySelector(".chn-creds");
+          function renderCreds() {
+            var m = sel.value;
+            creds.innerHTML = m === "api" ? "<input type='text' class='ci' data-k='api_key' placeholder='Partner API key' />"
+              : m === "autologin" ? "<input type='text' class='ci' data-k='username' placeholder='Partner login (email / phone)' /><input type='password' class='ci' data-k='password' placeholder='Password' />"
+                : m === "manual" ? "<span class='chn-note'>You block this channel yourself; we keep the board in sync.</span>"
+                  : "<span class='chn-note'>Not synced.</span>";
+          }
+          renderCreds(); sel.addEventListener("change", renderCreds);
+          rowEl.querySelector(".chn-save").addEventListener("click", function () {
+            var btn = this; btn.disabled = true;
+            var m = sel.value, enabled = m !== "off", method = m === "off" ? "manual" : m, cr = null;
+            var ins = rowEl.querySelectorAll(".ci");
+            if (ins.length) { cr = {}; Array.prototype.forEach.call(ins, function (i) { if (i.value) cr[i.dataset.k] = i.value; }); if (!Object.keys(cr).length) cr = null; }
+            if (!window.LT_CLOUD || !LT_CLOUD.connectIntegration) { btn.disabled = false; LT.toast("Sync engine offline — try again later"); return; }
+            LT_CLOUD.connectIntegration(rowEl.dataset.ch, method, cr, enabled).then(function () {
+              btn.disabled = false; LT.toast(rowEl.dataset.ch + " saved ✓"); paintChnStatus();
+            }).catch(function (e) { btn.disabled = false; LT.toast("Couldn't save: " + (e && e.message || "error")); });
+          });
+        }
+        function build(by) {
+          host.innerHTML = syncable.map(function (id) {
+            var c = CHANNELS.find(function (x) { return x.id === id; }) || { id: id, label: id, color: "#9aa3b2" };
+            var row = by[id] || {}, cfg = row.config || {};
+            var m = (row.enabled === false) ? "off" : (cfg.method || "manual");
+            return "<div class='chn' data-ch='" + LT.esc(id) + "'>" +
+              "<div class='chn-h'><span class='dot' style='background:" + c.color + "'></span>" + LT.esc(c.label) +
+              (cfg.secret_id ? "<span class='chn-ok'>connected</span>" : "") + "</div>" +
+              "<select class='chn-m'>" + opts.map(function (o) { return "<option value='" + o[0] + "'" + (o[0] === m ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>" +
+              "<div class='chn-creds'></div><button class='btn btn-primary btn-sm chn-save' type='button'>Save</button></div>";
+          }).join("");
+          Array.prototype.forEach.call(host.querySelectorAll(".chn"), wire);
+        }
+        host.innerHTML = "<div class='chn-note'>Loading…</div>";
+        chnBackdrop.classList.add("open");
+        var p = (window.LT_CLOUD && LT_CLOUD.fetchIntegrationConfig) ? LT_CLOUD.fetchIntegrationConfig() : Promise.resolve([]);
+        p.then(function (rows) { var by = {}; (rows || []).forEach(function (r) { by[r.channel] = r; }); build(by); }).catch(function () { build({}); });
+      }
+      document.getElementById("chnBtn").addEventListener("click", openChannels);
+      document.getElementById("chnClose").addEventListener("click", function () { chnBackdrop.classList.remove("open"); });
+      chnBackdrop.addEventListener("click", function (e) { if (e.target === chnBackdrop) chnBackdrop.classList.remove("open"); });
+      paintChnStatus();
 
       function render() {
         var day = dayBookings();
@@ -419,7 +517,7 @@
         var btn = e.target.closest("[data-cancel]");
         if (!btn) return;
         var id = btn.dataset.cancel;
-        var reason = window.prompt("Cancel this booking? Optional reason (e.g. rain, maintenance):", "");
+        var reason = window.prompt("Cancel this booking? This frees the court across all channels. It does NOT refund a partner (Playo/Hudle) booking — do that in their app. Optional reason (e.g. rain, maintenance):", "");
         if (reason === null) return; // dismissed
         btn.disabled = true;
         LT_CLOUD.cancelBooking(id, reason || null).then(function () {

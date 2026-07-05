@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var APP_VER = "22"; // keep in step with the ?v= cache-buster
+  var APP_VER = "24"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
@@ -182,9 +182,20 @@
     // per-tenant booker analytics + finance streams (staff of tenant / operator)
     fetchBookerStats: function (tenant) { return rpc("tenant_booker_stats", { p_tenant: tenant || TENANT }).catch(soft); },
     fetchRevenueStreams: function (months, tenant) { return rpc("tenant_revenue_streams", { p_tenant: tenant || TENANT, p_months: months || 6 }).catch(soft); },
-    // channel-partner integrations (CourtSync)
+    // channel-partner integrations (fed to the centralised CourtSync engine)
     fetchIntegrations: function (tenant) {
       return req("GET", "/integrations?tenant_id=eq." + (tenant || TENANT) + "&select=channel,enabled,last_sync_at,last_result&order=channel").catch(soft);
+    },
+    // config carries method + whether creds are stored (secret_id) — used to
+    // prefill the academy's own connect form. Credentials themselves stay in
+    // Vault and are never returned here.
+    fetchIntegrationConfig: function (tenant) {
+      return req("GET", "/integrations?tenant_id=eq." + (tenant || TENANT) + "&select=channel,enabled,config").catch(soft);
+    },
+    // academy staff link a channel: method (manual/autologin/api) + optional
+    // credentials -> encrypted into Vault by the RPC, wired to the sync engine.
+    connectIntegration: function (channel, method, creds, enabled, tenant) {
+      return rpc("connect_integration", { p_tenant: tenant || TENANT, p_channel: channel, p_method: method, p_creds: creds || null, p_enabled: enabled !== false });
     },
     partnerSync: function (channel, tenant) { return rpc("partner_sync", { p_tenant: tenant || TENANT, p_channel: channel }); },
     // court regulars (derived contacts view) — staff-scoped by RLS to own tenant
