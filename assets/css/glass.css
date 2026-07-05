@@ -709,6 +709,9 @@ table.lt-table { width: 100%; border-collapse: separate; border-spacing: 0; font
   transition: opacity 0.3s ease;
 }
 .lt-modal-backdrop.open { opacity: 1; pointer-events: auto; }
+/* freeze the page behind an open modal so touch-scroll moves the modal, not
+   the page underneath it */
+body.lt-noscroll { overflow: hidden; }
 /* Modals sit over busy photo content — give them a much more solid fill
    than ambient glass so rows and bars stay legible in BOTH themes. */
 .lt-modal.glass { background: rgba(9, 36, 24, 0.82); }
@@ -1043,15 +1046,18 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .tl-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
 
 /* ---------- Court schedule modal ---------- */
-.lt-modal.court-modal { padding: 0; overflow: hidden; }
-.court-modal .cm-hero { position: relative; height: 140px; }
+/* court modal: pinned hero + internally-scrolling body so a long day (17
+   slots) scrolls INSIDE the modal, never the page behind it, and the close
+   button stays reachable at the top. */
+.lt-modal.court-modal { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.court-modal .cm-hero { position: relative; height: 140px; flex: none; }
 .court-modal .cm-hero img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(0.78) brightness(0.88); }
 .court-modal .cm-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(4, 19, 12, 0.85)); }
 .court-modal .cm-hero .cm-title { position: absolute; left: 20px; bottom: 14px; z-index: 1; }
 .court-modal .cm-hero .cm-title h2 { color: #fff; font-size: 22px; }
 .court-modal .cm-hero .cm-title .sub { color: rgba(224, 189, 108, 0.95); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .court-modal .cm-hero .cm-close { position: absolute; top: 12px; right: 12px; z-index: 1; color: #fff; background: rgba(4, 19, 12, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-.court-modal .cm-body { padding: var(--gap-3) var(--gap-4) var(--gap-4); }
+.court-modal .cm-body { padding: var(--gap-3) var(--gap-4) var(--gap-4); flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
 .sched { display: flex; flex-direction: column; gap: 6px; margin-top: var(--gap-2); }
 .sched-row {
@@ -1071,7 +1077,8 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 .sched-row.free .sr-bar i { display: none; }
 .sched-row.booked .sr-bar i { background: var(--gold-grad); box-shadow: 0 2px 8px rgba(201, 162, 75, 0.4); }
 .sched-row.pending .sr-bar i { background: repeating-linear-gradient(45deg, rgba(215, 239, 79, 0.6) 0 5px, rgba(215, 239, 79, 0.15) 5px 10px); }
-.sched-row .sr-who { flex: none; max-width: 200px; font-size: 12.5px; font-weight: 650; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-row .sr-who { flex: 1 1 auto; min-width: 0; text-align: right; font-size: 12.5px; font-weight: 650; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-row .sr-who small { text-align: right; }
 .sched-row .sr-who small { display: block; font-weight: 500; font-size: 10.5px; color: var(--ink-low); }
 .sched-row.free .sr-who { color: var(--ink-faint); font-weight: 500; }
 .sched-row.past { opacity: 0.45; }
@@ -1139,8 +1146,14 @@ html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
 }
 @media (max-width: 699px) {
   body { font-size: 14px; }
-  .sched-row .sr-time { width: 86px; font-size: 11px; white-space: nowrap; }
-  .sched-row .sr-who { max-width: 118px; font-size: 11.5px; }
+  .sched-row { gap: 8px; padding: 9px 10px; }
+  .sched-row .sr-time { width: 74px; font-size: 11px; white-space: nowrap; }
+  .sched-row .sr-who { font-size: 11.5px; }
+  /* the decorative status bar is dropped on phones so the name + action
+     buttons fit the row without overflowing off the right edge */
+  .sched-row .sr-bar { display: none; }
+  .sched-row .sr-acts { gap: 3px; }
+  .sched-row .sr-acts .btn-icon { width: 28px; height: 28px; font-size: 12px; }
   .court-modal .cm-hero { height: 130px; }
   .lt-page {
     padding: calc(var(--nav-h) + var(--gap-2)) var(--gap-2) calc(var(--dock-h) + 26px);

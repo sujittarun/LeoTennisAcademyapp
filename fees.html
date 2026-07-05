@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=24" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=25" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .fin-main { display: grid; grid-template-columns: 1.7fr 1fr; gap: var(--gap-3); align-items: stretch; }
@@ -99,6 +99,7 @@
     .stream-bars .stack i { display: block; transform-origin: bottom; animation: lt-grow-bar .6s var(--ease-spring) both; }
     .stream-bars .mo-l { font-size: 10.5px; color: var(--ink-low); }
     .seg-mem { background: var(--gold-grad); }
+    .seg-court { background: linear-gradient(180deg,#6ee7b7,#34d399); }
     .seg-ten { background: linear-gradient(180deg,#6ee7b7,#34d399); }
     .seg-pick { background: linear-gradient(180deg,#e7f97e,#cbe34f); }
     .stream-donut { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
@@ -236,9 +237,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=24"></script>
-  <script src="assets/js/data.js?v=24"></script>
-  <script src="assets/js/cloud.js?v=24"></script>
+  <script src="assets/js/core.js?v=25"></script>
+  <script src="assets/js/data.js?v=25"></script>
+  <script src="assets/js/cloud.js?v=25"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -263,12 +264,13 @@
         LT_CLOUD.fetchRevenueStreams && LT_CLOUD.fetchRevenueStreams(6).then(paintStreams);
       }
 
-      /* ===== revenue streams: interactive nested donut =====
-         Level 1 (month): one circle split by stream — memberships, tennis
-         courts, pickleball courts. Court bookings is a SUBTOTAL, not a silo.
-         Level 2 (tap a court slice): the circle re-forms as that sport's
-         court revenue split by channel (Website / Playo / Hudle / Walk-in),
-         proportioned from the booking history's source field. */
+      /* ===== revenue streams: interactive nested donut (3 levels) =====
+         Level 1 (month): Memberships vs Court bookings — two slices.
+         Level 2 (tap Court bookings): Tennis vs Pickleball courts.
+         Level 3 (tap a sport): that sport's court revenue split by channel
+           (Website / Playo / Hudle / Walk-in), proportioned from the booking
+           history's source field.
+         Pie slices AND the rows below both drill; a back link steps up. */
       var srcColors = { Website: "#c9a24b", Playo: "#3fb98a", Hudle: "#5b8def", "Walk-in": "#9aa7b2", District: "#d8785a" };
       function srcColor(s) { return srcColors[s] || "#8aa0b4"; }
 
@@ -299,15 +301,27 @@
       }
 
       var streamMonths = [], curM = -1, curLevel = "stream", curSport = null;
+      var COURT_COLOR = "#34d399", TENNIS_COLOR = "#34d399", PICK_COLOR = "#cbe34f";
+
+      function drillRow(key, label, color, value, whole, moreLabel) {
+        var canDrill = !!moreLabel && value > 0;
+        return '<div class="sd-row' + (canDrill ? " drill" : "") + '"' + (canDrill ? ' data-drill="' + key + '"' : "") + '>' +
+          '<span class="sd-k"><span class="sw" style="background:' + color + ';"></span>' + label + "</span>" +
+          '<span class="sd-v">' + LT.fmtINR(Math.round(value)) + " · " + Math.round(value / (whole || 1) * 100) + "%" +
+          (canDrill ? '<span class="sd-more" title="' + moreLabel + '">›</span>' : "") + "</span></div>";
+      }
 
       function renderPie() {
         var m = streamMonths[curM]; if (!m) return;
         var donutHost = document.getElementById("streamDonut");
         var detail = document.getElementById("streamDetail");
         var legend = document.getElementById("streamLegend");
+        var membership = m.memberships, tennis = m.tennis, pick = m.pickleball;
+        var courts = tennis + pick, total = membership + courts || 1;
 
+        // LEVEL 3 — one sport, split by channel
         if (curLevel === "channel") {
-          var sportRev = curSport === "tennis" ? m.tennis : m.pickleball;
+          var sportRev = curSport === "tennis" ? tennis : pick;
           var sName = curSport === "tennis" ? "Tennis" : "Pickleball";
           var split = sourceSplit(curSport);
           var sum = Object.keys(split).reduce(function (s, k) { return s + split[k]; }, 0) || 1;
@@ -316,42 +330,58 @@
           }).filter(function (s) { return s.value > 0; }).sort(function (a, b) { return b.value - a.value; });
           donutHost.innerHTML = donutSVG(segs, sName, LT.fmtINR(sportRev), "by channel");
           detail.innerHTML =
-            '<div class="sd-back" data-back="1">‹ ' + m.m + " · all streams</div>" +
+            '<div class="sd-back" data-back="1">‹ back to court bookings</div>' +
             '<div class="sd-h">' + m.m + " · " + sName + " courts by channel</div>" +
-            segs.map(function (s) {
-              return '<div class="sd-row"><span class="sd-k"><span class="sw" style="background:' + s.color + ';"></span>' + s.label + "</span>" +
-                '<span class="sd-v">' + LT.fmtINR(Math.round(s.value)) + " · " + Math.round(s.value / sportRev * 100) + "%</span></div>";
-            }).join("");
+            segs.map(function (s) { return drillRow(s.key, s.label, s.color, s.value, sportRev, ""); }).join("");
           legend.innerHTML = segs.slice(0, 4).map(function (s) {
             return '<span><span class="sw" style="background:' + s.color + ';"></span>' + s.label + "</span>";
           }).join("");
           return;
         }
 
-        var t = m.memberships + m.tennis + m.pickleball || 1, courts = m.tennis + m.pickleball;
-        var segs2 = [
-          { key: "memberships", label: "Memberships", value: m.memberships, color: "#c9a24b" },
-          { key: "tennis", label: "Tennis court bookings", value: m.tennis, color: "#34d399", drill: m.tennis > 0 ? 1 : 0 },
-          { key: "pickleball", label: "Pickleball court bookings", value: m.pickleball, color: "#cbe34f", drill: m.pickleball > 0 ? 1 : 0 },
-        ].filter(function (s) { return s.value > 0; });
-        function pct(v) { return Math.round(v / t * 100); }
-        function courtRow(key, label, color, v) {
-          var canDrill = v > 0;
-          return '<div class="sd-row' + (canDrill ? " drill" : "") + '"' + (canDrill ? ' data-drill="' + key + '"' : "") + '>' +
-            '<span class="sd-k"><span class="sw" style="background:' + color + ';"></span>' + label + "</span>" +
-            '<span class="sd-v">' + LT.fmtINR(v) + " · " + pct(v) + "%" + (canDrill ? '<span class="sd-more">channels ›</span>' : "") + "</span></div>";
+        // LEVEL 2 — court bookings, split by sport
+        if (curLevel === "sport") {
+          var sportSegs = [
+            { key: "tennis", label: "Tennis courts", value: tennis, color: TENNIS_COLOR, drill: tennis > 0 ? 1 : 0 },
+            { key: "pickleball", label: "Pickleball courts", value: pick, color: PICK_COLOR, drill: pick > 0 ? 1 : 0 },
+          ].filter(function (s) { return s.value > 0; });
+          donutHost.innerHTML = donutSVG(sportSegs, "Courts", LT.fmtINR(courts), courts > 0 ? "tap a sport" : "");
+          detail.innerHTML =
+            '<div class="sd-back" data-back="1">‹ back to all revenue</div>' +
+            '<div class="sd-h">' + m.m + " · court bookings · " + LT.fmtINR(courts) + "</div>" +
+            drillRow("tennis", "Tennis courts", TENNIS_COLOR, tennis, courts, "by channel") +
+            drillRow("pickleball", "Pickleball courts", PICK_COLOR, pick, courts, "by channel");
+          legend.innerHTML =
+            '<span><span class="sw" style="background:' + TENNIS_COLOR + ';"></span>Tennis ' + Math.round(tennis / (courts || 1) * 100) + "%</span>" +
+            '<span><span class="sw" style="background:' + PICK_COLOR + ';"></span>Pickleball ' + Math.round(pick / (courts || 1) * 100) + "%</span>";
+          return;
         }
-        donutHost.innerHTML = donutSVG(segs2, m.m, LT.fmtINR(t), courts > 0 ? "tap a court slice" : "");
+
+        // LEVEL 1 — the month: Memberships vs Court bookings
+        var topSegs = [
+          { key: "memberships", label: "Memberships", value: membership, color: "#c9a24b" },
+          { key: "court", label: "Court bookings", value: courts, color: COURT_COLOR, drill: courts > 0 ? 1 : 0 },
+        ].filter(function (s) { return s.value > 0; });
+        donutHost.innerHTML = donutSVG(topSegs, m.m, LT.fmtINR(total), courts > 0 ? "tap court bookings" : "");
         detail.innerHTML =
-          '<div class="sd-h">' + m.m + " · " + LT.fmtINR(t) + " collected</div>" +
-          '<div class="sd-row"><span class="sd-k"><span class="sw" style="background:var(--gold-grad);"></span>Memberships</span><span class="sd-v">' + LT.fmtINR(m.memberships) + " · " + pct(m.memberships) + "%</span></div>" +
-          courtRow("tennis", "Tennis court bookings", "#34d399", m.tennis) +
-          courtRow("pickleball", "Pickleball court bookings", "#cbe34f", m.pickleball) +
-          '<div class="sd-row sd-sum"><span class="sd-k">Court bookings total</span><span class="sd-v">' + LT.fmtINR(courts) + " · " + pct(courts) + "% of revenue</span></div>";
+          '<div class="sd-h">' + m.m + " · " + LT.fmtINR(total) + " collected</div>" +
+          drillRow("memberships", "Memberships", "var(--gold-grad)", membership, total, "") +
+          drillRow("court", "Court bookings", COURT_COLOR, courts, total, "tennis / pickleball");
         legend.innerHTML =
-          '<span><span class="sw" style="background:var(--gold-grad);"></span>Memberships ' + pct(m.memberships) + "%</span>" +
-          '<span><span class="sw" style="background:#34d399;"></span>Tennis ' + pct(m.tennis) + "%</span>" +
-          '<span><span class="sw" style="background:#cbe34f;"></span>Pickleball ' + pct(m.pickleball) + "%</span>";
+          '<span><span class="sw" style="background:var(--gold-grad);"></span>Memberships ' + Math.round(membership / total * 100) + "%</span>" +
+          '<span><span class="sw" style="background:' + COURT_COLOR + ';"></span>Court bookings ' + Math.round(courts / total * 100) + "%</span>";
+      }
+
+      function drill(key) {
+        if (key === "court") curLevel = "sport";
+        else if (key === "tennis" || key === "pickleball") { curLevel = "channel"; curSport = key; }
+        else return;
+        renderPie();
+      }
+      function stepBack() {
+        if (curLevel === "channel") { curLevel = "sport"; curSport = null; }
+        else if (curLevel === "sport") curLevel = "stream";
+        renderPie();
       }
 
       function showMonth(i) {
@@ -367,20 +397,19 @@
         months.forEach(function (m) { var t = m.memberships + m.tennis + m.pickleball; if (t > max) max = t; });
         document.getElementById("streamBars").innerHTML = months.map(function (m, i) {
           function seg(cls, v) { return v ? '<i class="' + cls + '" style="height:' + Math.round((v / max) * 150) + 'px;" title="' + LT.fmtINR(v) + '"></i>' : ""; }
-          return '<button type="button" class="mo" data-mo="' + i + '"><div class="stack">' + seg("seg-mem", m.memberships) + seg("seg-ten", m.tennis) + seg("seg-pick", m.pickleball) +
+          return '<button type="button" class="mo" data-mo="' + i + '"><div class="stack">' + seg("seg-mem", m.memberships) + seg("seg-court", m.tennis + m.pickleball) +
             '</div><span class="mo-l">' + m.m + "</span></button>";
         }).join("");
         document.getElementById("streamBars").addEventListener("click", function (e) {
           var b = e.target.closest(".mo"); if (b) showMonth(b.dataset.mo);
         });
         document.getElementById("streamDonut").addEventListener("click", function (e) {
-          var seg = e.target.closest(".ds.can"); if (!seg) return;
-          curSport = seg.dataset.key; curLevel = "channel"; renderPie();
+          var seg = e.target.closest(".ds.can"); if (seg) drill(seg.dataset.key);
         });
         document.getElementById("streamDetail").addEventListener("click", function (e) {
-          if (e.target.closest("[data-back]")) { curLevel = "stream"; curSport = null; renderPie(); return; }
+          if (e.target.closest("[data-back]")) { stepBack(); return; }
           var d = e.target.closest("[data-drill]");
-          if (d) { curSport = d.dataset.drill; curLevel = "channel"; renderPie(); }
+          if (d) drill(d.dataset.drill);
         });
         showMonth(months.length - 1); // default: latest month
         document.getElementById("streamCard").classList.remove("hide");
@@ -460,7 +489,7 @@
         var net = f.rev - f.exp;
         var rows = [
           ["Memberships", f.memberships, f.rev, "g"],
-          ["Court rental", f.courts, f.rev, "g"],
+          ["Court bookings", f.courts, f.rev, "g"],
           ["Coach salaries", f.salaries, f.rev, "r"],
           ["Maintenance", f.maintenance, f.rev, "r"],
           ["Lights & power", f.power, f.rev, "r"],
