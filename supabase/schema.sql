@@ -1353,3 +1353,52 @@ begin
   return result;
 end $$;
 grant execute on function platform_health() to authenticated;
+
+-- ============ migration 21: nightly reconciliation ============
+-- Diff each day's ledger against what actually reached the other channels.
+-- In our hub model, every confirmed booking on a court SHOULD have produced a
+-- successful 'push' (block) to every OTHER enabled channel. A missing push =
+-- drift (a slot that may still be sellable on a partner → double-book risk).
+-- Also surfaces channels gone stale and failed jobs. Operator-only.
+-- NOTE: matches pushes by court+date+hour in sync_log.detail; a production
+-- build would match on a structured (channel,court,date,hour) key.
+create or replace function reconcile_report(p_date date default current_date)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare result jsonb;
+begin
+  if auth_role() <> 'operator' then raise exception 'operator only'; end if;
+  with day_bookings as (
+    select b.tenant_id, b.id, b.source, b.court, b.date, b.hour
+    from bookings b
+    where b.date = p_date and b.status = 'confirmed' and b.court is not null
+  ),
+  expected as (
+    select db.tenant_id, db.id as booking_id, db.court, db.hour, i.channel
+    from day_bookings db
+    join integrations i
+      on i.tenant_id = db.tenant_id and i.enabled and i.channel <> db.source
+  ),
+  gaps as (
+    select e.*
+    from expected e
+    where not exists (
+      select 1 from sync_log sl
+      where sl.tenant_id = e.tenant_id and sl.channel = e.channel
+        and sl.action = 'push' and sl.status = 'ok'
+        and sl.detail like '%' || e.court || '%' || p_date::text || '%' || e.hour || ':00%'
+    )
+  )
+  select jsonb_build_object(
+    'date', p_date,
+    'gap_count', (select count(*) from gaps),
+    'propagation_gaps', (select coalesce(jsonb_agg(jsonb_build_object(
+      'tenant_id', tenant_id, 'booking_id', booking_id, 'channel', channel,
+      'court', court, 'hour', hour)), '[]'::jsonb) from gaps),
+    'stale_channels', (select coalesce(jsonb_agg(jsonb_build_object(
+      'tenant_id', tenant_id, 'channel', channel, 'last_sync_at', last_sync_at)), '[]'::jsonb)
+      from integrations where enabled and (last_sync_at is null or last_sync_at < now() - interval '6 hours')),
+    'failed_jobs', (select count(*) from sync_jobs where status = 'failed')
+  ) into result;
+  return result;
+end $$;
+grant execute on function reconcile_report(date) to authenticated;
