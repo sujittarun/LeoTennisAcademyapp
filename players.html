@@ -37,6 +37,24 @@
     .hist-table { min-width: 540px; }
     .hist-table th, .hist-table td { white-space: nowrap; vertical-align: middle; }
     .hist-table td .faint { white-space: nowrap; }
+    /* renewal reminders (WhatsApp) — lives with Members, not Finance */
+    .rem-list { display: flex; flex-direction: column; gap: 8px; }
+    .rem-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--r-md);
+      border: 1px solid rgba(255, 107, 107, 0.32); background: rgba(255, 107, 107, 0.07); }
+    :root[data-theme="light"] .rem-item { background: rgba(194, 56, 63, 0.07); }
+    .rem-item.done { border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+    .rem-item .av { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center;
+      font-size: 12px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
+    .rem-item .rm-body { flex: 1; min-width: 0; }
+    .rem-item .rm-name { display: block; font-weight: 700; font-size: 13.5px; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rem-item .rm-sub { display: block; font-size: 11.5px; color: var(--ink-low); }
+    .rem-item .rm-sub .late { color: var(--tx-red); font-weight: 700; }
+    .rem-empty { text-align: center; color: var(--ink-low); font-size: 13.5px; padding: var(--gap-3) var(--gap-2); }
+    .rem-item.upcoming { border-color: rgba(224, 189, 108, 0.35); background: rgba(201, 162, 75, 0.07); }
+    .rem-item .rm-sub .soon { color: var(--tx-gold); font-weight: 700; }
+    .rem-item .acts { display: flex; gap: 6px; flex: none; align-items: center; }
+    .rem-upi { font-size: 11.5px; margin: -4px 0 10px; }
+    .rem-upi b { color: var(--tx-gold); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -65,6 +83,16 @@
         <div><div class="kicker">Enquiries</div><h2 style="font-size:16px;">New coaching applications</h2></div>
       </div>
       <div class="app-tray" id="appTray"></div>
+    </div>
+
+    <!-- renewal reminders (WhatsApp) — membership follow-ups belong with Members -->
+    <div class="glass glass-card tight hide" id="remCard">
+      <div class="card-head" style="margin-bottom: 10px;">
+        <div><div class="kicker">Renewals</div><h2 style="font-size:16px;">WhatsApp reminders</h2></div>
+        <button class="btn btn-glass btn-sm" id="remindAll">Send next ›</button>
+      </div>
+      <div class="rem-upi faint" id="remUpi"></div>
+      <div class="rem-list" id="remList"></div>
     </div>
 
     <div class="glass">
@@ -193,7 +221,113 @@
             "<td>" + fmtD(m.joined) + "</td><td>" + fmtD(m.validTill) + "</td><td>" + pill + "</td></tr>";
         }).join("") || '<tr><td colspan="6"><div class="empty-state">No members match your search.</div></td></tr>';
       }
+
+      /* ================= renewal reminders (WhatsApp) =================
+         Heads-up 2 days before renewal, due-day/overdue chasers after.
+         Send opens WhatsApp with the message prefilled; the UPI ID in the
+         payment line rotates by day-of-month window (see LT_DATA.billing). */
+      function reminders() { return LT.store.read("reminders", {}); }
+      function activeUpi() {
+        var b = LT_DATA.billing;
+        return b.upiIds[Math.floor((new Date().getDate() - 1) / b.upiWindowDays) % b.upiIds.length];
+      }
+      function renewalAmount() { return LT_DATA.plans[0].amount; }
+      function renewalQueue() {
+        return LT_DATA.members.map(function (m) {
+          var daysTo = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
+          return { m: m, daysTo: daysTo };
+        }).filter(function (x) { return x.daysTo <= 2; }).sort(function (a, b) { return a.daysTo - b.daysTo; });
+      }
+      function niceDate(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long" }); }
+      function waMessage(m, daysTo) {
+        var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+        var b = LT_DATA.billing, upi = activeUpi(), amt = renewalAmount();
+        var first = m.name.split(" ")[0], when = niceDate(m.validTill);
+        var opening = daysTo > 0
+          ? "Hi " + first + "! 🎾 A quick heads-up — your " + p.name + " membership at Leo Academy renews on " + when + " (in " + daysTo + (daysTo === 1 ? " day" : " days") + ")."
+          : daysTo === 0
+            ? "Hi " + first + "! 🎾 Your " + p.name + " membership at Leo Academy renews today, " + when + "."
+            : "Hi " + first + ", your " + p.name + " membership at Leo Academy was due on " + when + " (" + (-daysTo) + (daysTo === -1 ? " day" : " days") + " ago). Renew to keep your sessions going.";
+        return opening +
+          "\n\nAmount: ₹" + amt.toLocaleString("en-IN") +
+          "\nPay by UPI to: " + upi + " (" + b.payee + ")" +
+          "\nupi://pay?pa=" + upi + "&pn=" + encodeURIComponent(b.payee) + "&am=" + amt + "&cu=INR&tn=" + encodeURIComponent(p.name + " renewal") +
+          "\n\nSee you on court! 🦁";
+      }
+      function openWhatsApp(m, daysTo) {
+        var phone = "91" + String(m.phone).replace(/\D/g, "").slice(-10);
+        window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(waMessage(m, daysTo)), "_blank", "noopener");
+        var rem = reminders(); rem[m.id] = new Date().toISOString(); LT.store.write("reminders", rem);
+        if (window.LT_CLOUD) { LT_CLOUD.logReminder(m.id, activeUpi()); LT_CLOUD.track("reminder_sent", { daysTo: daysTo }); }
+        LT.toast("WhatsApp opened for " + m.name.split(" ")[0] + " ✓");
+        paintReminders();
+      }
+      function downloadNotice(m, daysTo) {
+        var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+        var b = LT_DATA.billing, upi = activeUpi(), amt = renewalAmount(), c = LT_DATA.contact;
+        var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>" +
+          "<head><meta charset='utf-8'><title>Renewal Notice</title></head>" +
+          "<body style='font-family:Georgia,serif;color:#1a1a1a;'>" +
+          "<h1 style='color:#0b2a1b;margin-bottom:0;'>LEO ACADEMY</h1>" +
+          "<p style='color:#c9a24b;font-weight:bold;margin-top:2px;'>Train smarter. Play stronger.</p>" +
+          "<hr style='border:1px solid #c9a24b;'/><h2>Membership Renewal Notice</h2>" +
+          "<p>Date: " + niceDate(LT.today()) + "</p><p>Dear " + m.name + ",</p>" +
+          "<p>Your <b>" + p.name + "</b> membership " +
+          (daysTo >= 0 ? "is due for renewal on <b>" + niceDate(m.validTill) + "</b>." :
+            "was due for renewal on <b>" + niceDate(m.validTill) + "</b>. Kindly renew at the earliest to continue your sessions.") + "</p>" +
+          "<table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;'>" +
+          "<tr><td><b>Renewal amount</b></td><td>₹" + amt.toLocaleString("en-IN") + "</td></tr>" +
+          "<tr><td><b>Pay by UPI</b></td><td>" + upi + " (" + b.payee + ")</td></tr>" +
+          "<tr><td><b>Cash / card</b></td><td>At the front desk, 6 AM – 11 PM daily</td></tr></table>" +
+          "<p>Questions? Call " + c.phone + ".</p><p>— Leo Academy Front Desk<br/>" + c.address + "</p></body></html>";
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob(["﻿", html], { type: "application/msword" }));
+        a.download = "Leo-Renewal-Notice-" + m.name.replace(/\s+/g, "-") + ".doc";
+        a.click(); URL.revokeObjectURL(a.href);
+      }
+      function paintReminders() {
+        var rem = reminders(), queue = renewalQueue(), host = document.getElementById("remList");
+        document.getElementById("remCard").classList.remove("hide");
+        document.getElementById("remUpi").innerHTML =
+          "Collecting to UPI <b>" + activeUpi() + "</b> (rotates every " + LT_DATA.billing.upiWindowDays + " days)";
+        if (!queue.length) { host.innerHTML = '<div class="rem-empty">Everyone is paid up 🎾</div>'; return; }
+        host.innerHTML = queue.map(function (x) {
+          var m = x.m, daysTo = x.daysTo;
+          var p = LT_DATA.programs.find(function (q) { return q.id === m.program; });
+          var when = rem[m.id];
+          var today = when && LT.isoDate(new Date(when)) === LT.today();
+          var stateHtml = daysTo > 0
+            ? '<span class="soon">renews in ' + daysTo + (daysTo === 1 ? " day" : " days") + "</span>"
+            : '<span class="late">' + (daysTo === 0 ? "due today" : -daysTo + (daysTo === -1 ? " day" : " days") + " overdue") + "</span>";
+          return '<div class="rem-item' + (daysTo > 0 ? " upcoming" : "") + (when ? " done" : "") + '">' +
+            '<span class="av">' + LT.initials(m.name) + "</span>" +
+            '<span class="rm-body"><span class="rm-name">' + LT.esc(m.name) + "</span>" +
+            '<span class="rm-sub">' + p.name + " · " + stateHtml + (today ? ' · <span style="color:var(--tx-green);">reminded today</span>' : "") + "</span></span>" +
+            '<span class="acts">' +
+            '<button class="btn btn-icon btn-glass" data-doc="' + m.id + '" aria-label="Download notice document" title="Download notice (.doc)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg></button>' +
+            '<button class="btn btn-primary btn-sm wa" data-wa="' + m.id + '">' +
+            '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>' +
+            " Send</button></span></div>";
+        }).join("");
+      }
+      document.getElementById("remList").addEventListener("click", function (e) {
+        var wa = e.target.closest("[data-wa]"), doc = e.target.closest("[data-doc]");
+        var id = wa ? +wa.dataset.wa : doc ? +doc.dataset.doc : null;
+        if (id === null) return;
+        var x = renewalQueue().find(function (q) { return q.m.id === id; });
+        if (!x) return;
+        if (wa) openWhatsApp(x.m, x.daysTo); else downloadNotice(x.m, x.daysTo);
+      });
+      document.getElementById("remindAll").addEventListener("click", function () {
+        var rem = reminders();
+        var next = renewalQueue().find(function (x) { return !(rem[x.m.id] && LT.isoDate(new Date(rem[x.m.id])) === LT.today()); });
+        if (!next) { LT.toast("Everyone in the queue reminded today ✓"); return; }
+        openWhatsApp(next.m, next.daysTo);
+      });
+
       render();
+      paintReminders();
     })();
   </script>
 </body>
