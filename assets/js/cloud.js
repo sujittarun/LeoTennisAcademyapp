@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var APP_VER = "25"; // keep in step with the ?v= cache-buster
+  var APP_VER = "26"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
@@ -198,6 +198,8 @@
       return rpc("connect_integration", { p_tenant: tenant || TENANT, p_channel: channel, p_method: method, p_creds: creds || null, p_enabled: enabled !== false });
     },
     partnerSync: function (channel, tenant) { return rpc("partner_sync", { p_tenant: tenant || TENANT, p_channel: channel }); },
+    // drain the propagation queue (block/unblock pushes to the other channels)
+    processSyncJobs: function (limit) { return rpc("process_sync_jobs", { p_limit: limit || 50 }); },
     // court regulars (derived contacts view) — staff-scoped by RLS to own tenant
     fetchContacts: function () {
       return req("GET", "/contacts?order=bookings.desc&limit=100&select=phone,name,bookings,spent,last_seen").catch(soft);

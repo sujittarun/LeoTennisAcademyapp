@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=25" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=26" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .req-tray { display: flex; flex-direction: column; gap: 8px; }
@@ -72,11 +72,16 @@
 
     <!-- booking channels, last 30 days -->
     <div class="glass glass-card tight reveal">
-      <div class="card-head" style="margin-bottom: 10px;">
+      <div class="card-head" style="margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
         <div><div class="kicker">Channels</div><h2 style="font-size:16px;">Bookings by source · last 30 days</h2></div>
-        <button class="btn btn-primary btn-sm" id="chnBtn" type="button" style="display:inline-flex;align-items:center;gap:6px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg>
-          Connect channels</button>
+        <div class="flex" style="gap: 8px;">
+          <button class="btn btn-glass btn-sm" id="chnBtn" type="button" style="display:inline-flex;align-items:center;gap:6px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg>
+            Connect channels</button>
+          <button class="btn btn-primary btn-sm" id="syncBtn" type="button" style="display:inline-flex;align-items:center;gap:6px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+            Sync channels</button>
+        </div>
       </div>
       <div class="ch-bar" id="chBar"></div>
       <div class="ch-legend" id="chLegend"></div>
@@ -170,9 +175,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=25"></script>
-  <script src="assets/js/data.js?v=25"></script>
-  <script src="assets/js/cloud.js?v=25"></script>
+  <script src="assets/js/core.js?v=26"></script>
+  <script src="assets/js/data.js?v=26"></script>
+  <script src="assets/js/cloud.js?v=26"></script>
   <script>
     LT.auth.require();
     LT.managerShell("bookings.html");
@@ -327,6 +332,32 @@
       document.getElementById("chnClose").addEventListener("click", function () { chnBackdrop.classList.remove("open"); });
       chnBackdrop.addEventListener("click", function (e) { if (e.target === chnBackdrop) chnBackdrop.classList.remove("open"); });
       paintChnStatus();
+
+      // Sync channels: pull any new partner bookings, drain the block queue,
+      // then refresh the board + channel mix + connection status.
+      document.getElementById("syncBtn").addEventListener("click", function () {
+        var btn = this; if (btn.disabled) return;
+        var orig = btn.innerHTML; btn.disabled = true; btn.textContent = "Syncing…";
+        if (!window.LT_CLOUD || !LT_CLOUD.fetchIntegrations) { btn.disabled = false; btn.innerHTML = orig; LT.toast("Sync engine offline"); return; }
+        LT_CLOUD.fetchIntegrations().then(function (rows) {
+          var enabled = (rows || []).filter(function (r) { return r.enabled; });
+          return Promise.all(enabled.map(function (r) { return LT_CLOUD.partnerSync(r.channel).catch(function () { return null; }); }))
+            .then(function (results) {
+              var imported = results.reduce(function (s, r) { return s + (r && r.imported ? r.imported : 0); }, 0);
+              return (LT_CLOUD.processSyncJobs ? LT_CLOUD.processSyncJobs(50).catch(function () { return null; }) : Promise.resolve())
+                .then(function () { return imported; });
+            });
+        }).then(function (imported) {
+          var since = new Date(); since.setDate(since.getDate() - 31);
+          return LT_CLOUD.fetchBookings(LT.isoDate(since)).then(function (rows) {
+            if (rows && rows.length) cloudBookings = rows;
+            render(); paintChannels(); paintChnStatus();
+            LT.toast(imported ? imported + " new booking" + (imported === 1 ? "" : "s") + " pulled ✓" : "Channels up to date ✓");
+          });
+        }).catch(function (e) {
+          LT.toast("Sync failed: " + (e && e.message || "error"));
+        }).then(function () { btn.disabled = false; btn.innerHTML = orig; });
+      });
 
       function render() {
         var day = dayBookings();
