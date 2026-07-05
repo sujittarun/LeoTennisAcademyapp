@@ -91,9 +91,9 @@
     .rem-upi { font-size: 11.5px; margin: -6px 0 12px; }
     .rem-upi b { color: var(--tx-gold); font-weight: 700; }
     /* revenue streams */
-    .stream-wrap { display: grid; grid-template-columns: 1.5fr .8fr; gap: var(--gap-4); align-items: center; }
-    @media (max-width: 799px) { .stream-wrap { grid-template-columns: 1fr; } }
-    .stream-bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; }
+    .stream-wrap { display: grid; grid-template-columns: 1fr 124px; gap: var(--gap-3); align-items: center; }
+    @media (max-width: 359px) { .stream-wrap { grid-template-columns: 1fr; gap: 4px; } }
+    .stream-bars { display: flex; align-items: flex-end; gap: 8px; height: 116px; }
     .stream-bars .mo { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
     .stream-bars .stack { width: 100%; max-width: 40px; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; }
     .stream-bars .stack i { display: block; transform-origin: bottom; animation: lt-grow-bar .6s var(--ease-spring) both; }
@@ -103,7 +103,7 @@
     .seg-ten { background: linear-gradient(180deg,#6ee7b7,#34d399); }
     .seg-pick { background: linear-gradient(180deg,#e7f97e,#cbe34f); }
     .stream-donut { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
-    .stream-donut .d-svg { width: 156px; height: 156px; display: block; }
+    .stream-donut .d-svg { width: 118px; height: 118px; display: block; }
     .stream-donut .ds { transition: stroke-width .18s ease, opacity .18s ease; }
     .stream-donut .ds.can { cursor: pointer; }
     .stream-donut .ds.can:hover { stroke-width: 21; }
@@ -115,19 +115,19 @@
     .stream-bars .mo:hover .stack { filter: brightness(1.12); }
     .stream-bars .mo.sel .stack { transform: scaleY(1.03); box-shadow: 0 0 0 1.5px rgba(224,189,108,.6); }
     .stream-bars .mo.sel .mo-l { color: var(--tx-gold); font-weight: 700; }
-    .stream-detail { margin-top: var(--gap-3); padding-top: var(--gap-3); border-top: 1px solid var(--line); }
-    .stream-detail .sd-h { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--ink-hi); margin-bottom: 8px; }
-    .stream-detail .sd-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12.5px; color: var(--ink-mid); }
-    .stream-detail .sd-row .sd-k { display: flex; align-items: center; }
-    .stream-detail .sd-row .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; }
-    .stream-detail .sd-row .sd-v { font-weight: 700; color: var(--ink-hi); font-variant-numeric: tabular-nums; }
-    .stream-detail .sd-sum { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
-    .stream-detail .sd-sum .sd-k { color: var(--tx-gold); font-weight: 700; }
-    .stream-detail .sd-row.drill { cursor: pointer; border-radius: 8px; margin: 0 -6px; padding-left: 6px; padding-right: 6px; transition: background .15s ease; }
-    .stream-detail .sd-row.drill:hover { background: rgba(224, 189, 108, .08); }
-    .stream-detail .sd-more { color: var(--tx-gold); font-weight: 600; font-size: 11px; margin-left: 6px; white-space: nowrap; }
-    .stream-detail .sd-back { cursor: pointer; color: var(--tx-gold); font-weight: 700; font-size: 12px; margin-bottom: 8px; display: inline-block; }
-    .stream-detail .sd-back:hover { text-decoration: underline; }
+    .stream-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .stream-detail .sd-h { font-family: var(--font-display); font-weight: 700; font-size: 13.5px; color: var(--ink-hi); margin-bottom: 6px; }
+    .stream-detail .sd-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 8px; font-size: 12.5px; color: var(--ink-mid); border-radius: 8px; }
+    .stream-detail .sd-row .sd-k { display: flex; align-items: center; min-width: 0; }
+    .stream-detail .sd-row .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; flex: none; }
+    .stream-detail .sd-row .sd-v { font-weight: 700; color: var(--ink-hi); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    /* accordion: expandable nodes + indentation keep the whole tree visible */
+    .stream-detail .sd-row.node { cursor: pointer; transition: background .15s ease; }
+    .stream-detail .sd-row.node:hover { background: rgba(224, 189, 108, .08); }
+    .stream-detail .sd-row.d1 { padding-left: 24px; }
+    .stream-detail .sd-row.d2 { padding-left: 42px; font-size: 12px; color: var(--ink-low); }
+    .stream-detail .sd-chev { display: inline-block; margin-right: 5px; color: var(--tx-gold); font-weight: 700; transition: transform .2s ease; }
+    .stream-detail .sd-row.open > .sd-k > .sd-chev { transform: rotate(90deg); }
   </style>
 </head>
 <body>
@@ -300,94 +300,72 @@
           (hint ? '<text class="d-hint" x="60" y="86" text-anchor="middle">' + hint + "</text>" : "") + "</svg>";
       }
 
-      var streamMonths = [], curM = -1, curLevel = "stream", curSport = null;
+      var streamMonths = [], curM = -1, expanded = {};
       var COURT_COLOR = "#34d399", TENNIS_COLOR = "#34d399", PICK_COLOR = "#cbe34f";
 
-      function drillRow(key, label, color, value, whole, moreLabel) {
-        var canDrill = !!moreLabel && value > 0;
-        return '<div class="sd-row' + (canDrill ? " drill" : "") + '"' + (canDrill ? ' data-drill="' + key + '"' : "") + '>' +
-          '<span class="sd-k"><span class="sw" style="background:' + color + ';"></span>' + label + "</span>" +
-          '<span class="sd-v">' + LT.fmtINR(Math.round(value)) + " · " + Math.round(value / (whole || 1) * 100) + "%" +
-          (canDrill ? '<span class="sd-more" title="' + moreLabel + '">›</span>' : "") + "</span></div>";
+      // one accordion row. `node` (key) makes it expandable with a chevron;
+      // depth indents the tree so Memberships stays visible above the drill.
+      function row(opts) {
+        var pct = Math.round(opts.value / (opts.whole || 1) * 100);
+        var expandable = opts.node && opts.value > 0;
+        var open = expandable && expanded[opts.node];
+        return '<div class="sd-row d' + opts.depth + (expandable ? " node" : "") + (open ? " open" : "") + '"' +
+          (expandable ? ' data-node="' + opts.node + '"' : "") + '>' +
+          '<span class="sd-k">' + (expandable ? '<span class="sd-chev">›</span>' : "") +
+          '<span class="sw" style="background:' + opts.color + ';"></span>' + opts.label + "</span>" +
+          '<span class="sd-v">' + LT.fmtINR(Math.round(opts.value)) + " · " + pct + "%</span></div>";
       }
 
-      function renderPie() {
+      function channelRows(sport, sportRev) {
+        var split = sourceSplit(sport);
+        var sum = Object.keys(split).reduce(function (s, k) { return s + split[k]; }, 0) || 1;
+        return Object.keys(split).map(function (k) {
+          return { label: k, color: srcColor(k), value: sportRev * split[k] / sum };
+        }).filter(function (s) { return s.value > 0; }).sort(function (a, b) { return b.value - a.value; })
+          .map(function (s) { return row({ label: s.label, color: s.color, value: s.value, whole: sportRev, depth: 2 }); }).join("");
+      }
+
+      function renderStreams() {
         var m = streamMonths[curM]; if (!m) return;
-        var donutHost = document.getElementById("streamDonut");
-        var detail = document.getElementById("streamDetail");
-        var legend = document.getElementById("streamLegend");
         var membership = m.memberships, tennis = m.tennis, pick = m.pickleball;
         var courts = tennis + pick, total = membership + courts || 1;
 
-        // LEVEL 3 — one sport, split by channel
-        if (curLevel === "channel") {
-          var sportRev = curSport === "tennis" ? tennis : pick;
-          var sName = curSport === "tennis" ? "Tennis" : "Pickleball";
-          var split = sourceSplit(curSport);
-          var sum = Object.keys(split).reduce(function (s, k) { return s + split[k]; }, 0) || 1;
-          var segs = Object.keys(split).map(function (k) {
-            return { key: k, label: k, value: sportRev * split[k] / sum, color: srcColor(k) };
-          }).filter(function (s) { return s.value > 0; }).sort(function (a, b) { return b.value - a.value; });
-          donutHost.innerHTML = donutSVG(segs, sName, LT.fmtINR(sportRev), "by channel");
-          detail.innerHTML =
-            '<div class="sd-back" data-back="1">‹ back to court bookings</div>' +
-            '<div class="sd-h">' + m.m + " · " + sName + " courts by channel</div>" +
-            segs.map(function (s) { return drillRow(s.key, s.label, s.color, s.value, sportRev, ""); }).join("");
-          legend.innerHTML = segs.slice(0, 4).map(function (s) {
-            return '<span><span class="sw" style="background:' + s.color + ';"></span>' + s.label + "</span>";
-          }).join("");
-          return;
-        }
-
-        // LEVEL 2 — court bookings, split by sport
-        if (curLevel === "sport") {
-          var sportSegs = [
-            { key: "tennis", label: "Tennis courts", value: tennis, color: TENNIS_COLOR, drill: tennis > 0 ? 1 : 0 },
-            { key: "pickleball", label: "Pickleball courts", value: pick, color: PICK_COLOR, drill: pick > 0 ? 1 : 0 },
-          ].filter(function (s) { return s.value > 0; });
-          donutHost.innerHTML = donutSVG(sportSegs, "Courts", LT.fmtINR(courts), courts > 0 ? "tap a sport" : "");
-          detail.innerHTML =
-            '<div class="sd-back" data-back="1">‹ back to all revenue</div>' +
-            '<div class="sd-h">' + m.m + " · court bookings · " + LT.fmtINR(courts) + "</div>" +
-            drillRow("tennis", "Tennis courts", TENNIS_COLOR, tennis, courts, "by channel") +
-            drillRow("pickleball", "Pickleball courts", PICK_COLOR, pick, courts, "by channel");
-          legend.innerHTML =
-            '<span><span class="sw" style="background:' + TENNIS_COLOR + ';"></span>Tennis ' + Math.round(tennis / (courts || 1) * 100) + "%</span>" +
-            '<span><span class="sw" style="background:' + PICK_COLOR + ';"></span>Pickleball ' + Math.round(pick / (courts || 1) * 100) + "%</span>";
-          return;
-        }
-
-        // LEVEL 1 — the month: Memberships vs Court bookings
+        // pie stays at the month level so Memberships is always visible
         var topSegs = [
           { key: "memberships", label: "Memberships", value: membership, color: "#c9a24b" },
           { key: "court", label: "Court bookings", value: courts, color: COURT_COLOR, drill: courts > 0 ? 1 : 0 },
         ].filter(function (s) { return s.value > 0; });
-        donutHost.innerHTML = donutSVG(topSegs, m.m, LT.fmtINR(total), courts > 0 ? "tap court bookings" : "");
-        detail.innerHTML =
-          '<div class="sd-h">' + m.m + " · " + LT.fmtINR(total) + " collected</div>" +
-          drillRow("memberships", "Memberships", "var(--gold-grad)", membership, total, "") +
-          drillRow("court", "Court bookings", COURT_COLOR, courts, total, "tennis / pickleball");
-        legend.innerHTML =
+        document.getElementById("streamDonut").innerHTML =
+          donutSVG(topSegs, m.m, LT.fmtINR(total), courts > 0 ? "tap to expand" : "");
+
+        // detail = an inline accordion tree (nothing gets replaced/hidden)
+        var out = ['<div class="sd-h">' + m.m + " · " + LT.fmtINR(total) + " collected</div>"];
+        out.push(row({ label: "Memberships", color: "var(--gold-grad)", value: membership, whole: total, depth: 0 }));
+        out.push(row({ node: "court", label: "Court bookings", color: COURT_COLOR, value: courts, whole: total, depth: 0 }));
+        if (expanded.court && courts > 0) {
+          out.push(row({ node: "tennis", label: "Tennis courts", color: TENNIS_COLOR, value: tennis, whole: courts, depth: 1 }));
+          if (expanded.tennis && tennis > 0) out.push(channelRows("tennis", tennis));
+          out.push(row({ node: "pickleball", label: "Pickleball courts", color: PICK_COLOR, value: pick, whole: courts, depth: 1 }));
+          if (expanded.pickleball && pick > 0) out.push(channelRows("pickleball", pick));
+        }
+        document.getElementById("streamDetail").innerHTML = out.join("");
+
+        document.getElementById("streamLegend").innerHTML =
           '<span><span class="sw" style="background:var(--gold-grad);"></span>Memberships ' + Math.round(membership / total * 100) + "%</span>" +
           '<span><span class="sw" style="background:' + COURT_COLOR + ';"></span>Court bookings ' + Math.round(courts / total * 100) + "%</span>";
       }
 
-      function drill(key) {
-        if (key === "court") curLevel = "sport";
-        else if (key === "tennis" || key === "pickleball") { curLevel = "channel"; curSport = key; }
-        else return;
-        renderPie();
-      }
-      function stepBack() {
-        if (curLevel === "channel") { curLevel = "sport"; curSport = null; }
-        else if (curLevel === "sport") curLevel = "stream";
-        renderPie();
+      function toggleNode(key) {
+        if (!key) return;
+        expanded[key] = !expanded[key];
+        if (key === "court" && !expanded.court) { expanded.tennis = false; expanded.pickleball = false; }
+        renderStreams();
       }
 
       function showMonth(i) {
-        curM = +i; curLevel = "stream"; curSport = null;
+        curM = +i; expanded = {};
         document.querySelectorAll("#streamBars .mo").forEach(function (el, j) { el.classList.toggle("sel", j === +i); });
-        renderPie();
+        renderStreams();
       }
 
       function paintStreams(months) {
@@ -396,7 +374,7 @@
         var max = 1;
         months.forEach(function (m) { var t = m.memberships + m.tennis + m.pickleball; if (t > max) max = t; });
         document.getElementById("streamBars").innerHTML = months.map(function (m, i) {
-          function seg(cls, v) { return v ? '<i class="' + cls + '" style="height:' + Math.round((v / max) * 150) + 'px;" title="' + LT.fmtINR(v) + '"></i>' : ""; }
+          function seg(cls, v) { return v ? '<i class="' + cls + '" style="height:' + Math.round((v / max) * 108) + 'px;" title="' + LT.fmtINR(v) + '"></i>' : ""; }
           return '<button type="button" class="mo" data-mo="' + i + '"><div class="stack">' + seg("seg-mem", m.memberships) + seg("seg-court", m.tennis + m.pickleball) +
             '</div><span class="mo-l">' + m.m + "</span></button>";
         }).join("");
@@ -404,12 +382,10 @@
           var b = e.target.closest(".mo"); if (b) showMonth(b.dataset.mo);
         });
         document.getElementById("streamDonut").addEventListener("click", function (e) {
-          var seg = e.target.closest(".ds.can"); if (seg) drill(seg.dataset.key);
+          var seg = e.target.closest(".ds.can"); if (seg && seg.dataset.key === "court") toggleNode("court");
         });
         document.getElementById("streamDetail").addEventListener("click", function (e) {
-          if (e.target.closest("[data-back]")) { stepBack(); return; }
-          var d = e.target.closest("[data-drill]");
-          if (d) drill(d.dataset.drill);
+          var node = e.target.closest("[data-node]"); if (node) toggleNode(node.dataset.node);
         });
         showMonth(months.length - 1); // default: latest month
         document.getElementById("streamCard").classList.remove("hide");

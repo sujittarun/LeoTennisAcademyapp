@@ -51,6 +51,18 @@
     .chn .chn-save { margin-top: 10px; }
     .chn-status { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-low); margin-top: 8px; }
     .chn-status .on { color: var(--tx-green); font-weight: 700; }
+
+    /* reason sheet (in-app cancel/block confirm) */
+    .rs-sub { font-size: 12.5px; color: var(--ink-mid); line-height: 1.55; margin: 0 0 14px; }
+    .rs-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .rs-chip { cursor: pointer; font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 99px;
+      border: 1px solid var(--line); background: var(--tile-bg); color: var(--ink-mid); transition: all .15s ease; }
+    .rs-chip.sel { border-color: var(--tx-gold); background: rgba(201, 162, 75, 0.14); color: var(--ink-hi); }
+    .rs-note { width: 100%; margin-bottom: 16px; }
+    .rs-acts { display: flex; gap: 10px; }
+    .rs-acts .btn { flex: 1; }
+    #rsConfirm { background: var(--gold-grad); color: #1c1503; font-weight: 700; }
+    #rsConfirm.danger { background: linear-gradient(115deg, #ff8a8a, #e24b4a); color: #fff; }
   </style>
 </head>
 <body>
@@ -171,6 +183,23 @@
           <span class="faint" style="font-size:12px;" id="cmDate"></span>
         </div>
         <div class="sched" id="cmSched"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- reason sheet: friendly in-app replacement for window.prompt (cancel / block) -->
+  <div class="lt-modal-backdrop" id="rsBackdrop" style="z-index: 95;">
+    <div class="glass lt-modal" style="width: min(430px, 100%);">
+      <div class="modal-head">
+        <div><div class="kicker" id="rsKicker"></div><h2 id="rsTitle" style="font-size:19px;"></h2></div>
+        <button class="btn btn-icon btn-ghost" id="rsClose" aria-label="Close">✕</button>
+      </div>
+      <p class="rs-sub" id="rsSub"></p>
+      <div class="rs-chips" id="rsChips"></div>
+      <input type="text" class="rs-note" id="rsNote" placeholder="Add a note (optional)" />
+      <div class="rs-acts">
+        <button class="btn btn-glass" id="rsKeep" type="button">Keep it</button>
+        <button class="btn" id="rsConfirm" type="button"></button>
       </div>
     </div>
   </div>
@@ -552,48 +581,101 @@
         LT.toast("Pay link opened for " + b.name.split(" ")[0] + " ✓");
       });
 
+      /* ---------- reason sheet: a friendly in-app prompt (no window.prompt,
+         which iOS suppresses and reads as "nothing happened"). One titled
+         sheet with plain copy, quick reason chips + an optional note. ---------- */
+      var rsBackdrop = document.getElementById("rsBackdrop");
+      var rsState = null;
+      function closeReasonSheet() { rsBackdrop.classList.remove("open"); rsState = null; }
+      function openReasonSheet(opts) {
+        rsState = opts;
+        document.getElementById("rsKicker").textContent = opts.kicker || "";
+        document.getElementById("rsTitle").textContent = opts.title || "";
+        document.getElementById("rsSub").textContent = opts.sub || "";
+        var confirmBtn = document.getElementById("rsConfirm");
+        confirmBtn.textContent = opts.confirmLabel || "Confirm";
+        confirmBtn.classList.toggle("danger", !!opts.danger);
+        var note = document.getElementById("rsNote"); note.value = "";
+        document.getElementById("rsChips").innerHTML = (opts.chips || []).map(function (c, i) {
+          return '<button type="button" class="rs-chip' + (i === 0 ? " sel" : "") + '" data-r="' + LT.esc(c) + '">' + LT.esc(c) + "</button>";
+        }).join("");
+        rsBackdrop.classList.add("open");
+      }
+      document.getElementById("rsChips").addEventListener("click", function (e) {
+        var chip = e.target.closest(".rs-chip"); if (!chip) return;
+        this.querySelectorAll(".rs-chip").forEach(function (c) { c.classList.toggle("sel", c === chip); });
+      });
+      function rsReason() {
+        var sel = document.querySelector("#rsChips .rs-chip.sel");
+        var base = sel ? sel.dataset.r : "";
+        var note = document.getElementById("rsNote").value.trim();
+        return note ? (base ? base + " · " + note : note) : base;
+      }
+      document.getElementById("rsClose").addEventListener("click", closeReasonSheet);
+      document.getElementById("rsKeep").addEventListener("click", closeReasonSheet);
+      rsBackdrop.addEventListener("click", function (e) { if (e.target === rsBackdrop) closeReasonSheet(); });
+      document.getElementById("rsConfirm").addEventListener("click", function () {
+        if (!rsState) return;
+        var fn = rsState.onConfirm, reason = rsReason();
+        closeReasonSheet();
+        if (fn) fn(reason);
+      });
+
       /* cancel a booking (rain / no-show / double-entry) — frees the slot */
+      function doCancel(id, reason, when) {
+        LT_CLOUD.cancelBooking(id, reason || null).then(function () {
+          var ov = overrides(); ov[id] = "cancelled"; LT.store.write("booking-status", ov);
+          var local = LT.store.read("bookings", []).filter(function (x) { return x.id !== id; });
+          LT.store.write("bookings", local);
+          LT.toast("✓ Cancelled — " + when + " is free again");
+          render(); paintChannels();
+        }).catch(function (err) {
+          var m = String(err.message || "");
+          if (/unknown booking/.test(m)) {
+            var ov2 = overrides(); ov2[id] = "cancelled"; LT.store.write("booking-status", ov2);
+            LT.toast("✓ Cancelled — " + when + " is free again"); render(); return;
+          }
+          LT.toast(/no connection/.test(m) ? "No connection — not cancelled, try again" : "Couldn't cancel: " + m);
+        });
+      }
       document.addEventListener("click", function (e) {
         var btn = e.target.closest("[data-cancel]");
         if (!btn) return;
         var id = btn.dataset.cancel;
-        var reason = window.prompt("Cancel this booking? This frees the court across all channels. It does NOT refund a partner (Playo/Hudle) booking — do that in their app. Optional reason (e.g. rain, maintenance):", "");
-        if (reason === null) return; // dismissed
-        btn.disabled = true;
-        LT_CLOUD.cancelBooking(id, reason || null).then(function () {
-          var ov = overrides(); ov[id] = "cancelled"; LT.store.write("booking-status", ov);
-          // seed-only bookings live locally; hide them too
-          var local = LT.store.read("bookings", []).filter(function (x) { return x.id !== id; });
-          LT.store.write("bookings", local);
-          LT.toast("Booking cancelled — slot freed ✓");
-          render(); paintChannels();
-        }).catch(function (err) {
-          btn.disabled = false;
-          var m = String(err.message || "");
-          if (/unknown booking/.test(m)) { // demo seed: just hide locally
-            var ov2 = overrides(); ov2[id] = "cancelled"; LT.store.write("booking-status", ov2);
-            LT.toast("Booking cancelled ✓"); render(); return;
-          }
-          LT.toast(/no connection/.test(m) ? "No connection — not cancelled" : "Couldn't cancel: " + m);
+        var b = dayBookings().find(function (x) { return x.id === id; });
+        var when = (LT_DATA.courtsMeta.find(function (x) { return x.id === openCourt; }) || {}).name;
+        when = (when ? when + " · " : "") + (b ? LT_SLOTS.label(b.hour) : "this slot");
+        openReasonSheet({
+          kicker: "Cancel booking", title: "Cancel this booking?",
+          sub: "Frees " + when + " across every channel. It won't refund a Playo/Hudle booking — do that in their app.",
+          chips: ["Rain", "No-show", "Double-booked", "Customer request"],
+          confirmLabel: "Cancel booking", danger: true,
+          onConfirm: function (reason) { doCancel(id, reason, when); },
         });
       });
 
       /* block a court-hour for maintenance / rain closure */
+      function doBlock(c, hour, reason) {
+        var when = c.name + " · " + LT_SLOTS.label(hour);
+        LT_CLOUD.blockMaintenance(c.sport, dateInput.value, hour, c.id, reason || "Maintenance").then(function () {
+          LT.toast("✓ Blocked — " + when + " held (" + (reason || "Maintenance") + ")");
+          render(); paintChannels();
+        }).catch(function (err) {
+          LT.toast(/no connection/.test(String(err.message)) ? "No connection — not blocked, try again" : "Couldn't block: " + err.message);
+        });
+      }
       document.addEventListener("click", function (e) {
         var btn = e.target.closest("[data-block]");
         if (!btn) return;
         var c = LT_DATA.courtsMeta.find(function (x) { return x.id === openCourt; });
         if (!c) return; // modal already closed — ignore a stale delegated click
         var hour = +btn.dataset.block;
-        var reason = window.prompt("Block " + c.name + " at " + LT_SLOTS.label(hour) + " for:", "Maintenance");
-        if (reason === null) return;
-        btn.disabled = true;
-        LT_CLOUD.blockMaintenance(c.sport, dateInput.value, hour, c.id, reason || "Maintenance").then(function () {
-          LT.toast(c.name + " blocked · " + LT_SLOTS.label(hour) + " ✓");
-          render(); paintChannels();
-        }).catch(function (err) {
-          btn.disabled = false;
-          LT.toast(/no connection/.test(String(err.message)) ? "No connection — not blocked" : "Couldn't block: " + err.message);
+        openReasonSheet({
+          kicker: "Block court", title: "Block " + c.name + "?",
+          sub: "Holds " + LT_SLOTS.label(hour) + " so nobody can book it — on your site and every channel.",
+          chips: ["Maintenance", "Net / surface repair", "Rain", "Cleaning", "Lighting"],
+          confirmLabel: "Block slot", danger: false,
+          onConfirm: function (reason) { doBlock(c, hour, reason || "Maintenance"); },
         });
       });
 
