@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var APP_VER = "28"; // keep in step with the ?v= cache-buster
+  var APP_VER = "29"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
@@ -208,6 +208,17 @@
       return req("GET", "/applications?tenant_id=eq." + TENANT +
         "&order=created_at.desc&limit=" + (limit || 12) +
         "&select=name,phone,program,slot,trial_date,created_at").catch(soft);
+    },
+    // roster members (staff of tenant). Add persists to the members table.
+    fetchMembers: function () {
+      return req("GET", "/members?tenant_id=eq." + TENANT +
+        "&select=id,name,phone,program,joined,valid_till,status&order=joined.desc").catch(soft);
+    },
+    addMember: function (m) {
+      return req("POST", "/members", {
+        tenant_id: TENANT, name: m.name, phone: m.phone || null, program: m.program,
+        joined: m.joined, valid_till: m.validTill, status: m.status || "active",
+      }, { Prefer: "return=representation" }).catch(soft);
     },
     addPayment: function (p) {
       return req("POST", "/payments", {

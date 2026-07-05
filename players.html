@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=28" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=29" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -46,15 +46,26 @@
     .rem-item .av { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center;
       font-size: 12px; font-weight: 700; color: #1c1503; background: var(--gold-grad); }
     .rem-item .rm-body { flex: 1; min-width: 0; }
-    .rem-item .rm-name { display: block; font-weight: 700; font-size: 13.5px; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rem-item .rm-sub { display: block; font-size: 11.5px; color: var(--ink-low); }
+    .rem-item .rm-name { display: block; font-weight: 700; font-size: 14px; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rem-item .rm-sub { display: block; font-size: 12px; margin-top: 1px; }
     .rem-item .rm-sub .late { color: var(--tx-red); font-weight: 700; }
+    .rem-item .rm-sub .soon { color: var(--tx-gold); font-weight: 700; }
+    .rem-item .rm-sub .sent { color: var(--tx-green); font-weight: 600; }
     .rem-empty { text-align: center; color: var(--ink-low); font-size: 13.5px; padding: var(--gap-3) var(--gap-2); }
     .rem-item.upcoming { border-color: rgba(224, 189, 108, 0.35); background: rgba(201, 162, 75, 0.07); }
-    .rem-item .rm-sub .soon { color: var(--tx-gold); font-weight: 700; }
-    .rem-item .acts { display: flex; gap: 6px; flex: none; align-items: center; }
-    .rem-upi { font-size: 11.5px; margin: -4px 0 10px; }
+    .rem-item .wa { flex: none; }
+    .rem-upi { font-size: 11px; margin: -2px 0 10px; color: var(--ink-faint); }
     .rem-upi b { color: var(--tx-gold); font-weight: 700; }
+    /* member detail */
+    .md-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 2px 0 14px; }
+    .md-facts { display: flex; flex-direction: column; margin-bottom: 4px; }
+    .md-facts .f { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .md-facts .f:last-child { border-bottom: none; }
+    .md-facts .f .k { color: var(--ink-low); }
+    .md-facts .f .v { font-weight: 700; color: var(--ink-hi); text-align: right; }
+    .md-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .md-actions .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    tr.mem-row { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -122,9 +133,38 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=28"></script>
-  <script src="assets/js/data.js?v=28"></script>
-  <script src="assets/js/cloud.js?v=28"></script>
+  <!-- add member -->
+  <div class="lt-modal-backdrop" id="amBackdrop">
+    <div class="glass lt-modal" style="width: min(430px, 100%);">
+      <div class="modal-head">
+        <div><div class="kicker">Members</div><h2 style="font-size:20px;">Add a member</h2></div>
+        <button class="btn btn-icon btn-ghost" id="amClose" aria-label="Close">✕</button>
+      </div>
+      <form id="amForm" class="lt-grid" style="gap: var(--gap-3);">
+        <label class="field"><span>Name</span><input type="text" name="name" placeholder="Full name" required /></label>
+        <label class="field"><span>Phone</span><input type="tel" name="phone" placeholder="98xxxxxxxx" required /></label>
+        <label class="field"><span>Program</span><select name="program" id="amProgram"></select></label>
+        <label class="field"><span>Membership</span><div class="chip-row" id="amPlan"></div></label>
+        <label class="field"><span>Start date</span><input type="date" name="joined" id="amJoined" /></label>
+        <button class="btn btn-primary btn-block" type="submit">Add member</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- member detail (lightweight) -->
+  <div class="lt-modal-backdrop" id="mdBackdrop">
+    <div class="glass lt-modal" style="width: min(440px, 100%);">
+      <div class="modal-head">
+        <div><div class="kicker">Member</div><h2 id="mdName" style="font-size:21px;"></h2></div>
+        <button class="btn btn-icon btn-ghost" id="mdClose" aria-label="Close">✕</button>
+      </div>
+      <div id="mdBody"></div>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js?v=29"></script>
+  <script src="assets/js/data.js?v=29"></script>
+  <script src="assets/js/cloud.js?v=29"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
@@ -145,11 +185,61 @@
         render();
       });
       document.getElementById("q").addEventListener("input", function () { filter.q = this.value.toLowerCase(); render(); });
-      document.getElementById("addBtn").addEventListener("click", function () {
-        LT.toast("Member onboarding opens from an approved application — see Dashboard.");
-      });
 
       function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }); }
+      function normPhone(p) { return String(p || "").replace(/\D/g, "").slice(-10); }
+
+      // roster = seed members + any added on this device (merged, deduped by id)
+      function localMembers() { return LT.store.read("members", []); }
+      function allMembers() {
+        var seen = {}, out = LT_DATA.members.slice();
+        out.forEach(function (m) { seen[String(m.id)] = 1; });
+        localMembers().forEach(function (m) { if (!seen[String(m.id)]) { seen[String(m.id)] = 1; out.push(m); } });
+        return out;
+      }
+      function memberById(id) { return allMembers().find(function (m) { return String(m.id) === String(id); }); }
+
+      /* ---------- add member ---------- */
+      var amBackdrop = document.getElementById("amBackdrop"), amPlan = 1;
+      document.getElementById("amProgram").innerHTML = LT_DATA.programs.map(function (p) {
+        return '<option value="' + p.id + '">' + p.name + "</option>";
+      }).join("");
+      var amPlans = [{ label: "Monthly", months: 1 }, { label: "Quarterly", months: 3 }, { label: "Half-yearly", months: 6 }];
+      document.getElementById("amPlan").innerHTML = amPlans.map(function (pl, i) {
+        return '<button type="button" class="chip' + (i === 0 ? " active" : "") + '" data-m="' + pl.months + '">' + pl.label + "</button>";
+      }).join("");
+      document.getElementById("amPlan").addEventListener("click", function (e) {
+        var b = e.target.closest(".chip"); if (!b) return;
+        amPlan = +b.dataset.m;
+        this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === b); });
+      });
+      document.getElementById("amJoined").value = LT.today();
+      document.getElementById("addBtn").addEventListener("click", function () {
+        document.getElementById("amForm").reset();
+        document.getElementById("amJoined").value = LT.today();
+        amPlan = 1;
+        document.getElementById("amPlan").querySelectorAll(".chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+        amBackdrop.classList.add("open");
+      });
+      document.getElementById("amClose").addEventListener("click", function () { amBackdrop.classList.remove("open"); });
+      amBackdrop.addEventListener("click", function (e) { if (e.target === amBackdrop) amBackdrop.classList.remove("open"); });
+      document.getElementById("amForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var f = new FormData(this);
+        var joined = f.get("joined") || LT.today();
+        var vt = new Date(joined); vt.setMonth(vt.getMonth() + amPlan);
+        var m = {
+          id: "M" + Date.now(), name: (f.get("name") || "").trim(), phone: (f.get("phone") || "").trim(),
+          program: f.get("program"), joined: joined, validTill: LT.isoDate(vt), status: "active",
+        };
+        if (!m.name || !m.phone) return;
+        var mem = localMembers(); mem.push(m); LT.store.write("members", mem);
+        if (window.LT_CLOUD && LT_CLOUD.addMember) LT_CLOUD.addMember(m);
+        amBackdrop.classList.remove("open");
+        LT.toast("✓ " + m.name.split(" ")[0] + " added to the roster");
+        render();
+        paintReminders();
+      });
 
       // website coaching applications land in the cloud — surface them here
       if (window.LT_CLOUD) {
@@ -206,21 +296,80 @@
       }
 
       function render() {
-        var list = LT_DATA.members.filter(function (m) {
+        var all = allMembers();
+        var list = all.filter(function (m) {
           if (filter.program !== "all" && m.program !== filter.program) return false;
           if (filter.q && m.name.toLowerCase().indexOf(filter.q) === -1) return false;
           return true;
         });
-        document.getElementById("countLine").textContent = list.length + " of " + LT_DATA.members.length + " members";
+        document.getElementById("countLine").textContent = list.length + " of " + all.length + " members";
         document.getElementById("rows").innerHTML = list.map(function (m) {
           var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
           var pill = m.status === "due" ? '<span class="pill red">Renewal due</span>' : '<span class="pill green">Active</span>';
-          return "<tr>" +
+          return '<tr class="mem-row" data-mid="' + m.id + '">' +
             '<td><div class="pl-name"><span class="av">' + LT.initials(m.name) + '</span><span class="t-name">' + LT.esc(m.name) + "</span></div></td>" +
-            "<td>" + p.name + '</td><td class="num">' + LT.esc(m.phone) + "</td>" +
+            "<td>" + (p ? p.name : "—") + '</td><td class="num">' + LT.esc(m.phone) + "</td>" +
             "<td>" + fmtD(m.joined) + "</td><td>" + fmtD(m.validTill) + "</td><td>" + pill + "</td></tr>";
         }).join("") || '<tr><td colspan="6"><div class="empty-state">No members match your search.</div></td></tr>';
       }
+      document.getElementById("rows").addEventListener("click", function (e) {
+        var row = e.target.closest(".mem-row"); if (row) openMember(row.dataset.mid);
+      });
+
+      /* ---------- member detail (lightweight, on-tap) ---------- */
+      var mdBackdrop = document.getElementById("mdBackdrop");
+      function memberStats(m) {
+        var ph = normPhone(m.phone);
+        var bk = (LT_DATA.bookings || []).concat(typeof histAll !== "undefined" ? histAll : [])
+          .filter(function (b) { return ph && normPhone(b.phone) === ph && b.status !== "cancelled"; });
+        var paid = (LT_DATA.payments || []).filter(function (p) { return p.name === m.name; })
+          .reduce(function (s, p) { return s + (p.amount || 0); }, 0);
+        var att = 0;
+        for (var i = 0; i < 30; i++) {
+          var iso = LT.isoDate(new Date(Date.now() - i * 864e5));
+          if ((LT.store.read("att-" + iso, []) || []).indexOf(m.id) !== -1) att++;
+        }
+        return { bookings: bk.length, paid: paid, attendance: att };
+      }
+      function openMember(id) {
+        var m = memberById(id); if (!m) return;
+        var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
+        var s = memberStats(m);
+        var daysLeft = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
+        var validTxt = daysLeft < 0 ? '<span style="color:var(--tx-red);">' + (-daysLeft) + "d overdue</span>"
+          : daysLeft <= 3 ? '<span style="color:var(--tx-gold);">in ' + daysLeft + "d</span>" : "in " + daysLeft + "d";
+        document.getElementById("mdName").textContent = m.name;
+        document.getElementById("mdBody").innerHTML =
+          '<div class="md-stats">' +
+            '<div class="bstat"><span class="k">Attendance</span><span class="v">' + s.attendance + '</span><span class="s">last 30d</span></div>' +
+            '<div class="bstat"><span class="k">Court bookings</span><span class="v">' + s.bookings + '</span><span class="s">on file</span></div>' +
+            '<div class="bstat"><span class="k">Paid</span><span class="v" style="font-size:16px;">' + LT.fmtINR(s.paid) + '</span><span class="s">to date</span></div>' +
+          "</div>" +
+          '<div class="md-facts">' +
+            '<div class="f"><span class="k">Program</span><span class="v">' + (p ? p.name : "—") + "</span></div>" +
+            '<div class="f"><span class="k">Phone</span><span class="v">' + LT.esc(m.phone) + "</span></div>" +
+            '<div class="f"><span class="k">Joined</span><span class="v">' + fmtD(m.joined) + "</span></div>" +
+            '<div class="f"><span class="k">Renews</span><span class="v">' + fmtD(m.validTill) + " · " + validTxt + "</span></div>" +
+          "</div>" +
+          '<div class="md-actions">' +
+            '<button class="btn btn-primary" data-md-remind="' + m.id + '">' +
+              '<svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M12.05 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.14 1.6 5.95L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.69 1.45c6.55 0 11.89-5.34 11.9-11.9C23.94 5.34 18.6 0 12.05 0m6.99 16.94c-.3.83-1.5 1.53-2.08 1.62-.53.08-1.2.11-1.94-.12-.45-.14-1.02-.33-1.76-.65-3.1-1.34-5.12-4.46-5.27-4.66-.15-.2-1.26-1.67-1.26-3.19s.8-2.27 1.08-2.58c.28-.31.61-.39.81-.39h.58c.19 0 .44-.07.68.52.25.6.85 2.06.92 2.21.08.15.13.33.03.53-.1.2-.15.32-.3.5-.14.17-.3.38-.44.51-.15.15-.3.3-.13.6.17.29.77 1.27 1.65 2.05 1.14 1.02 2.1 1.33 2.4 1.48.29.15.46.12.63-.07.2-.22.72-.84.91-1.13.2-.3.4-.25.66-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.07.12.07.71-.23 1.54"/></svg>' +
+              " Remind</button>" +
+            '<button class="btn btn-glass" data-md-notice="' + m.id + '">Notice</button>' +
+          "</div>";
+        mdBackdrop.classList.add("open");
+      }
+      document.getElementById("mdClose").addEventListener("click", function () { mdBackdrop.classList.remove("open"); });
+      mdBackdrop.addEventListener("click", function (e) { if (e.target === mdBackdrop) mdBackdrop.classList.remove("open"); });
+      document.getElementById("mdBody").addEventListener("click", function (e) {
+        var rem = e.target.closest("[data-md-remind]"), notice = e.target.closest("[data-md-notice]");
+        if (!rem && !notice) return;
+        var m = memberById(rem ? rem.dataset.mdRemind : notice.dataset.mdNotice);
+        if (!m) return;
+        var daysTo = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
+        if (rem) { openWhatsApp(m, daysTo); mdBackdrop.classList.remove("open"); }
+        else downloadNotice(m, daysTo);
+      });
 
       /* ================= renewal reminders (WhatsApp) =================
          Heads-up 2 days before renewal, due-day/overdue chasers after.
@@ -233,7 +382,7 @@
       }
       function renewalAmount() { return LT_DATA.plans[0].amount; }
       function renewalQueue() {
-        return LT_DATA.members.map(function (m) {
+        return allMembers().map(function (m) {
           var daysTo = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
           return { m: m, daysTo: daysTo };
         }).filter(function (x) { return x.daysTo <= 2; }).sort(function (a, b) { return a.daysTo - b.daysTo; });
@@ -288,36 +437,28 @@
       function paintReminders() {
         var rem = reminders(), queue = renewalQueue(), host = document.getElementById("remList");
         document.getElementById("remCard").classList.remove("hide");
-        document.getElementById("remUpi").innerHTML =
-          "Collecting to UPI <b>" + activeUpi() + "</b> (rotates every " + LT_DATA.billing.upiWindowDays + " days)";
+        document.getElementById("remUpi").innerHTML = "Paid to <b>" + activeUpi() + "</b>";
         if (!queue.length) { host.innerHTML = '<div class="rem-empty">Everyone is paid up 🎾</div>'; return; }
         host.innerHTML = queue.map(function (x) {
           var m = x.m, daysTo = x.daysTo;
-          var p = LT_DATA.programs.find(function (q) { return q.id === m.program; });
           var when = rem[m.id];
           var today = when && LT.isoDate(new Date(when)) === LT.today();
           var stateHtml = daysTo > 0
-            ? '<span class="soon">renews in ' + daysTo + (daysTo === 1 ? " day" : " days") + "</span>"
-            : '<span class="late">' + (daysTo === 0 ? "due today" : -daysTo + (daysTo === -1 ? " day" : " days") + " overdue") + "</span>";
-          return '<div class="rem-item' + (daysTo > 0 ? " upcoming" : "") + (when ? " done" : "") + '">' +
+            ? '<span class="soon">Renews in ' + daysTo + (daysTo === 1 ? " day" : " days") + "</span>"
+            : '<span class="late">' + (daysTo === 0 ? "Due today" : -daysTo + (daysTo === -1 ? " day" : " days") + " overdue") + "</span>";
+          return '<div class="rem-item' + (daysTo > 0 ? " upcoming" : "") + (today ? " done" : "") + '">' +
             '<span class="av">' + LT.initials(m.name) + "</span>" +
             '<span class="rm-body"><span class="rm-name">' + LT.esc(m.name) + "</span>" +
-            '<span class="rm-sub">' + p.name + " · " + stateHtml + (today ? ' · <span style="color:var(--tx-green);">reminded today</span>' : "") + "</span></span>" +
-            '<span class="acts">' +
-            '<button class="btn btn-icon btn-glass" data-doc="' + m.id + '" aria-label="Download notice document" title="Download notice (.doc)">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg></button>' +
+            '<span class="rm-sub">' + stateHtml + (today ? ' · <span class="sent">sent ✓</span>' : "") + "</span></span>" +
             '<button class="btn btn-primary btn-sm wa" data-wa="' + m.id + '">' +
-            '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>' +
-            " Send</button></span></div>";
+            '<svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M12.05 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.14 1.6 5.95L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.69 1.45c6.55 0 11.89-5.34 11.9-11.9C23.94 5.34 18.6 0 12.05 0m6.99 16.94c-.3.83-1.5 1.53-2.08 1.62-.53.08-1.2.11-1.94-.12-.45-.14-1.02-.33-1.76-.65-3.1-1.34-5.12-4.46-5.27-4.66-.15-.2-1.26-1.67-1.26-3.19s.8-2.27 1.08-2.58c.28-.31.61-.39.81-.39h.58c.19 0 .44-.07.68.52.25.6.85 2.06.92 2.21.08.15.13.33.03.53-.1.2-.15.32-.3.5-.14.17-.3.38-.44.51-.15.15-.3.3-.13.6.17.29.77 1.27 1.65 2.05 1.14 1.02 2.1 1.33 2.4 1.48.29.15.46.12.63-.07.2-.22.72-.84.91-1.13.2-.3.4-.25.66-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.07.12.07.71-.23 1.54"/></svg>' +
+            " Send</button></div>";
         }).join("");
       }
       document.getElementById("remList").addEventListener("click", function (e) {
-        var wa = e.target.closest("[data-wa]"), doc = e.target.closest("[data-doc]");
-        var id = wa ? +wa.dataset.wa : doc ? +doc.dataset.doc : null;
-        if (id === null) return;
-        var x = renewalQueue().find(function (q) { return q.m.id === id; });
-        if (!x) return;
-        if (wa) openWhatsApp(x.m, x.daysTo); else downloadNotice(x.m, x.daysTo);
+        var wa = e.target.closest("[data-wa]"); if (!wa) return;
+        var x = renewalQueue().find(function (q) { return String(q.m.id) === wa.dataset.wa; });
+        if (x) openWhatsApp(x.m, x.daysTo);
       });
       document.getElementById("remindAll").addEventListener("click", function () {
         var rem = reminders();
