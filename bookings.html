@@ -583,6 +583,7 @@
         var btn = e.target.closest("[data-block]");
         if (!btn) return;
         var c = LT_DATA.courtsMeta.find(function (x) { return x.id === openCourt; });
+        if (!c) return; // modal already closed — ignore a stale delegated click
         var hour = +btn.dataset.block;
         var reason = window.prompt("Block " + c.name + " at " + LT_SLOTS.label(hour) + " for:", "Maintenance");
         if (reason === null) return;
