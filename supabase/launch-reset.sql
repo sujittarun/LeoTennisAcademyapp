@@ -31,3 +31,9 @@ delete from bookings where id like 'B-CRM%';
 delete from payments where ref like 'P-SEED%';
 delete from bookings where ext_ref is not null;
 update integrations set last_sync_at = null, last_result = null;
+
+-- CourtSync demo standalone account + job queue (migration 16)
+delete from bookings where tenant_id = 'demo-courts';
+delete from sync_jobs;
+delete from integrations where tenant_id = 'demo-courts';
+delete from tenants where id = 'demo-courts';

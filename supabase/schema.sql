@@ -1032,3 +1032,116 @@ begin
             case when v_done then 'imported ' || v_court || ' ' || v_date else 'no free slot found' end);
   return jsonb_build_object('imported', case when v_done then 1 else 0 end, 'channel', p_channel, 'court', v_court, 'date', v_date);
 end $$;
+-- ============================================================
+-- Migration 16 — CourtSync as a productisable sync ENGINE
+-- 1) accounts: a tenant row can be kind 'academy' (uses the full app)
+--    or 'standalone' (API-key only, never touches the academy app).
+-- 2) durable job queue for outbound propagation (retry + backoff) —
+--    the robust replacement for fire-and-forget.
+-- 3) sync_ingest: the public API door for standalone venues.
+-- Runtime note: the worker is a scheduled Edge Function that calls
+-- process_sync_jobs(); the DUMMY processor here logs the "block" — real
+-- partner HTTP goes in supabase/functions/sync-worker.
+-- ============================================================
+alter table tenants add column if not exists kind text not null default 'academy';  -- academy | standalone
+alter table tenants add column if not exists api_key text;                            -- for standalone API access
+create unique index if not exists tenants_api_key_uidx on tenants (api_key) where api_key is not null;
+
+-- a demo standalone venue: not an academy, just wants channel sync
+insert into tenants (id, name, kind, api_key, config) values
+  ('demo-courts', 'Demo Sports Arena', 'standalone', 'cs_demo_key_ABC123',
+   '{"city":"Bengaluru","courts":{"tennis":3,"pickleball":2},
+     "rates":{"tennis":{"offPeak":500,"peak":700},"pickleball":{"offPeak":400,"peak":600},"peakFrom":16}}')
+on conflict (id) do nothing;
+insert into integrations (tenant_id, channel, enabled, config) values
+  ('demo-courts','Playo', true, '{"venue_id":"demo-playo"}'),
+  ('demo-courts','Hudle', true, '{"venue_id":"demo-hudle"}')
+on conflict (tenant_id, channel) do nothing;
+
+-- durable outbound job queue
+create table if not exists sync_jobs (
+  id          bigint generated always as identity primary key,
+  tenant_id   text not null,
+  channel     text not null,
+  action      text not null default 'block',   -- block | unblock
+  ext_ref     text,
+  payload     jsonb not null default '{}',
+  status      text not null default 'pending',  -- pending | done | failed
+  attempts    int  not null default 0,
+  next_run_at timestamptz not null default now(),
+  last_error  text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists sync_jobs_ready on sync_jobs (next_run_at) where status = 'pending';
+alter table sync_jobs enable row level security;
+create policy sync_jobs_staff on sync_jobs for select
+  using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));
+
+-- propagate_block now ENQUEUES one job per other channel (durable, retryable)
+create or replace function propagate_block(p_booking_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b bookings%rowtype; ch text; queued text[] := '{}';
+begin
+  select * into b from bookings where id = p_booking_id;
+  if not found or b.status = 'cancelled' or b.court is null then return jsonb_build_object('queued', queued); end if;
+  for ch in select channel from integrations where tenant_id = b.tenant_id and enabled and channel <> b.source loop
+    insert into sync_jobs (tenant_id, channel, action, ext_ref, payload)
+      values (b.tenant_id, ch, 'block', b.ext_ref,
+        jsonb_build_object('court', b.court, 'date', b.date::text, 'hour', b.hour, 'source', b.source));
+    queued := queued || ch;
+  end loop;
+  return jsonb_build_object('queued', queued);
+end $$;
+
+-- the worker: drains ready jobs with SKIP LOCKED (safe for concurrent workers),
+-- retries with backoff, dead-letters after 5 tries. DUMMY = logs the push;
+-- the real Edge Function does the partner HTTP call using the account's key.
+create or replace function process_sync_jobs(p_limit int default 25)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare j record; v_done int := 0; v_failed int := 0;
+begin
+  for j in
+    select * from sync_jobs where status = 'pending' and next_run_at <= now()
+    order by next_run_at limit p_limit for update skip locked
+  loop
+    begin
+      -- REAL worker: perform the partner block/unblock HTTP call here.
+      update sync_jobs set status = 'done', attempts = attempts + 1 where id = j.id;
+      insert into sync_log (tenant_id, channel, action, ext_ref, status, detail)
+        values (j.tenant_id, j.channel, 'push', j.ext_ref, 'ok',
+          j.action || ' ' || coalesce(j.payload->>'court','') || ' ' || coalesce(j.payload->>'date','') ||
+          ' ' || coalesce(j.payload->>'hour','') || ':00 (from ' || coalesce(j.payload->>'source','') || ')');
+      v_done := v_done + 1;
+    exception when others then
+      update sync_jobs set attempts = attempts + 1,
+        status = case when attempts + 1 >= 5 then 'failed' else 'pending' end,
+        next_run_at = now() + ((attempts + 1) * 30 || ' seconds')::interval,
+        last_error = SQLERRM
+        where id = j.id;
+      v_failed := v_failed + 1;
+    end;
+  end loop;
+  return jsonb_build_object('processed', v_done, 'failed', v_failed);
+end $$;
+grant execute on function process_sync_jobs to authenticated;
+
+-- STANDALONE public API: a non-tenant venue registers a booking with its
+-- api_key; we ledger it and enqueue blocks to its other channels.
+create or replace function sync_ingest(p_api_key text, p_source text, p_sport text, p_date date, p_hour int, p_court text, p_ext_ref text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_tenant text; v_amt int; v_id text;
+begin
+  select id into v_tenant from tenants where api_key = p_api_key;
+  if v_tenant is null then raise exception 'invalid api key'; end if;
+  v_amt := coalesce(slot_rate(v_tenant, p_sport, p_hour), 0);
+  v_id := 'B-API' || to_char(clock_timestamp(),'YYMMDDHH24MISSMS');
+  begin
+    insert into bookings (id, tenant_id, name, phone, sport, court, date, hour, amount, status, source, ext_ref)
+      values (v_id, v_tenant, p_source || ' booking', null, p_sport, p_court, p_date, p_hour, v_amt, 'confirmed', p_source, p_ext_ref);
+  exception when unique_violation then
+    return jsonb_build_object('ok', true, 'duplicate', true);
+  end;
+  begin perform propagate_block(v_id); exception when others then null; end;
+  return jsonb_build_object('ok', true, 'booking', v_id);
+end $$;
+grant execute on function sync_ingest to anon, authenticated;
