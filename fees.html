@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=34" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=35" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     /* keep the three headline stats side by side on phones — less scrolling */
@@ -22,6 +22,18 @@
       .fin-kpis .stat-value { font-size: 17px; }
       .fin-kpis .stat-copy { font-size: 10px; }
       .fin-kpis .stat-sub { font-size: 9.5px; }
+    }
+
+    /* ledger header: title + tabs + filter + action, one row on wide screens */
+    .ledger-head { display: flex; align-items: center; justify-content: space-between;
+      gap: 10px 14px; flex-wrap: wrap; padding: var(--gap-3) var(--gap-3) 12px; }
+    .ledger-head .lh-title { min-width: 0; }
+    .ledger-head .lh-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ledger-head #recBtn { white-space: nowrap; }
+    @media (max-width: 560px) {
+      .ledger-head .lh-controls { width: 100%; }
+      .ledger-head #ledgerTabs { flex: 1 1 auto; }
+      .ledger-head #recBtn { margin-left: auto; }
     }
 
     /* revenue vs expenses chart */
@@ -115,10 +127,9 @@
     <div class="card-head" style="margin-bottom: 0;">
       <div>
         <div class="kicker">Finance</div>
-        <h2>Revenue &amp; payments</h2>
+        <h2>Revenue &amp; expenses</h2>
         <div class="sub" id="monthLine"></div>
       </div>
-      <button class="btn btn-primary btn-sm" id="recBtn">+ Record payment</button>
     </div>
 
     <div class="lt-grid cols-3 fin-kpis">
@@ -168,25 +179,25 @@
     </div>
 
     <div class="glass">
-      <div class="card-head" style="padding: var(--gap-3) var(--gap-3) 0; flex-wrap: wrap; gap: 8px;">
-        <div><div class="kicker">Ledger</div><h2 style="font-size:18px;" id="ledgerTitle">Recent revenue</h2></div>
-        <div class="chip-row filters" id="ledgerTabs">
-          <button class="chip active" data-tab="revenue">Revenue</button>
-          <button class="chip" data-tab="expenses">Expenses</button>
+      <div class="ledger-head">
+        <div class="lh-title"><div class="kicker">Ledger</div><h2 style="font-size:18px;" id="ledgerTitle">Recent revenue</h2></div>
+        <div class="lh-controls">
+          <div class="chip-row filters" id="ledgerTabs">
+            <button class="chip active" data-tab="revenue">Revenue</button>
+            <button class="chip" data-tab="expenses">Expenses</button>
+          </div>
+          <span class="lt-filter" id="typeFilterWrap">
+            <select id="typeSelect" aria-label="Filter revenue">
+              <option value="all">All revenue</option>
+              <option value="Membership">Memberships</option>
+              <option value="Court">Court bookings</option>
+            </select>
+          </span>
+          <span class="lt-filter hide" id="catFilterWrap">
+            <select id="catSelect" aria-label="Filter expenses"></select>
+          </span>
+          <button class="btn btn-primary btn-sm" id="recBtn">+ Record payment</button>
         </div>
-      </div>
-      <!-- sub-filter (dropdown: >2 options) -->
-      <div style="padding: 10px var(--gap-3) 0;">
-        <span class="lt-filter" id="typeFilterWrap">
-          <select id="typeSelect" aria-label="Filter revenue">
-            <option value="all">All revenue</option>
-            <option value="Membership">Memberships</option>
-            <option value="Court">Court bookings</option>
-          </select>
-        </span>
-        <span class="lt-filter hide" id="catFilterWrap">
-          <select id="catSelect" aria-label="Filter expenses"></select>
-        </span>
       </div>
       <div class="table-wrap">
         <table class="lt-table tight">
@@ -239,9 +250,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=34"></script>
-  <script src="assets/js/data.js?v=34"></script>
-  <script src="assets/js/cloud.js?v=34"></script>
+  <script src="assets/js/core.js?v=35"></script>
+  <script src="assets/js/data.js?v=35"></script>
+  <script src="assets/js/cloud.js?v=35"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
