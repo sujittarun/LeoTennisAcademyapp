@@ -528,8 +528,9 @@ button { font-family: inherit; }
   color: var(--ink-hi);
   background: var(--chip-bg);
   border-color: var(--chip-border);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  backdrop-filter: blur(14px) saturate(160%);
+  /* No own backdrop-filter: these sit inside already-frosted .glass surfaces,
+     and Safari renders a nested backdrop-filter as an opaque WHITE block. The
+     translucent background alone reads as glass over the parent. */
   box-shadow: var(--glass-shadow-soft);
 }
 .btn-glass:hover { border-color: var(--input-border-hover); }
@@ -823,8 +824,8 @@ body.lt-noscroll { overflow: hidden; }
   font-weight: 650;
   cursor: pointer;
   transition: all 0.25s ease;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  /* No own backdrop-filter — nested inside .glass it renders white in Safari
+     (WebKit nested backdrop-filter bug). Translucent bg + border is enough. */
   text-decoration: none;
 }
 .chip:hover { border-color: var(--input-border-hover); color: var(--ink-hi); }
@@ -873,7 +874,10 @@ html.lt-js .reveal.d3 { transition-delay: 0.21s; } html.lt-js .reveal.d4 { trans
 
 /* Page enter transition */
 html.lt-js .lt-page { animation: lt-page-in 0.55s var(--ease-spring) both; }
-@keyframes lt-page-in { from { opacity: 0; transform: translateY(10px); } }
+/* Slide-up only, NO opacity fade: with `both` fill-mode an opacity:0 start frame
+   left the whole page invisible on Safari whenever it didn't start the animation
+   (intermittent blank page). Transform-only keeps content always visible. */
+@keyframes lt-page-in { from { transform: translateY(10px); } }
 @media (prefers-reduced-motion: reduce) { html.lt-js .lt-page { animation: none; } }
 
 /* ---------- Tennis-themed animated backdrop ---------- */

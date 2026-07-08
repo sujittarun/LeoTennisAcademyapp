@@ -192,6 +192,23 @@
         });
       }, { threshold: 0.12 });
       document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
+      // Safety net: Safari sometimes doesn't fire the observer, or freezes the
+      // reveal's opacity transition mid-way (paint/compositing race), leaving a
+      // card stuck invisible. Force any un-revealed card fully visible with the
+      // transition disabled so opacity snaps to 1 instead of animating (which is
+      // what stalls). Content can then never stay hidden.
+      setTimeout(function () {
+        document.querySelectorAll(".reveal").forEach(function (el) {
+          // .in may already be set yet the opacity transition frozen at 0 on
+          // Safari, so force every reveal regardless of class.
+          if (getComputedStyle(el).opacity !== "1") {
+            el.style.transition = "none";
+            el.style.opacity = "1";
+            el.style.transform = "none";
+          }
+          el.classList.add("in");
+        });
+      }, 1000);
     } else {
       document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
     }
