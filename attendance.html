@@ -9,12 +9,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=31" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=34" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .att-mode { display: flex; gap: 8px; }
     .att-mode .chip { font-size: 13px; padding: 9px 20px; }
     .att-summary { display: flex; gap: 8px 14px; flex-wrap: wrap; }
+    /* delete affordance on coach tiles (staff mode only) */
+    .att-tile { position: relative; }
+    .att-tile .att-del { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%;
+      display: none; place-items: center; border: 1px solid var(--chip-border); background: var(--tile-bg);
+      color: var(--ink-low); font-size: 12px; line-height: 1; cursor: pointer; z-index: 2; }
+    .att-tile .att-del:hover { color: var(--tx-red); border-color: rgba(255, 107, 107, .5); }
+    body.staff-mode .att-tile .att-del { display: grid; }
   </style>
 </head>
 <body>
@@ -30,6 +37,7 @@
       <div class="flex wrap">
         <input type="date" id="attDate" style="width:auto;" />
         <span class="pill gold" id="attCount">—</span>
+        <button class="btn btn-primary btn-sm hide" id="addCoachBtn">+ Add coach</button>
       </div>
     </div>
 
@@ -39,7 +47,7 @@
           <button class="chip active" data-mode="members">Members</button>
           <button class="chip" data-mode="staff">Staff &amp; coaches</button>
         </div>
-        <div class="chip-row filters" id="programChips"></div>
+        <span class="lt-filter" id="programFilterWrap"><select id="programSelect" aria-label="Filter by program"></select></span>
       </div>
     </div>
 
@@ -48,9 +56,25 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=30"></script>
-  <script src="assets/js/data.js?v=30"></script>
-  <script src="assets/js/cloud.js?v=30"></script>
+  <!-- add coach modal -->
+  <div class="lt-modal-backdrop" id="acBackdrop">
+    <div class="glass lt-modal" style="width: min(420px, 100%);">
+      <div class="modal-head">
+        <div><div class="kicker">Staff &amp; coaches</div><h2 style="font-size:20px;">Add a coach</h2></div>
+        <button class="btn btn-icon btn-ghost" id="acClose" aria-label="Close">✕</button>
+      </div>
+      <form id="acForm" class="lt-grid" style="gap: var(--gap-3);">
+        <label class="field"><span>Name</span><input type="text" name="name" placeholder="Full name" required /></label>
+        <label class="field"><span>Role</span><input type="text" name="role" placeholder="e.g. Performance Coach" required /></label>
+        <div class="form-msg" id="acMsg" style="min-height:0;"></div>
+        <button class="btn btn-primary btn-block" type="submit">Add coach</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/js/core.js?v=34"></script>
+  <script src="assets/js/data.js?v=34"></script>
+  <script src="assets/js/cloud.js?v=34"></script>
   <script>
     LT.auth.require();
     LT.managerShell("attendance.html");
@@ -63,15 +87,13 @@
 
       /* program filter (members mode only) */
       var chips = [{ id: "all", name: "All programs" }].concat(LT_DATA.programs);
-      var chipHost = document.getElementById("programChips");
-      chipHost.innerHTML = chips.map(function (p) {
-        return '<button class="chip' + (p.id === "all" ? " active" : "") + '" data-p="' + p.id + '">' + p.name + "</button>";
+      var progWrap = document.getElementById("programFilterWrap");
+      var progSelect = document.getElementById("programSelect");
+      progSelect.innerHTML = chips.map(function (p) {
+        return '<option value="' + p.id + '">' + p.name + "</option>";
       }).join("");
-      chipHost.addEventListener("click", function (e) {
-        var btn = e.target.closest(".chip");
-        if (!btn) return;
-        program = btn.dataset.p;
-        chipHost.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+      progSelect.addEventListener("change", function () {
+        program = this.value;
         render();
       });
 
@@ -80,7 +102,9 @@
         if (!btn) return;
         mode = btn.dataset.mode;
         this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
-        chipHost.style.display = mode === "members" ? "" : "none";
+        progWrap.style.display = mode === "members" ? "" : "none";
+        document.getElementById("addCoachBtn").classList.toggle("hide", mode !== "staff");
+        document.body.classList.toggle("staff-mode", mode === "staff");
         render();
       });
 
@@ -106,23 +130,25 @@
         var marks = present();
         var list, total;
         if (mode === "staff") {
-          list = LT_DATA.staff;
+          list = LT_STAFF();
           total = list.length;
           document.getElementById("grid").innerHTML = list.map(function (p) {
             var on = marks.indexOf(p.id) !== -1;
             return '<div class="att-tile' + (on ? " present" : "") + '" data-id="' + p.id + '">' +
+              '<button type="button" class="att-del" data-del="' + p.id + '" aria-label="Remove ' + LT.esc(p.name) + '">✕</button>' +
               '<span class="av">' + (on ? "✓" : LT.initials(p.name)) + "</span>" +
-              '<span><span class="nm">' + p.name + '</span><br /><span class="bt">' + p.role + "</span></span></div>";
+              '<span><span class="nm">' + LT.esc(p.name) + '</span><br /><span class="bt">' + LT.esc(p.role) + "</span></span></div>";
           }).join("");
         } else {
-          list = LT_DATA.members.filter(function (m) { return program === "all" || m.program === program; });
-          total = LT_DATA.members.length;
+          var roster = LT_ROSTER();
+          list = roster.filter(function (m) { return program === "all" || m.program === program; });
+          total = roster.length;
           document.getElementById("grid").innerHTML = list.map(function (m) {
             var on = marks.indexOf(m.id) !== -1;
             var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
             return '<div class="att-tile' + (on ? " present" : "") + '" data-id="' + m.id + '">' +
               '<span class="av">' + (on ? "✓" : LT.initials(m.name)) + "</span>" +
-              '<span><span class="nm">' + m.name + '</span><br /><span class="bt">' + p.name + "</span></span></div>";
+              '<span><span class="nm">' + LT.esc(m.name) + '</span><br /><span class="bt">' + (p ? LT.esc(p.name) : "—") + "</span></span></div>";
           }).join("");
         }
         document.getElementById("attCount").textContent =
@@ -130,6 +156,9 @@
       }
 
       document.getElementById("grid").addEventListener("click", function (e) {
+        // delete a coach (staff mode) — takes precedence over the mark toggle
+        var del = e.target.closest("[data-del]");
+        if (del) { e.stopPropagation(); removeCoach(del.dataset.del); return; }
         var tile = e.target.closest(".att-tile");
         if (!tile) return;
         var id = mode === "staff" ? tile.dataset.id : +tile.dataset.id;
@@ -140,6 +169,46 @@
         if (window.LT_CLOUD) LT_CLOUD.setPresence(dateInput.value, mode === "staff" ? "staff" : "member", id, i === -1);
         render();
       });
+
+      /* ---------- add / remove coaches (staff roster) ---------- */
+      var acBackdrop = document.getElementById("acBackdrop");
+      document.getElementById("addCoachBtn").addEventListener("click", function () {
+        document.getElementById("acForm").reset();
+        document.getElementById("acMsg").textContent = "";
+        acBackdrop.classList.add("open");
+      });
+      document.getElementById("acClose").addEventListener("click", function () { acBackdrop.classList.remove("open"); });
+      acBackdrop.addEventListener("click", function (e) { if (e.target === acBackdrop) acBackdrop.classList.remove("open"); });
+      document.getElementById("acForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var f = new FormData(this), acMsg = document.getElementById("acMsg");
+        var name = (f.get("name") || "").trim(), role = (f.get("role") || "").trim();
+        if (!name) { acMsg.textContent = "Please enter the coach's name."; acMsg.className = "form-msg error"; return; }
+        if (!role) { acMsg.textContent = "Please enter their role."; acMsg.className = "form-msg error"; return; }
+        var added = LT.store.read("staff-added", []) || [];
+        added.push({ id: "C" + Date.now(), name: name, role: role });
+        LT.store.write("staff-added", added);
+        acBackdrop.classList.remove("open");
+        LT.toast("✓ " + name.split(" ")[0] + " added to the staff roster");
+        render();
+      });
+
+      function removeCoach(id) {
+        var s = LT_STAFF().find(function (x) { return x.id === id; });
+        if (!s) return;
+        if (!window.confirm("Remove " + s.name + " from the staff roster?")) return;
+        // drop from local adds if it was one; always record a removal so seed
+        // coaches disappear too (they can't be spliced from LT_DATA)
+        var added = (LT.store.read("staff-added", []) || []).filter(function (x) { return x.id !== id; });
+        LT.store.write("staff-added", added);
+        var removed = LT.store.read("staff-removed", []) || [];
+        if (removed.indexOf(id) === -1) { removed.push(id); LT.store.write("staff-removed", removed); }
+        // clear any of today's presence mark for the removed person
+        var marks = present().filter(function (x) { return x !== id; });
+        LT.store.write(key(), marks);
+        LT.toast("Removed " + s.name.split(" ")[0]);
+        render();
+      }
 
       dateInput.addEventListener("change", function () { render(); syncFromCloud(); });
       render();

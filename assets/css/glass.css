@@ -661,6 +661,38 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 .pill.red { color: var(--tx-red); border-color: rgba(220, 80, 86, 0.4); background: rgba(255, 107, 107, 0.12); }
 .pill.optic { color: var(--tx-optic); border-color: rgba(215, 239, 79, 0.35); background: rgba(215, 239, 79, 0.1); }
 
+/* ---------- Filter dropdown ----------
+   DESIGN RULE: 1–2 mutually-exclusive choices may use chips / a tab toggle.
+   3+ filter options use this compact dropdown — never a long wrapping row of
+   chip buttons. Keeps toolbars calm and consistent across every page. */
+.lt-filter { width: auto; display: inline-block; }
+.lt-filter select {
+  width: auto;
+  padding: 8px 34px 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-hi);
+  border-radius: var(--r-pill);
+  background-color: var(--chip-bg);
+  background-position: right 12px center;
+  box-shadow: none;
+}
+.lt-filter select:hover { border-color: var(--input-border-hover); }
+
+/* ---------- Inline table-cell status / tags ----------
+   Pills are for standalone status chips (cards, headers), NOT dense table
+   data. In tables use plain coloured text — a leading dot for a status,
+   nothing for a plain category/type/mode label. */
+.cell-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; font-size: 12.5px; }
+.cell-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.cell-status.green { color: var(--tx-green); }
+.cell-status.red { color: var(--tx-red); }
+.cell-status.gold { color: var(--tx-gold); }
+.cell-tag { font-weight: 600; font-size: 12.5px; color: var(--ink-mid); }
+.cell-tag.gold { color: var(--tx-gold); }
+.cell-tag.green { color: var(--tx-green); }
+.cell-tag.red { color: var(--tx-red); }
+
 .stat-card { padding: var(--gap-3) var(--gap-4); display: flex; flex-direction: column; gap: 2px; }
 .stat-card .stat-value {
   font-family: var(--font-display);

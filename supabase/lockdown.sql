@@ -52,6 +52,14 @@ create policy payments_staff_r on payments for select
 create policy payments_staff_w on payments for insert
   with check (auth_role() = 'staff' and tenant_id = auth_tenant());
 
+-- expenses: same rule as payments (staff of the tenant + operator read)
+drop policy if exists expenses_read  on expenses;
+drop policy if exists expenses_write on expenses;
+create policy expenses_staff_r on expenses for select
+  using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));
+create policy expenses_staff_w on expenses for insert
+  with check (auth_role() = 'staff' and tenant_id = auth_tenant());
+
 create policy attendance_staff_r on attendance for select
   using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));
 create policy attendance_staff_w on attendance for insert

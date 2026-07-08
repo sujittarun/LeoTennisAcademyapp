@@ -1438,3 +1438,36 @@ begin
         v_gaps || ' propagation gap(s), ' || v_failed || ' failed job(s)');
   end if;
 end $$;
+
+-- ============ migration 23: operating expenses ledger ============
+-- Finance → Expenses. Mirrors payments: staff of the tenant write & read,
+-- operator reads across tenants. The app writes via a plain insert (like
+-- payments) and fails soft to LT.store if this table isn't present yet.
+create table if not exists expenses (
+  id         bigint generated always as identity primary key,
+  tenant_id  text not null references tenants(id),
+  ref        text,
+  category   text not null,                 -- Salaries | Ground maintenance | Equipment | Rent | Power & utilities | Other
+  payee      text,
+  detail     text,
+  amount     int not null,
+  mode       text,                          -- Bank | UPI | Cash | Card
+  on_date    date,
+  created_at timestamptz not null default now()
+);
+create index if not exists expenses_tenant_idx on expenses (tenant_id, on_date desc);
+alter table expenses enable row level security;
+-- Phase-1 (pre-lockdown) permissive policies; the lockdown block below
+-- replaces them with staff/operator rules to match payments.
+drop policy if exists expenses_read  on expenses;
+drop policy if exists expenses_write on expenses;
+create policy expenses_read  on expenses for select using (true);
+create policy expenses_write on expenses for insert with check (true);
+-- Post-lockdown tightening (safe to run once auth_role()/auth_tenant() exist;
+-- harmless no-op re-runs). Uncomment when applying lockdown for expenses:
+--   drop policy if exists expenses_read  on expenses;
+--   drop policy if exists expenses_write on expenses;
+--   create policy expenses_staff_r on expenses for select
+--     using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));
+--   create policy expenses_staff_w on expenses for insert
+--     with check (auth_role() = 'staff' and tenant_id = auth_tenant());

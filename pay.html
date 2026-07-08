@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=31" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=34" />
   <script>document.documentElement.dataset.theme = "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .pay-wrap { max-width: 430px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px 40px; }
@@ -55,6 +55,16 @@
       function upiLink(scheme) {
         return scheme + "?pa=" + encodeURIComponent(pa) + "&pn=" + encodeURIComponent(pn) +
           (am ? "&am=" + encodeURIComponent(am) : "") + "&cu=INR&tn=" + encodeURIComponent(tn);
+      }
+      // a link without a UPI id can't collect anything — show a clear notice
+      // instead of dead "Pay ₹—" buttons (happens if the URL gets truncated)
+      if (!pa) {
+        document.querySelector(".pay-card").innerHTML =
+          '<div class="kicker">Leo Academy</div>' +
+          '<div class="pay-amt">🎾</div>' +
+          '<div class="pay-to">This payment link looks incomplete.</div>' +
+          '<div class="pay-note" style="margin-top:8px;">Please open the link from your WhatsApp message again,<br />or pay at the front desk · 6 AM – 11 PM daily.</div>';
+        return;
       }
       var generic = upiLink("upi://pay");
       var amNum = am ? "₹" + Number(am).toLocaleString("en-IN") : "₹—";

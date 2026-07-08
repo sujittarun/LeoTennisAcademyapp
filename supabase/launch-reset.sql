@@ -4,12 +4,15 @@
 -- starts from zero honest numbers.
 -- ALSO REQUIRED at launch (code side):
 --   · empty the seed arrays in assets/js/data.js (members, bookings,
---     payments, finance, activity) and delete the backfill IIFE
+--     payments, expenses, finance, activity) and delete the backfill IIFE
 --   · run supabase/lockdown.sql if not already applied
 -- ============================================================
 
 -- generated 30-day demo booking history + fixed demo seeds
 delete from bookings where id like 'B-H%';
+
+-- seeded operating expenses (Finance → Expenses demo rows)
+delete from expenses where ref like 'E-SEED%';
 
 -- demo-period telemetry (keep if you want the pre-launch usage history)
 -- delete from events where at < now();

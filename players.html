@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=31" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=34" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .toolbar { display: flex; gap: var(--gap-2); flex-wrap: wrap; align-items: center; }
@@ -66,6 +66,22 @@
     .md-actions { display: flex; gap: 8px; margin-top: 16px; }
     .md-actions .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     tr.mem-row { cursor: pointer; }
+    /* reminder history timeline (member detail) */
+    .md-tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 16px 0 8px; }
+    .md-tl-head h3 { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-low); }
+    .md-tl-head .n { font-size: 11.5px; color: var(--ink-faint); }
+    .md-tl { position: relative; margin-left: 4px; padding-left: 20px; max-height: 190px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .md-tl::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+    .md-tl-item { position: relative; padding: 5px 0 11px; }
+    .md-tl-item:last-child { padding-bottom: 2px; }
+    .md-tl-item::before { content: ""; position: absolute; left: -20px; top: 6px; width: 9px; height: 9px; border-radius: 50%;
+      background: var(--tx-green); border: 2px solid var(--glass-bg); box-sizing: content-box; }
+    .md-tl-item.faded::before { background: var(--ink-faint); }
+    .md-tl-when { font-size: 13px; font-weight: 650; color: var(--ink-hi); }
+    .md-tl-sub { font-size: 11.5px; color: var(--ink-low); margin-top: 1px; }
+    .md-tl-empty { font-size: 12.5px; color: var(--ink-low); padding: 4px 0 2px; }
+    .rem-item.clickable { cursor: pointer; }
+    .rem-item.clickable .rm-body { min-width: 0; }
   </style>
 </head>
 <body>
@@ -84,7 +100,7 @@
     <div class="glass glass-card tight">
       <div class="toolbar">
         <input type="search" id="q" placeholder="Search members…" />
-        <div class="chip-row filters" id="programChips"></div>
+        <span class="lt-filter"><select id="programSelect" aria-label="Filter by program"></select></span>
       </div>
     </div>
 
@@ -146,6 +162,7 @@
         <label class="field"><span>Program</span><select name="program" id="amProgram"></select></label>
         <label class="field"><span>Membership</span><div class="chip-row" id="amPlan"></div></label>
         <label class="field"><span>Start date</span><input type="date" name="joined" id="amJoined" /></label>
+        <div class="form-msg" id="amMsg" style="min-height:0;"></div>
         <button class="btn btn-primary btn-block" type="submit">Add member</button>
       </form>
     </div>
@@ -186,31 +203,31 @@
             <button type="button" class="chip" data-mo="0">Don't renew</button>
           </div>
         </label>
+        <div class="form-msg" id="mpMsg" style="min-height:0;"></div>
         <button class="btn btn-primary btn-block" type="submit">Save payment</button>
       </form>
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=30"></script>
-  <script src="assets/js/data.js?v=30"></script>
-  <script src="assets/js/cloud.js?v=30"></script>
+  <script src="assets/js/core.js?v=34"></script>
+  <script src="assets/js/data.js?v=34"></script>
+  <script src="assets/js/cloud.js?v=34"></script>
   <script>
     LT.auth.require();
     LT.managerShell("players.html");
 
     (function () {
       var filter = { q: "", program: "all" };
+      // reminder history keyed by member id: [{ at: iso, upi: string }, …] newest-first
+      var reminderHistory = {};
 
       var chips = [{ id: "all", name: "All programs" }].concat(LT_DATA.programs);
-      var chipHost = document.getElementById("programChips");
-      chipHost.innerHTML = chips.map(function (p) {
-        return '<button class="chip' + (p.id === "all" ? " active" : "") + '" data-p="' + p.id + '">' + p.name + "</button>";
+      var progSelect = document.getElementById("programSelect");
+      progSelect.innerHTML = chips.map(function (p) {
+        return '<option value="' + p.id + '">' + p.name + "</option>";
       }).join("");
-      chipHost.addEventListener("click", function (e) {
-        var btn = e.target.closest(".chip");
-        if (!btn) return;
-        filter.program = btn.dataset.p;
-        chipHost.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+      progSelect.addEventListener("change", function () {
+        filter.program = this.value;
         render();
       });
       document.getElementById("q").addEventListener("input", function () { filter.q = this.value.toLowerCase(); render(); });
@@ -223,13 +240,7 @@
       // (new validTill + status) applied here so the roster reflects them at once.
       function localMembers() { return LT.store.read("members", []); }
       function memberOverrides() { return LT.store.read("member-overrides", {}); }
-      function allMembers() {
-        var seen = {}, out = LT_DATA.members.slice();
-        out.forEach(function (m) { seen[String(m.id)] = 1; });
-        localMembers().forEach(function (m) { if (!seen[String(m.id)]) { seen[String(m.id)] = 1; out.push(m); } });
-        var ov = memberOverrides();
-        return out.map(function (m) { return ov[m.id] ? Object.assign({}, m, ov[m.id]) : m; });
-      }
+      function allMembers() { return LT_ROSTER(); }
       function memberById(id) { return allMembers().find(function (m) { return String(m.id) === String(id); }); }
 
       /* ---------- add member ---------- */
@@ -252,6 +263,7 @@
         document.getElementById("amJoined").value = LT.today();
         amPlan = 1;
         document.getElementById("amPlan").querySelectorAll(".chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+        document.getElementById("amMsg").textContent = "";
         amBackdrop.classList.add("open");
       });
       document.getElementById("amClose").addEventListener("click", function () { amBackdrop.classList.remove("open"); });
@@ -259,13 +271,17 @@
       document.getElementById("amForm").addEventListener("submit", function (e) {
         e.preventDefault();
         var f = new FormData(this);
+        var amMsg = document.getElementById("amMsg");
+        var name = (f.get("name") || "").trim(), phone = (f.get("phone") || "").trim();
+        if (!name) { amMsg.textContent = "Please enter the member's name."; amMsg.className = "form-msg error"; return; }
+        if (phone.replace(/\D/g, "").length < 10) { amMsg.textContent = "Please enter a valid 10-digit phone number."; amMsg.className = "form-msg error"; return; }
+        amMsg.textContent = "";
         var joined = f.get("joined") || LT.today();
         var vt = new Date(joined); vt.setMonth(vt.getMonth() + amPlan);
         var m = {
-          id: "M" + Date.now(), name: (f.get("name") || "").trim(), phone: (f.get("phone") || "").trim(),
+          id: "M" + Date.now(), name: name, phone: phone,
           program: f.get("program"), joined: joined, validTill: LT.isoDate(vt), status: "active",
         };
-        if (!m.name || !m.phone) return;
         var mem = localMembers(); mem.push(m); LT.store.write("members", mem);
         if (window.LT_CLOUD && LT_CLOUD.addMember) LT_CLOUD.addMember(m);
         amBackdrop.classList.remove("open");
@@ -273,6 +289,23 @@
         render();
         paintReminders();
       });
+
+      // full reminder history (cloud) → grouped by member for the timeline
+      if (window.LT_CLOUD && LT_CLOUD.fetchReminders) {
+        LT_CLOUD.fetchReminders().then(function (rows) {
+          if (!rows) return;
+          var by = {};
+          rows.forEach(function (r) {
+            var k = String(r.member_id);
+            (by[k] = by[k] || []).push({ at: r.sent_at, upi: r.upi_used, channel: r.channel });
+          });
+          Object.keys(by).forEach(function (k) {
+            by[k].sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
+          });
+          reminderHistory = by;
+          if (mdBackdrop.classList.contains("open") && openMemberId) openMember(openMemberId);
+        });
+      }
 
       // website coaching applications land in the cloud — surface them here
       if (window.LT_CLOUD) {
@@ -338,7 +371,7 @@
         document.getElementById("countLine").textContent = list.length + " of " + all.length + " members";
         document.getElementById("rows").innerHTML = list.map(function (m) {
           var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
-          var pill = m.status === "due" ? '<span class="pill red">Renewal due</span>' : '<span class="pill green">Active</span>';
+          var pill = m.status === "due" ? '<span class="cell-status red">Renewal due</span>' : '<span class="cell-status green">Active</span>';
           return '<tr class="mem-row" data-mid="' + m.id + '">' +
             '<td><div class="pl-name"><span class="av">' + LT.initials(m.name) + '</span><span class="t-name">' + LT.esc(m.name) + "</span></div></td>" +
             "<td>" + (p ? p.name : "—") + '</td><td class="num">' + LT.esc(m.phone) + "</td>" +
@@ -350,7 +383,26 @@
       });
 
       /* ---------- member detail (lightweight, on-tap) ---------- */
-      var mdBackdrop = document.getElementById("mdBackdrop");
+      var mdBackdrop = document.getElementById("mdBackdrop"), openMemberId = null;
+      // merged reminder history for a member: cloud log + a same-day local send
+      // that may not be in the last cloud fetch yet. Newest first.
+      function memberReminders(m) {
+        var list = (reminderHistory[String(m.id)] || []).slice();
+        var localLast = (LT.store.read("reminders", {}) || {})[m.id];
+        if (localLast && !list.some(function (r) { return Math.abs(new Date(r.at) - new Date(localLast)) < 60000; })) {
+          list.push({ at: localLast, upi: null, channel: "whatsapp" });
+        }
+        return list.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
+      }
+      function relDay(iso) {
+        var d = new Date(iso);
+        var days = Math.round((new Date(LT.isoDate(d)) - new Date(LT.today())) / 864e5);
+        return {
+          rel: days === 0 ? "Today" : days === -1 ? "Yesterday" : (-days) + " days ago",
+          time: d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }),
+          date: d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }),
+        };
+      }
       function memberStats(m) {
         var ph = normPhone(m.phone);
         var bk = (LT_DATA.bookings || []).concat(typeof histAll !== "undefined" ? histAll : [])
@@ -366,8 +418,18 @@
       }
       function openMember(id) {
         var m = memberById(id); if (!m) return;
+        openMemberId = id;
         var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
         var s = memberStats(m);
+        var hist = memberReminders(m);
+        var tlHtml = hist.length
+          ? hist.map(function (r, i) {
+              var rd = relDay(r.at);
+              return '<div class="md-tl-item' + (i === 0 ? "" : " faded") + '">' +
+                '<div class="md-tl-when">' + rd.rel + ' · ' + rd.date + '</div>' +
+                '<div class="md-tl-sub">WhatsApp · ' + rd.time + (r.upi ? ' · paid to ' + LT.esc(r.upi) : "") + '</div></div>';
+            }).join("")
+          : '<div class="md-tl-empty">No reminders sent yet.</div>';
         var daysLeft = Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5);
         var validTxt = daysLeft < 0 ? '<span style="color:var(--tx-red);">' + (-daysLeft) + "d overdue</span>"
           : daysLeft <= 3 ? '<span style="color:var(--tx-gold);">in ' + daysLeft + "d</span>" : "in " + daysLeft + "d";
@@ -387,7 +449,10 @@
             '<div class="f"><span class="k">Phone</span><span class="v">' + LT.esc(m.phone) + "</span></div>" +
             '<div class="f"><span class="k">Joined</span><span class="v">' + fmtD(m.joined) + "</span></div>" +
             '<div class="f"><span class="k">Renews</span><span class="v">' + fmtD(m.validTill) + " · " + validTxt + "</span></div>" +
+            '<div class="f"><span class="k">Last reminded</span><span class="v">' + (hist.length ? relDay(hist[0].at).rel : "Never") + "</span></div>" +
           "</div>" +
+          '<div class="md-tl-head"><h3>Reminder history</h3>' + (hist.length ? '<span class="n">' + hist.length + " sent</span>" : "") + "</div>" +
+          '<div class="md-tl">' + tlHtml + "</div>" +
           '<div class="md-actions">' +
             '<button class="btn btn-primary" data-md-remind="' + m.id + '">' +
               '<svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M12.05 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.14 1.6 5.95L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.69 1.45c6.55 0 11.89-5.34 11.9-11.9C23.94 5.34 18.6 0 12.05 0m6.99 16.94c-.3.83-1.5 1.53-2.08 1.62-.53.08-1.2.11-1.94-.12-.45-.14-1.02-.33-1.76-.65-3.1-1.34-5.12-4.46-5.27-4.66-.15-.2-1.26-1.67-1.26-3.19s.8-2.27 1.08-2.58c.28-.31.61-.39.81-.39h.58c.19 0 .44-.07.68.52.25.6.85 2.06.92 2.21.08.15.13.33.03.53-.1.2-.15.32-.3.5-.14.17-.3.38-.44.51-.15.15-.3.3-.13.6.17.29.77 1.27 1.65 2.05 1.14 1.02 2.1 1.33 2.4 1.48.29.15.46.12.63-.07.2-.22.72-.84.91-1.13.2-.3.4-.25.66-.15.28.1 1.74.82 2.04.97.3.15.5.22.57.35.07.12.07.71-.23 1.54"/></svg>' +
@@ -396,14 +461,16 @@
           "</div>";
         mdBackdrop.classList.add("open");
       }
-      document.getElementById("mdClose").addEventListener("click", function () { mdBackdrop.classList.remove("open"); });
-      mdBackdrop.addEventListener("click", function (e) { if (e.target === mdBackdrop) mdBackdrop.classList.remove("open"); });
+      document.getElementById("mdClose").addEventListener("click", function () { mdBackdrop.classList.remove("open"); openMemberId = null; });
+      mdBackdrop.addEventListener("click", function (e) { if (e.target === mdBackdrop) { mdBackdrop.classList.remove("open"); openMemberId = null; } });
       document.getElementById("mdBody").addEventListener("click", function (e) {
         var rem = e.target.closest("[data-md-remind]"), pay = e.target.closest("[data-md-pay]");
         if (!rem && !pay) return;
         var m = memberById(rem ? rem.dataset.mdRemind : pay.dataset.mdPay);
         if (!m) return;
-        if (rem) { openWhatsApp(m, Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5)); mdBackdrop.classList.remove("open"); }
+        // keep the popup open so the new reminder appears in the timeline in
+        // place (WhatsApp opens in its own tab/app either way)
+        if (rem) openWhatsApp(m, Math.round((new Date(m.validTill) - new Date(LT.today())) / 864e5));
         else openPay(m);
       });
 
@@ -417,13 +484,19 @@
         });
       }
       chipGroup("mpMode", "m", function (v) { mpMode = v; });
-      chipGroup("mpDur", "mo", function (v) { mpDur = +v; });
+      chipGroup("mpDur", "mo", function (v) {
+        mpDur = +v;
+        // the suggested amount tracks the chosen duration (staff can still edit)
+        var pl = LT_DATA.plans.find(function (p) { return p.months === mpDur; });
+        if (pl) document.getElementById("mpAmt").value = pl.amount;
+      });
       function openPay(m) {
         mpMember = m; mpMode = "Cash"; mpDur = 1;
         document.getElementById("mpName").textContent = m.name;
         document.getElementById("mpAmt").value = renewalAmount();
         document.querySelectorAll("#mpMode .chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
         document.querySelectorAll("#mpDur .chip").forEach(function (c, i) { c.classList.toggle("active", i === 0); });
+        document.getElementById("mpMsg").textContent = "";
         mpBackdrop.classList.add("open");
       }
       document.getElementById("mpClose").addEventListener("click", function () { mpBackdrop.classList.remove("open"); });
@@ -431,7 +504,10 @@
       document.getElementById("mpForm").addEventListener("submit", function (e) {
         e.preventDefault();
         var m = mpMember; if (!m) return;
-        var amt = Math.max(0, +document.getElementById("mpAmt").value || 0);
+        var mpMsg = document.getElementById("mpMsg");
+        var amt = +document.getElementById("mpAmt").value || 0;
+        if (amt <= 0) { mpMsg.textContent = "Enter the amount received (₹1 or more)."; mpMsg.className = "form-msg error"; return; }
+        mpMsg.textContent = "";
         var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
         // 1) log the payment (cloud ledger + local so Finance shows it at once)
         var pay = { ref: "P-" + Date.now(), name: m.name, type: "Membership",
@@ -493,10 +569,15 @@
       function openWhatsApp(m, daysTo) {
         var phone = "91" + String(m.phone).replace(/\D/g, "").slice(-10);
         window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(waMessage(m, daysTo)), "_blank", "noopener");
-        var rem = reminders(); rem[m.id] = new Date().toISOString(); LT.store.write("reminders", rem);
-        if (window.LT_CLOUD) { LT_CLOUD.logReminder(m.id, activeUpi()); LT_CLOUD.track("reminder_sent", { daysTo: daysTo }); }
+        var now = new Date().toISOString(), upi = activeUpi();
+        var rem = reminders(); rem[m.id] = now; LT.store.write("reminders", rem);
+        // reflect it in the timeline right away (cloud confirms on next load)
+        var k = String(m.id);
+        (reminderHistory[k] = reminderHistory[k] || []).unshift({ at: now, upi: upi, channel: "whatsapp" });
+        if (window.LT_CLOUD) { LT_CLOUD.logReminder(m.id, upi); LT_CLOUD.track("reminder_sent", { daysTo: daysTo }); }
         LT.toast("WhatsApp opened for " + m.name.split(" ")[0] + " ✓");
         paintReminders();
+        if (mdBackdrop.classList.contains("open") && openMemberId) openMember(openMemberId);
       }
       function downloadNotice(m, daysTo) {
         var p = LT_DATA.programs.find(function (x) { return x.id === m.program; });
@@ -533,7 +614,7 @@
           var stateHtml = daysTo > 0
             ? '<span class="soon">Renews in ' + daysTo + (daysTo === 1 ? " day" : " days") + "</span>"
             : '<span class="late">' + (daysTo === 0 ? "Due today" : -daysTo + (daysTo === -1 ? " day" : " days") + " overdue") + "</span>";
-          return '<div class="rem-item' + (daysTo > 0 ? " upcoming" : "") + (today ? " done" : "") + '">' +
+          return '<div class="rem-item clickable' + (daysTo > 0 ? " upcoming" : "") + (today ? " done" : "") + '" data-open="' + m.id + '" role="button" tabindex="0" title="View member & reminder history">' +
             '<span class="av">' + LT.initials(m.name) + "</span>" +
             '<span class="rm-body"><span class="rm-name">' + LT.esc(m.name) + "</span>" +
             '<span class="rm-sub">' + stateHtml + (today ? ' · <span class="sent">sent ✓</span>' : "") + "</span></span>" +
@@ -543,9 +624,15 @@
         }).join("");
       }
       document.getElementById("remList").addEventListener("click", function (e) {
-        var wa = e.target.closest("[data-wa]"); if (!wa) return;
-        var x = renewalQueue().find(function (q) { return String(q.m.id) === wa.dataset.wa; });
-        if (x) openWhatsApp(x.m, x.daysTo);
+        // Send button → open WhatsApp; anywhere else on the row → member popup
+        var wa = e.target.closest("[data-wa]");
+        if (wa) {
+          var x = renewalQueue().find(function (q) { return String(q.m.id) === wa.dataset.wa; });
+          if (x) openWhatsApp(x.m, x.daysTo);
+          return;
+        }
+        var row = e.target.closest("[data-open]");
+        if (row) openMember(row.dataset.open);
       });
       document.getElementById("remindAll").addEventListener("click", function () {
         var rem = reminders();

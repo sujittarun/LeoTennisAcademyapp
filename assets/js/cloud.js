@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var APP_VER = "30"; // keep in step with the ?v= cache-buster
+  var APP_VER = "34"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
@@ -72,6 +72,7 @@
   function friendly(err) {
     var m = err && err.message ? err.message : String(err);
     if (/slot full|all courts taken/.test(m)) return m;
+    if (/bookings_slot_unique|duplicate key/.test(m)) return "court taken";
     if (/Failed to fetch|NetworkError|Load failed/.test(m)) return "no connection";
     return m;
   }
@@ -230,6 +231,19 @@
       return req("GET", "/payments?tenant_id=eq." + TENANT +
         "&order=on_date.desc&limit=200&select=ref,name,type,detail,amount,mode,on_date").catch(soft);
     },
+    // operating expenses — staff-scoped like payments; fails soft so Finance
+    // still runs on LT.store if the expenses table isn't provisioned yet
+    addExpense: function (e) {
+      return req("POST", "/expenses", {
+        tenant_id: TENANT, ref: e.ref || null, category: e.category,
+        payee: e.payee || null, detail: e.detail || null, amount: e.amount,
+        mode: e.mode, on_date: e.on,
+      }).catch(soft);
+    },
+    fetchExpenses: function () {
+      return req("GET", "/expenses?tenant_id=eq." + TENANT +
+        "&order=on_date.desc&limit=200&select=ref,category,payee,detail,amount,mode,on_date").catch(soft);
+    },
     fetchAttendance: function (dateIso) {
       return req("GET", "/attendance?tenant_id=eq." + TENANT + "&date=eq." + dateIso +
         "&present=eq.true&select=kind,person_id").catch(soft);
@@ -245,6 +259,11 @@
       return durable("POST", "/reminders_log", {
         tenant_id: TENANT, member_id: String(memberId), channel: "whatsapp", upi_used: upi,
       });
+    },
+    // full reminder history (staff-scoped by RLS) — for the member timeline
+    fetchReminders: function () {
+      return req("GET", "/reminders_log?tenant_id=eq." + TENANT +
+        "&order=sent_at.desc&limit=500&select=member_id,channel,upi_used,sent_at").catch(soft);
     },
 
     /* usage analytics (outbox-backed so events aren't lost offline) */

@@ -78,13 +78,30 @@
       { id: 14, name: "Tarun Agarwal",    program: "perf",    age: 30, phone: "97654 12309", joined: "2026-06-15", validTill: daysFromNow(74),  status: "active" },
     ],
 
-    // Coaching & operations staff (attendance is tracked for them too)
+    // Coaching & operations staff (attendance is tracked for them too).
+    // The roster is editable in Attendance → Staff & coaches; adds/removes
+    // are stored via LT.store and merged by LT_STAFF().
     staff: [
       { id: "s1", name: "Rahul Sharma",   role: "Head Coach" },
       { id: "s2", name: "Priya Krishnan", role: "Performance Coach" },
       { id: "s3", name: "David Manuel",   role: "Fitness & Conditioning" },
       { id: "s4", name: "Kavya Reddy",    role: "Front Desk & Bookings" },
       { id: "s5", name: "Mahesh Yadav",   role: "Courts & Maintenance" },
+    ],
+
+    // Expense categories (Finance → Expenses). "Other" catches anything
+    // outside the fixed buckets; keep the list short and business-relevant.
+    expenseCats: ["Salaries", "Ground maintenance", "Equipment", "Rent", "Power & utilities", "Other"],
+
+    // Recent operating expenses (seed). App-recorded expenses merge from
+    // LT.store; cleared at go-live with the other seed arrays (launch-reset).
+    expenses: [
+      { ref: "E-SEED1", category: "Salaries",           payee: "Coach & staff payroll", detail: "Monthly salaries · 5 staff",   amount: 210000, mode: "Bank", on: daysFromNow(-3) },
+      { ref: "E-SEED2", category: "Rent",               payee: "Venkat Reddy (landlord)", detail: "Monthly ground lease",        amount: 85000,  mode: "Bank", on: daysFromNow(-4) },
+      { ref: "E-SEED3", category: "Power & utilities",  payee: "TSSPDCL",               detail: "Floodlight power bill",         amount: 24300,  mode: "Bank", on: daysFromNow(-6) },
+      { ref: "E-SEED4", category: "Ground maintenance", payee: "GreenTurf Services",    detail: "Court resurfacing patch · T3",  amount: 18500,  mode: "UPI",  on: daysFromNow(-7) },
+      { ref: "E-SEED5", category: "Equipment",          payee: "Tennis Pro Store",      detail: "Balls (20 cans) + string reels", amount: 14200, mode: "Card", on: daysFromNow(-9) },
+      { ref: "E-SEED6", category: "Ground maintenance", payee: "AquaClean",             detail: "Net replacement · P2",          amount: 6800,   mode: "UPI",  on: daysFromNow(-13) },
     ],
 
     // Court bookings (seed). Hour = slot start in 24h; court = courtsMeta id.
@@ -192,6 +209,32 @@
     }
     window.LT_DATA.bookings = window.LT_DATA.bookings.concat(hist);
   })();
+
+  /* Merged roster shared by staff pages (players, attendance): seed members
+     + members added on this device (LT.store "members") + per-member renewal
+     overrides ("member-overrides"). Always read the roster through this so
+     app-added members appear everywhere, not just on the Members page. */
+  window.LT_ROSTER = function () {
+    var seen = {}, out = window.LT_DATA.members.slice();
+    out.forEach(function (m) { seen[String(m.id)] = 1; });
+    (LT.store.read("members", []) || []).forEach(function (m) {
+      if (!seen[String(m.id)]) { seen[String(m.id)] = 1; out.push(m); }
+    });
+    var ov = LT.store.read("member-overrides", {});
+    return out.map(function (m) { return ov[m.id] ? Object.assign({}, m, ov[m.id]) : m; });
+  };
+
+  /* Merged staff/coach roster shared by Attendance: seed staff + coaches
+     added on this device ("staff-added"), minus any removed ("staff-removed").
+     Seed coaches can't be deleted from the array, so removal is a filter. */
+  window.LT_STAFF = function () {
+    var removed = LT.store.read("staff-removed", []) || [];
+    var out = window.LT_DATA.staff.filter(function (s) { return removed.indexOf(s.id) === -1; });
+    (LT.store.read("staff-added", []) || []).forEach(function (s) {
+      if (removed.indexOf(s.id) === -1) out.push(s);
+    });
+    return out;
+  };
 
   /* Slot helpers shared by booking pages */
   window.LT_SLOTS = {

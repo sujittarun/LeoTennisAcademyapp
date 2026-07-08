@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=31" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=34" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     /* keep the three headline stats side by side on phones — less scrolling */
@@ -168,22 +168,57 @@
     </div>
 
     <div class="glass">
-      <div class="card-head" style="padding: var(--gap-3) var(--gap-3) 0;">
-        <div><div class="kicker">Ledger</div><h2 style="font-size:18px;">Recent payments</h2></div>
-        <div class="chip-row" id="typeChips">
-          <button class="chip active" data-t="all">All</button>
-          <button class="chip" data-t="Membership">Memberships</button>
-          <button class="chip" data-t="Court">Court bookings</button>
+      <div class="card-head" style="padding: var(--gap-3) var(--gap-3) 0; flex-wrap: wrap; gap: 8px;">
+        <div><div class="kicker">Ledger</div><h2 style="font-size:18px;" id="ledgerTitle">Recent revenue</h2></div>
+        <div class="chip-row filters" id="ledgerTabs">
+          <button class="chip active" data-tab="revenue">Revenue</button>
+          <button class="chip" data-tab="expenses">Expenses</button>
         </div>
+      </div>
+      <!-- sub-filter (dropdown: >2 options) -->
+      <div style="padding: 10px var(--gap-3) 0;">
+        <span class="lt-filter" id="typeFilterWrap">
+          <select id="typeSelect" aria-label="Filter revenue">
+            <option value="all">All revenue</option>
+            <option value="Membership">Memberships</option>
+            <option value="Court">Court bookings</option>
+          </select>
+        </span>
+        <span class="lt-filter hide" id="catFilterWrap">
+          <select id="catSelect" aria-label="Filter expenses"></select>
+        </span>
       </div>
       <div class="table-wrap">
         <table class="lt-table tight">
-          <thead><tr><th>Paid by</th><th>Type</th><th>Detail</th><th>Amount</th><th>Mode</th><th>Date</th></tr></thead>
+          <thead id="ledgerHead"></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
+      <div id="ledgerFoot" style="padding: 0 var(--gap-3) var(--gap-3); font-size: 12.5px; color: var(--ink-mid);"></div>
     </div>
   </main>
+
+  <!-- add expense modal -->
+  <div class="lt-modal-backdrop" id="expBackdrop">
+    <div class="glass lt-modal">
+      <div class="modal-head">
+        <div><div class="kicker">Add expense</div><h2 style="font-size:20px;">New expense</h2></div>
+        <button class="btn btn-icon btn-ghost" id="expClose">✕</button>
+      </div>
+      <form id="expForm" class="lt-grid" style="gap: var(--gap-3);">
+        <label class="field"><span>Category</span><select name="category" id="expCat"></select></label>
+        <label class="field"><span>Paid to <span class="opt">(payee)</span></span><input type="text" name="payee" placeholder="e.g. TSSPDCL" /></label>
+        <label class="field"><span>Note <span class="opt">(optional)</span></span><input type="text" name="detail" placeholder="e.g. Floodlight power bill" /></label>
+        <label class="field"><span>Amount</span><input type="number" name="amount" id="expAmt" placeholder="0" /></label>
+        <div class="lt-grid cols-2" style="gap: var(--gap-2);">
+          <label class="field"><span>Mode</span><select name="mode"><option>Bank transfer</option><option>UPI</option><option>Cash</option><option>Card</option></select></label>
+          <label class="field"><span>Date</span><input type="date" name="on" id="expDate" /></label>
+        </div>
+        <div class="form-msg" id="expMsg" style="min-height:0;"></div>
+        <button class="btn btn-primary btn-block" type="submit">Save expense</button>
+      </form>
+    </div>
+  </div>
 
   <!-- record payment modal -->
   <div class="lt-modal-backdrop" id="payBackdrop">
@@ -204,9 +239,9 @@
     </div>
   </div>
 
-  <script src="assets/js/core.js?v=30"></script>
-  <script src="assets/js/data.js?v=30"></script>
-  <script src="assets/js/cloud.js?v=30"></script>
+  <script src="assets/js/core.js?v=34"></script>
+  <script src="assets/js/data.js?v=34"></script>
+  <script src="assets/js/cloud.js?v=34"></script>
   <script>
     LT.auth.require();
     LT.managerShell("fees.html");
@@ -216,13 +251,24 @@
       document.getElementById("monthLine").textContent =
         new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
-      // payments recorded on any device, merged with local + seeds by ref
-      var cloudPayments = [];
+      var ledgerTab = "revenue", catFilter = "all";
+
+      // payments + expenses recorded on any device, merged with local + seeds by ref
+      var cloudPayments = [], cloudExpenses = [];
       if (window.LT_CLOUD) {
         LT_CLOUD.fetchPayments().then(function (rows) {
           if (rows && rows.length) {
             cloudPayments = rows.map(function (r) {
               return { ref: r.ref, name: r.name, type: r.type, detail: r.detail, amount: r.amount, mode: r.mode, on: r.on_date };
+            });
+            paintKPIs();
+            render();
+          }
+        });
+        LT_CLOUD.fetchExpenses && LT_CLOUD.fetchExpenses().then(function (rows) {
+          if (rows && rows.length) {
+            cloudExpenses = rows.map(function (r) {
+              return { ref: r.ref, category: r.category, payee: r.payee, detail: r.detail, amount: r.amount, mode: r.mode, on: r.on_date };
             });
             paintKPIs();
             render();
@@ -364,6 +410,13 @@
         local.forEach(function (p) { if (p.ref) refs[p.ref] = 1; });
         return local.concat(cloudPayments.filter(function (p) { return !p.ref || !refs[p.ref]; }));
       }
+      function allExpenses() {
+        var local = LT.store.read("expenses", []).concat(LT_DATA.expenses || []);
+        var refs = {};
+        local.forEach(function (p) { if (p.ref) refs[p.ref] = 1; });
+        return local.concat(cloudExpenses.filter(function (p) { return !p.ref || !refs[p.ref]; }))
+          .sort(function (a, b) { return a.on < b.on ? 1 : a.on > b.on ? -1 : 0; });
+      }
 
       function fmtD(iso) { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" }); }
 
@@ -478,36 +531,109 @@
       host.addEventListener("pointerleave", function () { document.getElementById("rvTip").classList.remove("show"); });
 
 
-      /* ================= ledger ================= */
-      function render() {
+      /* ================= ledger (Revenue / Expenses tabs) ================= */
+      function render() { ledgerTab === "expenses" ? renderExpenses() : renderRevenue(); }
+
+      function renderRevenue() {
         var list = allPayments().filter(function (p) { return typeFilter === "all" || p.type === typeFilter; });
+        document.getElementById("ledgerHead").innerHTML =
+          "<tr><th>Paid by</th><th>Type</th><th>Detail</th><th>Amount</th><th>Mode</th><th>Date</th></tr>";
         document.getElementById("rows").innerHTML = list.map(function (p) {
-          var typePill = p.type === "Court"
-            ? '<span class="pill optic">Court</span>'
-            : '<span class="pill gold">Membership</span>';
-          return "<tr><td class='t-name'>" + LT.esc(p.name) + "</td><td>" + typePill + "</td>" +
+          var typeTag = p.type === "Court"
+            ? '<span class="cell-tag green">Court</span>'
+            : '<span class="cell-tag gold">Membership</span>';
+          return "<tr><td class='t-name'>" + LT.esc(p.name) + "</td><td>" + typeTag + "</td>" +
             "<td class='faint'>" + LT.esc(p.detail || "—") + "</td>" +
             "<td class='num gold' style='font-weight:700;'>" + LT.fmtINR(p.amount) + "</td>" +
-            "<td><span class='pill'>" + p.mode + "</span></td><td>" + fmtD(p.on) + "</td></tr>";
+            "<td class='faint'>" + LT.esc(p.mode) + "</td><td>" + fmtD(p.on) + "</td></tr>";
         }).join("") || '<tr><td colspan="6"><div class="empty-state">No payments recorded yet.</div></td></tr>';
+        var total = list.reduce(function (s, p) { return s + (p.amount || 0); }, 0);
+        document.getElementById("ledgerFoot").innerHTML = list.length
+          ? "<b>" + list.length + "</b> payment" + (list.length === 1 ? "" : "s") + " · collected <b style='color:var(--tx-gold);'>" + LT.fmtINR(total) + "</b>" : "";
       }
 
-      document.getElementById("typeChips").addEventListener("click", function (e) {
+      function renderExpenses() {
+        var list = allExpenses().filter(function (x) { return catFilter === "all" || x.category === catFilter; });
+        document.getElementById("ledgerHead").innerHTML =
+          "<tr><th>Paid to</th><th>Category</th><th>Detail</th><th>Amount</th><th>Mode</th><th>Date</th></tr>";
+        document.getElementById("rows").innerHTML = list.map(function (x) {
+          return "<tr><td class='t-name'>" + LT.esc(x.payee || "—") + "</td>" +
+            "<td><span class='cell-tag'>" + LT.esc(x.category) + "</span></td>" +
+            "<td class='faint'>" + LT.esc(x.detail || "—") + "</td>" +
+            "<td class='num' style='font-weight:700;color:var(--tx-red);'>−" + LT.fmtINR(x.amount) + "</td>" +
+            "<td class='faint'>" + LT.esc(x.mode) + "</td><td>" + fmtD(x.on) + "</td></tr>";
+        }).join("") || '<tr><td colspan="6"><div class="empty-state">No expenses recorded yet.</div></td></tr>';
+        var total = list.reduce(function (s, x) { return s + (x.amount || 0); }, 0);
+        document.getElementById("ledgerFoot").innerHTML = list.length
+          ? "<b>" + list.length + "</b> expense" + (list.length === 1 ? "" : "s") + " · spent <b style='color:var(--tx-red);'>" + LT.fmtINR(total) + "</b>" : "";
+      }
+
+      // build the expense-category sub-filter dropdown
+      document.getElementById("catSelect").innerHTML =
+        '<option value="all">All categories</option>' +
+        LT_DATA.expenseCats.map(function (c) { return '<option value="' + LT.esc(c) + '">' + LT.esc(c) + "</option>"; }).join("");
+
+      document.getElementById("typeSelect").addEventListener("change", function () {
+        typeFilter = this.value; render();
+      });
+      document.getElementById("catSelect").addEventListener("change", function () {
+        catFilter = this.value; render();
+      });
+
+      // Revenue / Expenses tab switch — swaps the sub-filter, header action,
+      // title and table in place.
+      document.getElementById("ledgerTabs").addEventListener("click", function (e) {
         var btn = e.target.closest(".chip");
         if (!btn) return;
-        typeFilter = btn.dataset.t;
+        ledgerTab = btn.dataset.tab;
         this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === btn); });
+        var exp = ledgerTab === "expenses";
+        document.getElementById("ledgerTitle").textContent = exp ? "Recent expenses" : "Recent revenue";
+        document.getElementById("typeFilterWrap").classList.toggle("hide", exp);
+        document.getElementById("catFilterWrap").classList.toggle("hide", !exp);
+        document.getElementById("recBtn").textContent = exp ? "+ Add expense" : "+ Record payment";
         render();
       });
 
       // record payment modal
       var backdrop = document.getElementById("payBackdrop");
-      document.getElementById("recBtn").addEventListener("click", function () { backdrop.classList.add("open"); });
+      document.getElementById("recBtn").addEventListener("click", function () {
+        (ledgerTab === "expenses" ? expBackdrop : backdrop).classList.add("open");
+      });
       document.getElementById("payClose").addEventListener("click", function () { backdrop.classList.remove("open"); });
       backdrop.addEventListener("click", function (e) { if (e.target === backdrop) backdrop.classList.remove("open"); });
 
-      document.getElementById("paySel").innerHTML = LT_DATA.members.map(function (m) {
-        return "<option>" + m.name + "</option>";
+      /* ---------- add expense modal ---------- */
+      var expBackdrop = document.getElementById("expBackdrop");
+      document.getElementById("expCat").innerHTML = LT_DATA.expenseCats.map(function (c) {
+        return "<option>" + LT.esc(c) + "</option>";
+      }).join("");
+      document.getElementById("expDate").value = LT.today();
+      document.getElementById("expClose").addEventListener("click", function () { expBackdrop.classList.remove("open"); });
+      expBackdrop.addEventListener("click", function (e) { if (e.target === expBackdrop) expBackdrop.classList.remove("open"); });
+      document.getElementById("expForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var d = new FormData(this), expMsg = document.getElementById("expMsg");
+        var amt = +d.get("amount") || 0;
+        if (amt <= 0) { expMsg.textContent = "Enter the amount spent (₹1 or more)."; expMsg.className = "form-msg error"; return; }
+        expMsg.textContent = "";
+        var rec = {
+          ref: "E-" + Date.now(), category: d.get("category"),
+          payee: (d.get("payee") || "").trim() || d.get("category"), detail: (d.get("detail") || "").trim(),
+          amount: amt, mode: d.get("mode"), on: d.get("on") || LT.today(),
+        };
+        var list = LT.store.read("expenses", []); list.unshift(rec); LT.store.write("expenses", list);
+        if (window.LT_CLOUD && LT_CLOUD.addExpense) LT_CLOUD.addExpense(rec);
+        if (window.LT_CLOUD) LT_CLOUD.track("expense_recorded", { category: rec.category, amount: rec.amount });
+        expBackdrop.classList.remove("open");
+        this.reset();
+        document.getElementById("expDate").value = LT.today();
+        LT.toast("✓ " + LT.fmtINR(amt) + " expense recorded");
+        render();
+      });
+
+      document.getElementById("paySel").innerHTML = LT_ROSTER().map(function (m) {
+        return "<option>" + LT.esc(m.name) + "</option>";
       }).join("");
 
       var plan = LT_DATA.plans[0];
@@ -527,7 +653,7 @@
       document.getElementById("payForm").addEventListener("submit", function (e) {
         e.preventDefault();
         var d = new FormData(this);
-        var member = LT_DATA.members.find(function (m) { return m.name === d.get("member"); });
+        var member = LT_ROSTER().find(function (m) { return m.name === d.get("member"); });
         var prog = member && LT_DATA.programs.find(function (p) { return p.id === member.program; });
         var list = LT.store.read("payments", []);
         var rec = {

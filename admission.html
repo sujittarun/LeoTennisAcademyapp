@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/glass.css?v=31" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=34" />
   <script>document.documentElement.dataset.theme = localStorage.getItem("lt-theme") || "dark"; document.documentElement.classList.add("lt-js");</script>
   <style>
     .adm-wrap { max-width: 720px; margin: 0 auto; width: 100%; }
@@ -119,9 +119,9 @@
     </div>
   </main>
 
-  <script src="assets/js/core.js?v=30"></script>
-  <script src="assets/js/data.js?v=30"></script>
-  <script src="assets/js/cloud.js?v=30"></script>
+  <script src="assets/js/core.js?v=34"></script>
+  <script src="assets/js/data.js?v=34"></script>
+  <script src="assets/js/cloud.js?v=34"></script>
   <script>
     (function () {
       var step = 1, TOTAL = 3;
@@ -132,6 +132,8 @@
         return '<label class="choice"><div class="bp-top"><input type="radio" name="program" value="' + p.id + '"' + (i === 0 ? " checked" : "") + ' /><span class="dot"></span><span class="bp-name">' + p.name + "</span></div>" +
           '<span class="bp-meta">' + p.level + " · " + p.days + "</span></label>";
       }).join("");
+      // trials are booked ahead, never backdated
+      form.querySelector('[name="date"]').min = LT.today();
 
       function paint() {
         document.querySelectorAll("#stepper .step").forEach(function (el) {
@@ -163,7 +165,7 @@
         document.getElementById("summary").innerHTML = rows.map(function (r) {
           return '<div class="flex between" style="padding:11px 14px;border:1px solid var(--tile-border);border-radius:var(--r-md);background:var(--tile-bg);">' +
             '<span class="faint" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:650;">' + r[0] + "</span>" +
-            '<span style="font-weight:650;text-align:right;">' + r[1] + "</span></div>";
+            '<span style="font-weight:650;text-align:right;">' + LT.esc(r[1]) + "</span></div>";
         }).join("");
       }
 
@@ -188,6 +190,18 @@
           level: d.get("level"), goal: d.get("goal"), program: d.get("program"),
           slot: d.get("slot"), date: d.get("date"), at: new Date().toISOString(),
         };
+        // same phone re-submitting within a day (double-tap, impatience) —
+        // don't file a second enquiry from this device
+        var ph10 = String(rec.phone || "").replace(/\D/g, "").slice(-10);
+        var dup = apps.find(function (a) {
+          return String(a.phone || "").replace(/\D/g, "").slice(-10) === ph10 &&
+            Date.now() - new Date(a.at).getTime() < 864e5;
+        });
+        if (dup) {
+          msg.textContent = "We already have your enquiry — our coach will call you.";
+          msg.className = "form-msg error";
+          return;
+        }
         function showDone() {
           apps.unshift(rec);
           LT.store.write("applications", apps);

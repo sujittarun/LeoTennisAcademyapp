@@ -67,6 +67,13 @@ fees.html (Finance). LT_DATA.staff holds the coach/ops roster.
   viewport-height quirks), then desktop. Never ship a change checked only on
   desktop widths.
 - Prefix classes/keys `lt-`. Only use tokens from glass.css, never hardcoded colors.
+- FILTERS: 1–2 mutually-exclusive choices may use chips or a tab toggle; **3+
+  filter options use the compact `.lt-filter` dropdown, never a wrapping row of
+  chip buttons.** (Modal single-choice form selectors — plan/mode/duration —
+  may stay as chips; this rule is about filter toolbars above lists/tables.)
+- TABLES: don't put filled `.pill`s in dense table-cell data. Use plain text,
+  or `.cell-tag` (coloured text) / `.cell-status` (dot + coloured text). Pills
+  are reserved for standalone status on cards/headers.
 - Both themes must stay consistent; test dark (default) and light.
 - Mobile breakpoint is 699px (not 767) so fold-phone inner screens (~717px)
   get the desktop chrome; dates use LOCAL time, never toISOString (IST).
