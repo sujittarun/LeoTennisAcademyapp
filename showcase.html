@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04130c" />
+  <title>Courts — Leo Academy</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/glass.css?v=36" />
+  <script>document.documentElement.dataset.theme = "dark"; document.documentElement.classList.add("lt-js");</script>
+  <style>
+    /* ===== full-screen scroll-snap court showcase (SAMPLE) ===== */
+    html, body { margin: 0; height: 100%; background: #04130c; }
+    .sc-scroll {
+      height: 100dvh; overflow-y: scroll; scroll-snap-type: y mandatory;
+      scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    }
+    .sc-scroll::-webkit-scrollbar { display: none; }
+    .sc-scroll { scrollbar-width: none; }
+
+    .sc-sec {
+      position: relative; height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always;
+      overflow: hidden; display: flex; align-items: flex-end; isolation: isolate;
+    }
+    /* media layer */
+    .sc-media { position: absolute; inset: 0; z-index: -2; }
+    .sc-media video, .sc-media img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      filter: saturate(1.05) contrast(1.03);
+    }
+    /* legibility gradients: dark at the bottom for text, a touch at top for the nav */
+    .sc-sec::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(4,19,12,.55) 0%, rgba(4,19,12,0) 22%),
+        linear-gradient(0deg, rgba(4,19,12,.92) 4%, rgba(4,19,12,.5) 34%, rgba(4,19,12,0) 62%);
+    }
+
+    /* text block */
+    .sc-body { position: relative; width: 100%; max-width: 1100px; margin: 0 auto;
+      padding: 0 clamp(22px, 6vw, 64px) clamp(88px, 16vh, 150px); z-index: 1; }
+    .sc-kicker { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-body);
+      font-size: 12px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--optic-400, #d7ef4f);
+      opacity: 0; transform: translateY(16px); }
+    .sc-kicker .n { color: var(--tx-gold, #c9a24b); }
+    .sc-title { font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; line-height: .98;
+      font-size: clamp(40px, 9vw, 96px); color: #fff; margin: 12px 0 0;
+      opacity: 0; transform: translateY(26px); }
+    .sc-title em { font-style: normal; background: linear-gradient(100deg,#f0d795,#c9a24b 55%,#a67e2e);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .sc-desc { font-size: clamp(15px, 2.4vw, 20px); color: rgba(255,255,255,.82); max-width: 46ch; margin: 16px 0 0; line-height: 1.5;
+      opacity: 0; transform: translateY(20px); }
+    .sc-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; opacity: 0; transform: translateY(16px); }
+    .sc-chip { font-size: 13px; font-weight: 650; color: #fff; padding: 9px 16px; border-radius: 99px;
+      border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    .sc-chip b { color: var(--tx-gold, #e8c268); }
+
+    /* reveal when the section is the active snap target */
+    .sc-sec.in .sc-kicker { opacity: 1; transform: none; transition: opacity .7s ease .05s, transform .7s var(--ease-spring, cubic-bezier(.2,.8,.2,1)) .05s; }
+    .sc-sec.in .sc-title  { opacity: 1; transform: none; transition: opacity .8s ease .14s, transform .8s var(--ease-spring, cubic-bezier(.2,.8,.2,1)) .14s; }
+    .sc-sec.in .sc-desc   { opacity: 1; transform: none; transition: opacity .8s ease .24s, transform .8s var(--ease-spring, cubic-bezier(.2,.8,.2,1)) .24s; }
+    .sc-sec.in .sc-meta   { opacity: 1; transform: none; transition: opacity .8s ease .34s, transform .8s var(--ease-spring, cubic-bezier(.2,.8,.2,1)) .34s; }
+
+    /* intro + outro */
+    .sc-hero { align-items: center; text-align: center; }
+    .sc-hero .sc-body { padding-bottom: 0; }
+    .sc-hero-bg { position: absolute; inset: 0; z-index: -2;
+      background: radial-gradient(120% 90% at 50% 0%, #0f3d27 0%, #04130c 62%); }
+    .sc-hero .lead { font-size: clamp(14px, 3.6vw, 18px); color: rgba(255,255,255,.7); letter-spacing: .04em; }
+    .sc-hero h1 { font-family: var(--font-display); font-weight: 800; line-height: .96; letter-spacing: -.02em;
+      font-size: clamp(46px, 12vw, 120px); color: #fff; margin: 14px 0 0; }
+    .sc-hero h1 em { font-style: normal; background: linear-gradient(100deg,#f0d795,#c9a24b 55%,#a67e2e);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .sc-scrollhint { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 2;
+      color: rgba(255,255,255,.6); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .sc-scrollhint .mouse { width: 22px; height: 34px; border: 1.5px solid rgba(255,255,255,.4); border-radius: 12px; position: relative; }
+    .sc-scrollhint .mouse::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 6px; border-radius: 2px;
+      background: #fff; transform: translateX(-50%); animation: sc-wheel 1.6s ease-in-out infinite; }
+    @keyframes sc-wheel { 0%,100% { opacity: 0; transform: translate(-50%,0); } 40% { opacity: 1; transform: translate(-50%,7px); } }
+
+    .sc-cta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
+    .sc-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-body); font-weight: 700; font-size: 15px;
+      padding: 14px 26px; border-radius: 99px; text-decoration: none; }
+    .sc-btn.gold { background: linear-gradient(100deg,#f0d795,#c9a24b); color: #1c1503; box-shadow: 0 12px 30px rgba(201,162,75,.4); }
+    .sc-btn.ghost { color: #fff; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.06); }
+
+    /* top nav */
+    .sc-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between;
+      padding: 16px clamp(18px, 5vw, 40px); pointer-events: none; }
+    .sc-nav > * { pointer-events: auto; }
+    .sc-brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+    .sc-brand .mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px;
+      background: radial-gradient(circle at 32% 24%, #0f3d27, #04130c 70%); border: 1px solid rgba(201,162,75,.5); }
+    .sc-brand strong { font-family: var(--font-display); font-weight: 800; font-size: 16px; letter-spacing: .01em; }
+    .sc-nav .sc-btn { padding: 10px 18px; font-size: 13px; }
+
+    /* progress dots */
+    .sc-dots { position: fixed; right: clamp(12px, 3vw, 26px); top: 50%; transform: translateY(-50%); z-index: 40;
+      display: flex; flex-direction: column; gap: 12px; }
+    .sc-dots button { width: 9px; height: 9px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+      background: rgba(255,255,255,.32); transition: all .3s ease; }
+    .sc-dots button.on { background: var(--tx-gold, #e8c268); transform: scale(1.5); }
+    @media (max-width: 560px) { .sc-dots { display: none; } }
+
+    .sc-badge { position: absolute; top: calc(env(safe-area-inset-top,0px) + 74px); left: clamp(22px,6vw,64px); z-index: 1;
+      font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sc-scroll { scroll-behavior: auto; }
+      .sc-sec .sc-kicker, .sc-sec .sc-title, .sc-sec .sc-desc, .sc-sec .sc-meta { opacity: 1; transform: none; transition: none; }
+      .sc-scrollhint .mouse::after { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sc-nav">
+    <a class="sc-brand" href="index.html">
+      <span class="mark" data-logo="26"></span>
+      <strong>Leo Academy</strong>
+    </a>
+    <a class="sc-btn gold" href="booking.html">Book a court</a>
+  </nav>
+
+  <div class="sc-dots" id="scDots" aria-hidden="true"></div>
+
+  <main class="sc-scroll" id="scScroll">
+
+    <!-- intro -->
+    <section class="sc-sec sc-hero" data-dot="Home">
+      <div class="sc-hero-bg"></div>
+      <div class="sc-body">
+        <div class="lead">LEO TENNIS ACADEMY · HYDERABAD</div>
+        <h1>Nine courts.<br /><em>One home.</em></h1>
+      </div>
+      <div class="sc-scrollhint"><span class="mouse"></span>Scroll</div>
+    </section>
+
+    <!-- Court 1 -->
+    <section class="sc-sec" data-dot="Centre Court" data-video="assets/video/courts/court-1.mp4" data-poster="assets/img/courts/court-1.jpg">
+      <div class="sc-media"></div>
+      <span class="sc-badge">01 · Tennis</span>
+      <div class="sc-body">
+        <div class="sc-kicker"><span class="n">Court T1</span> · Floodlit</div>
+        <h2 class="sc-title">Centre <em>Court</em></h2>
+        <p class="sc-desc">Our showpiece hard court, lit for night play. Where members warm up and finals are won.</p>
+        <div class="sc-meta">
+          <span class="sc-chip">Hard court · floodlit</span>
+          <span class="sc-chip"><b>₹500</b> off-peak · <b>₹700</b> peak</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Night -->
+    <section class="sc-sec" data-dot="Under Lights" data-video="assets/video/courts/court-night.mp4" data-poster="assets/img/courts/court-night.jpg">
+      <div class="sc-media"></div>
+      <span class="sc-badge">02 · After dark</span>
+      <div class="sc-body">
+        <div class="sc-kicker"><span class="n">Open till 11 PM</span> · Every day</div>
+        <h2 class="sc-title">Play <em>under lights</em></h2>
+        <p class="sc-desc">Every one of our nine courts is floodlit, so your game doesn't stop when the sun does — 6 AM to 11 PM, daily.</p>
+        <div class="sc-meta">
+          <span class="sc-chip">All courts floodlit</span>
+          <span class="sc-chip">Peak from <b>4 PM</b></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rally court -->
+    <section class="sc-sec" data-dot="Rally Court" data-video="assets/video/courts/court-4.mp4" data-poster="assets/img/courts/court-4.jpg">
+      <div class="sc-media"></div>
+      <span class="sc-badge">03 · Tennis</span>
+      <div class="sc-body">
+        <div class="sc-kicker"><span class="n">Court T4</span> · Floodlit</div>
+        <h2 class="sc-title">The <em>Rally Court</em></h2>
+        <p class="sc-desc">Wide and fast, built for long baseline exchanges and coaching drills. Bring your legs.</p>
+        <div class="sc-meta">
+          <span class="sc-chip">Hard court · floodlit</span>
+          <span class="sc-chip"><b>₹500</b> off-peak · <b>₹700</b> peak</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pickleball -->
+    <section class="sc-sec" data-dot="Pickleball Den" data-video="assets/video/courts/pickle-1.mp4" data-poster="assets/img/courts/pickle-1.jpg">
+      <div class="sc-media"></div>
+      <span class="sc-badge">04 · Pickleball</span>
+      <div class="sc-body">
+        <div class="sc-kicker"><span class="n">The Leo Pickleball Den</span></div>
+        <h2 class="sc-title">Enter <em>the Den</em></h2>
+        <p class="sc-desc">Four dedicated pickleball courts for India's fastest-growing game. Easy to learn, impossible to put down.</p>
+        <div class="sc-meta">
+          <span class="sc-chip">4 courts · floodlit</span>
+          <span class="sc-chip"><b>₹400</b> off-peak · <b>₹600</b> peak</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- outro / CTA -->
+    <section class="sc-sec sc-hero" data-dot="Play">
+      <div class="sc-hero-bg"></div>
+      <div class="sc-body">
+        <div class="lead">FIRST SESSION FREE · NO COMMITMENT</div>
+        <h1>Ready to <em>play?</em></h1>
+        <div class="sc-cta">
+          <a class="sc-btn gold" href="booking.html">Book a court by the hour</a>
+          <a class="sc-btn ghost" href="admission.html">Join coaching →</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="assets/js/core.js?v=36"></script>
+  <script>
+    (function () {
+      var scroll = document.getElementById("scScroll");
+      var secs = Array.prototype.slice.call(document.querySelectorAll(".sc-sec"));
+      var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // lazy-attach each court's video only when near view; play the active one,
+      // pause the rest (saves battery + bandwidth on mobile)
+      function mountVideo(sec) {
+        var host = sec.querySelector(".sc-media");
+        if (!host || host.dataset.mounted) return;
+        var vid = sec.dataset.video, poster = sec.dataset.poster;
+        if (vid && vid.indexOf("__VID_") !== 0) {
+          host.innerHTML = '<video muted loop playsinline preload="metadata" poster="' + poster + '"><source src="' + vid + '" type="video/mp4"></video>';
+        } else if (poster) {
+          host.innerHTML = '<img src="' + poster + '" alt="" />';
+        }
+        host.dataset.mounted = "1";
+      }
+      function playState() {
+        secs.forEach(function (sec) {
+          var v = sec.querySelector("video"); if (!v) return;
+          if (sec.classList.contains("in")) { var p = v.play(); if (p && p.catch) p.catch(function(){}); }
+          else v.pause();
+        });
+      }
+
+      // dots
+      var dotHost = document.getElementById("scDots");
+      dotHost.innerHTML = secs.map(function (s, i) {
+        return '<button data-i="' + i + '" title="' + (s.dataset.dot || "") + '"></button>';
+      }).join("");
+      dotHost.addEventListener("click", function (e) {
+        var b = e.target.closest("button"); if (!b) return;
+        secs[+b.dataset.i].scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+      });
+      var dots = Array.prototype.slice.call(dotHost.children);
+
+      // active section = the one most in view
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          var sec = en.target, i = secs.indexOf(sec);
+          if (en.isIntersecting && en.intersectionRatio >= 0.55) {
+            secs.forEach(function (s) { s.classList.remove("in"); });
+            sec.classList.add("in");
+            dots.forEach(function (d, di) { d.classList.toggle("on", di === i); });
+            playState();
+          }
+          // preload neighbours' video
+          if (en.isIntersecting) { mountVideo(sec); if (secs[i+1]) mountVideo(secs[i+1]); }
+        });
+      }, { root: scroll, threshold: [0, 0.55, 1] });
+      secs.forEach(function (s) { io.observe(s); });
+
+      // first paint
+      mountVideo(secs[0]); mountVideo(secs[1]);
+      secs[0].classList.add("in"); dots[0].classList.add("on");
+    })();
+  </script>
+</body>
+</html>
