@@ -46,6 +46,8 @@ create policy members_staff_w on members for insert
   with check (auth_role() = 'staff' and tenant_id = auth_tenant());
 create policy members_staff_u on members for update
   using (auth_role() = 'staff' and tenant_id = auth_tenant());
+create policy members_staff_d on members for delete
+  using (auth_role() = 'staff' and tenant_id = auth_tenant());
 
 create policy payments_staff_r on payments for select
   using (auth_role() = 'operator' or (auth_role() = 'staff' and tenant_id = auth_tenant()));

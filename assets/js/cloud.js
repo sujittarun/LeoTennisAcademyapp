@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var APP_VER = "36"; // keep in step with the ?v= cache-buster
+  var APP_VER = "37"; // keep in step with the ?v= cache-buster
   var PROJECT = "https://ugsklcipzyiogxynshnh.supabase.co";
   var BASE = PROJECT + "/rest/v1";
   var AUTH = PROJECT + "/auth/v1";
@@ -220,6 +220,17 @@
         tenant_id: TENANT, name: m.name, phone: m.phone || null, program: m.program,
         joined: m.joined, valid_till: m.validTill, status: m.status || "active",
       }, { Prefer: "return=representation" }).catch(soft);
+    },
+    // edit / remove a member — best-effort cloud sync (fails soft; the UI is
+    // driven by local overrides/removed so it works regardless)
+    updateMember: function (m) {
+      return req("PATCH", "/members?tenant_id=eq." + TENANT + "&id=eq." + encodeURIComponent(m.id), {
+        name: m.name, phone: m.phone || null, program: m.program,
+        joined: m.joined, valid_till: m.validTill,
+      }).catch(soft);
+    },
+    deleteMember: function (id) {
+      return req("DELETE", "/members?tenant_id=eq." + TENANT + "&id=eq." + encodeURIComponent(id)).catch(soft);
     },
     addPayment: function (p) {
       return req("POST", "/payments", {

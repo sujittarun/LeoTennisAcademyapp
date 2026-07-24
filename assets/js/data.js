@@ -215,13 +215,18 @@
      overrides ("member-overrides"). Always read the roster through this so
      app-added members appear everywhere, not just on the Members page. */
   window.LT_ROSTER = function () {
+    var removed = LT.store.read("member-removed", []) || [];
+    var isRemoved = function (id) { return removed.indexOf(id) !== -1 || removed.indexOf(String(id)) !== -1; };
     var seen = {}, out = window.LT_DATA.members.slice();
     out.forEach(function (m) { seen[String(m.id)] = 1; });
     (LT.store.read("members", []) || []).forEach(function (m) {
       if (!seen[String(m.id)]) { seen[String(m.id)] = 1; out.push(m); }
     });
     var ov = LT.store.read("member-overrides", {});
-    return out.map(function (m) { return ov[m.id] ? Object.assign({}, m, ov[m.id]) : m; });
+    // per-member edits + renewals live in member-overrides; member-removed hides
+    // a member (seed members can't be spliced from the array, so removal is a filter).
+    return out.filter(function (m) { return !isRemoved(m.id); })
+      .map(function (m) { return ov[m.id] ? Object.assign({}, m, ov[m.id]) : m; });
   };
 
   /* Merged staff/coach roster shared by Attendance: seed staff + coaches
