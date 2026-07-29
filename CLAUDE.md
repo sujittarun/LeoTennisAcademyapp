@@ -47,7 +47,7 @@ Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricke
   SDK). Org "Academy Manager" · project "Leo Academy" (ref ugsklcipzyiogxynshnh,
   the renamed ex-Suhas project; anon key in-file is public by design).
   Multi-tenant: every row carries tenant_id ("leo"); schema in
-  supabase/schema.sql (run via dashboard SQL editor). Fails SOFT — if tables
+  AcademyManager/supabase/schema.sql (platform repo). Fails SOFT — if tables
   are missing or offline, pages run on LT.store exactly as before. Wired:
   booking.html (availability merge + insert + track), bookings.html (ledger
   merge + insert + confirm patch), fees.html (reminders_log), all pages

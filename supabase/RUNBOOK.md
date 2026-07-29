@@ -48,10 +48,10 @@ pg_restore --no-owner --no-privileges -d "$SUPABASE_DB_URL" db.dump
 
 Bad migrations are the #1 self-inflicted outage. Every schema change:
 
-1. **Back up first:** `scripts/migrate.sh <file.sql>` snapshots the schema before applying.
+1. **Dry run first:** `../AcademyManager/scripts/migrate.sh --dry-run --scope leo <file.sql>` executes it against the live schema in a transaction, then rolls back.
 2. **Test on a branch DB** (Pro): Dashboard → Branches → create a branch, apply there, verify, then apply to prod. (Free tier: apply to a throwaway project first.)
 3. **Transactional DDL:** wrap changes in `begin; … commit;` so a failure rolls back clean.
-4. **Record it:** every migration lands in `supabase/schema.sql` with a `-- migration N` header (running record).
+4. **Recording is automatic:** the runner writes to the `schema_migrations` ledger in the same transaction. The base schema now lives at `AcademyManager/supabase/schema.sql`.
 5. **RLS changes get a matrix test** — re-run the anon/staff/operator read+write checks before trusting a policy change.
 
 ---
