@@ -2,7 +2,7 @@
 
 Multi-page vanilla web app (no build step) for Leo Tennis Academy Hyderabad
 (Instagram @leotennishyd). Repo: https://github.com/sujittarun/LeoTennisAcademyapp
-Sibling project: `/Users/jiths/Documents/New project/genalpha-glass-web` (cricket, light-first).
+Sibling project: `/Users/jiths/Documents/Academy Manager Business/GenAlphaApp/genalpha-glass-web` (cricket, light-first).
 
 ## Product rules (IMPORTANT — do not regress)
 - UI brand name is "Leo Academy" (user's choice); the real business is Leo
