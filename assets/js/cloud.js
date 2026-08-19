@@ -24,6 +24,22 @@
   var STRICT_AUTH = true; // real sign-in required (dummy users provisioned 2026-07-04)
   var SESSION_KEY = "lt-cloud-session";
 
+  /* ---------- who, as opposed to which tab ----------
+     A session id lives in sessionStorage and dies with the tab, so the
+     same person opening the app tomorrow reads as somebody new. This one
+     lives in localStorage, which is what lets "3 visits" mean one person
+     three times rather than three people once. It identifies a BROWSER:
+     no name, no phone, nothing derived from the account, and it goes when
+     the user clears site data. Null in private mode, which is fine — the
+     server falls back to its own reckoning. */
+  function vid() {
+    try {
+      var k = "lt-vid", v = localStorage.getItem(k);
+      if (!v) { v = "v_" + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(k, v); }
+      return v;
+    } catch (e) { return null; }
+  }
+
   /* ---------- session ---------- */
   function session() {
     try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; }
@@ -285,7 +301,8 @@
           (sid = Math.random().toString(36).slice(2), sessionStorage.setItem("lt-sid", sid), sid);
       } catch (e) { sid = null; }
       return durable("POST", "/events", {
-        tenant_id: TENANT, name: name, props: props || {},
+        tenant_id: TENANT, name: name,
+        props: Object.assign({ vid: vid() }, props || {}),
         session_id: sid, page: location.pathname.split("/").pop() || "index.html",
       });
     },
